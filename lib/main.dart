@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
-import 'package:booklet/ui/booklet_editor.dart';
-
+import 'package:booklet/ui/editor/booklet_editor/booklet_editor.dart';
+import 'package:booklet/ui/editor/options_dock/opitons_dock.dart';
 
 void main() {
   runApp(const MainApp());
@@ -17,8 +17,8 @@ class MainApp extends StatefulWidget {
 }
 
 class _MainAppState extends State<MainApp> {
-  
-  
+  final _optionsDockKey = GlobalKey<OptionsDockState>();
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -34,10 +34,36 @@ class _MainAppState extends State<MainApp> {
       home: Scaffold(
         backgroundColor: const Color(0xFFF3F6FF),
         body: SafeArea(
-          child: Center(
-            child: SizedBox(
-              width: 480,
-              child: BookletEditor(),
+          child: Actions(
+            actions: <Type, Action<Intent>>{
+              DismissIntent: CallbackAction<DismissIntent>(
+                onInvoke: (_) {
+                  _optionsDockKey.currentState?.dismissMenu();
+                  return null;
+                },
+              ),
+            },
+            child: Shortcuts(
+              shortcuts: const <ShortcutActivator, Intent>{
+                SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+              },
+              child: Stack(
+                children: [
+                  Center(
+                    child: SizedBox(
+                      width: 480,
+                      height: double.infinity,
+                      child: BookletEditor(),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: OptionsDock(
+                      key: _optionsDockKey,
+                      onComponentSelected: (_) {},
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

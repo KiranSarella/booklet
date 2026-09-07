@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:booklet/ui/editor/booklet_editor/booklet_editor_vm.dart';
 
+/// This is a re-usable component. independent of rest of the app.
+/// 
 class AutoHeightRichText extends StatelessWidget {
   const AutoHeightRichText({
     super.key,
-    required this.entry,
+    required this.component,
     required this.isSelected,
     required this.onSelect,
     required this.onCreateBelow,
   });
 
-  final RichTextEntry entry;
+  final BookletComponent component;
   final bool isSelected;
   final VoidCallback onSelect;
   final VoidCallback onCreateBelow;
@@ -24,28 +27,28 @@ class AutoHeightRichText extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // if (isSelected)
-          // Container(
-          //   margin: const EdgeInsets.only(bottom: 8),
-          //   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          //   decoration: BoxDecoration(
-          //     color: Colors.white,
-          //     borderRadius: BorderRadius.circular(12),
-          //     border: Border.all(color: Colors.indigo.shade200),
-          //   ),
-          //   child: QuillSimpleToolbar(
-          //     controller: entry.controller,
-          //     config: const QuillSimpleToolbarConfig(
-          //       showBoldButton: true,
-          //       showItalicButton: true,
-          //       showColorButton: true,
-          //       showBackgroundColorButton: true,
-          //       showClearFormat: true,
-          //       showUndo: true,
-          //       showRedo: true,
-          //       multiRowsDisplay: false,
-          //     ),
-          //   ),
-          // ),
+        // Container(
+        //   margin: const EdgeInsets.only(bottom: 8),
+        //   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        //   decoration: BoxDecoration(
+        //     color: Colors.white,
+        //     borderRadius: BorderRadius.circular(12),
+        //     border: Border.all(color: Colors.indigo.shade200),
+        //   ),
+        //   child: QuillSimpleToolbar(
+        //     controller: entry.controller,
+        //     config: const QuillSimpleToolbarConfig(
+        //       showBoldButton: true,
+        //       showItalicButton: true,
+        //       showColorButton: true,
+        //       showBackgroundColorButton: true,
+        //       showClearFormat: true,
+        //       showUndo: true,
+        //       showRedo: true,
+        //       multiRowsDisplay: false,
+        //     ),
+        //   ),
+        // ),
         GestureDetector(
           onTap: onSelect,
           child: Container(
@@ -70,7 +73,8 @@ class AutoHeightRichText extends StatelessWidget {
               constraints: const BoxConstraints(minHeight: 54),
               child: Shortcuts(
                 shortcuts: const {
-                  SingleActivator(LogicalKeyboardKey.enter): _CreateBelowIntent(),
+                  SingleActivator(LogicalKeyboardKey.enter):
+                      _CreateBelowIntent(),
                 },
                 child: Actions(
                   actions: {
@@ -90,11 +94,14 @@ class AutoHeightRichText extends StatelessWidget {
                       }
                     },
                     child: QuillEditor.basic(
-                      controller: entry.controller,
-                      focusNode: entry.focusNode,
+                      controller: component.controller,
+                      focusNode: component.focusNode,
                       config: const QuillEditorConfig(
                         scrollable: false,
-                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         expands: false,
                         textInputAction: TextInputAction.newline,
                       ),
@@ -105,26 +112,18 @@ class AutoHeightRichText extends StatelessWidget {
             ),
           ),
         ),
-        if (isSelected)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: onCreateBelow,
-              icon: const Icon(Icons.add_circle_outline, size: 18),
-              label: const Text('Add below'),
-            ),
-          ),
+        // if (isSelected)
+        //   Align(
+        //     alignment: Alignment.centerRight,
+        //     child: TextButton.icon(
+        //       onPressed: onCreateBelow,
+        //       icon: const Icon(Icons.add_circle_outline, size: 18),
+        //       label: const Text('Add below'),
+        //     ),
+        //   ),
       ],
     );
   }
-}
-
-
-class RichTextEntry {
-  RichTextEntry() : controller = QuillController.basic();
-
-  final QuillController controller;
-  final FocusNode focusNode = FocusNode();
 }
 
 class _CreateBelowIntent extends Intent {

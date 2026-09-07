@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:booklet/ui/helpers_ui/autoheight_richtext.dart';
-
-
+import 'package:booklet/ui/editor/booklet_editor/booklet_editor_vm.dart';
 
 class BookletEditor extends StatefulWidget {
   const BookletEditor({super.key});
@@ -12,20 +11,18 @@ class BookletEditor extends StatefulWidget {
 
 class _BookletEditorState extends State<BookletEditor> {
   final ScrollController _scrollController = ScrollController();
-  final List<RichTextEntry> _entries = [RichTextEntry()];
-  int _selectedIndex = 0;
+  final BookletEditorViewModel _viewModel = BookletEditorViewModel();
 
   void _selectIndex(int index) {
     debugPrint('selected index: $index');
-    setState(() => _selectedIndex = index);
+    setState(() => _viewModel.selectComponent(index));
   }
 
   void _createEntryBelow(int index) {
-    final newEntry = RichTextEntry();
+    late final BookletComponent newComponent;
 
     setState(() {
-      _entries.insert(index + 1, newEntry);
-      _selectedIndex = index + 1;
+      newComponent = _viewModel.createComponentBelow(index);
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -37,17 +34,14 @@ class _BookletEditorState extends State<BookletEditor> {
         );
       }
 
-      FocusScope.of(context).requestFocus(newEntry.focusNode);
+      FocusScope.of(context).requestFocus(newComponent.focusNode);
     });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
-    for (final entry in _entries) {
-      entry.controller.dispose();
-      entry.focusNode.dispose();
-    }
+    _viewModel.dispose();
     super.dispose();
   }
 
@@ -56,15 +50,15 @@ class _BookletEditorState extends State<BookletEditor> {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(20),
-      itemCount: _entries.length,
+      itemCount: _viewModel.components.length,
       itemBuilder: (context, index) {
-        final entry = _entries[index];
-        final isSelected = _selectedIndex == index;
-    
+        final component = _viewModel.components[index];
+        final isSelected = _viewModel.selectedComponent == component;
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: AutoHeightRichText(
-            entry: entry,
+            component: component,
             isSelected: isSelected,
             onSelect: () => _selectIndex(index),
             onCreateBelow: () => _createEntryBelow(index),
