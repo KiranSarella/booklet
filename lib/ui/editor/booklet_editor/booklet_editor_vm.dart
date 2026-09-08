@@ -1,18 +1,43 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
+import 'package:booklet/ui/editor/components/components.dart';
 
-class BookletComponent {
-  BookletComponent() : controller = QuillController.basic();
+class BookletEditorViewModel {
+  final List<ComponentBox> components = [
+    ComponentBox(componentInfo: ComponentInfo(renderer: TitleComponent())),
+    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
+    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
+    ComponentBox(componentInfo: ComponentInfo(renderer: HeadingComponent())),
+    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
+    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
+    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
+    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
+    ComponentBox(componentInfo: ComponentInfo(renderer: HeadingComponent())),
+    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
+  ];
+  int _selectedIndex = 0;
 
-  final QuillController controller;
-  final FocusNode focusNode = FocusNode();
+  ComponentBox get selectedComponent => components[_selectedIndex];
+
+  void selectComponent(int index) {
+    _selectedIndex = index;
+  }
+
+  ComponentBox createComponentBelow(int index) {
+    final component = ComponentBox(
+      componentInfo: ComponentInfo(renderer: TextComponent()),
+    );
+    components.insert(index + 1, component);
+    _selectedIndex = index + 1;
+    return component;
+  }
 
   void dispose() {
-    controller.dispose();
-    focusNode.dispose();
+    for (final component in components) {
+      component.dispose();
+    }
   }
 }
 
+/*
 class BookletEditorViewModel {
   final List<BookletComponent> components = [BookletComponent()];
   int _selectedIndex = 0;
@@ -36,3 +61,5 @@ class BookletEditorViewModel {
     }
   }
 }
+
+*/

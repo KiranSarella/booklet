@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
-import 'package:booklet/ui/editor/booklet_editor/booklet_editor_vm.dart';
+import 'package:booklet/ui/editor/components/booklet_component.dart';
+
+/*
+isEditable
+textStyle - font, size, textcolor, font weight, 
+
+*/
 
 /// This is a re-usable component. independent of rest of the app.
-/// 
+///
 class AutoHeightRichText extends StatelessWidget {
   const AutoHeightRichText({
     super.key,
@@ -104,6 +110,7 @@ class AutoHeightRichText extends StatelessWidget {
                         ),
                         expands: false,
                         textInputAction: TextInputAction.newline,
+                        customStyles: DefaultStyles(color: Colors.purple),
                       ),
                     ),
                   ),
@@ -128,4 +135,108 @@ class AutoHeightRichText extends StatelessWidget {
 
 class _CreateBelowIntent extends Intent {
   const _CreateBelowIntent();
+}
+
+class AutoHeightRichText2 extends StatelessWidget {
+  const AutoHeightRichText2({
+    super.key,
+    required this.component,
+    required this.isSelected,
+    required this.onSelect,
+    required this.onCreateBelow,
+    required this.textStyle,
+  });
+
+  final BookletComponent component;
+  final bool isSelected;
+  final VoidCallback onSelect;
+  final VoidCallback onCreateBelow;
+  final TextStyle textStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = isSelected ? Colors.indigo : Colors.transparent;
+
+    final defaultStyles = DefaultStyles(
+      paragraph: DefaultTextBlockStyle(
+        textStyle,
+        HorizontalSpacing.zero,
+        VerticalSpacing.zero,
+        VerticalSpacing.zero,
+        null,
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GestureDetector(
+          onTap: onSelect,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: borderColor,
+                width: isSelected ? 1.8 : 0,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: Colors.indigo.withValues(alpha: 0.12),
+                        blurRadius: 12,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 54),
+              child: Shortcuts(
+                shortcuts: const {
+                  SingleActivator(LogicalKeyboardKey.enter):
+                      _CreateBelowIntent(),
+                },
+                child: Actions(
+                  actions: {
+                    _CreateBelowIntent: CallbackAction<_CreateBelowIntent>(
+                      onInvoke: (_) {
+                        if (isSelected) {
+                          onCreateBelow();
+                        }
+                        return null;
+                      },
+                    ),
+                  },
+                  child: Focus(
+                    onFocusChange: (hasFocus) {
+                      if (hasFocus) {
+                        onSelect();
+                      }
+                    },
+                    child: QuillEditor.basic(
+                      controller: component.controller,
+                      focusNode: component.focusNode,
+                      config: QuillEditorConfig(
+                        scrollable: false,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        expands: false,
+                        textInputAction: TextInputAction.newline,
+                        customStyles: defaultStyles,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // ),
+      ],
+    );
+  }
 }
