@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:booklet/ui/editor/booklet_editor/booklet_editor_vm.dart';
+import 'package:booklet/ui/editor/components/components.dart';
 
 class BookletEditor extends StatefulWidget {
   const BookletEditor({super.key});
 
   @override
-  State<BookletEditor> createState() => _BookletEditorState();
+  State<BookletEditor> createState() => BookletEditorState();
 }
 
-class _BookletEditorState extends State<BookletEditor> {
+class BookletEditorState extends State<BookletEditor> {
   final ScrollController _scrollController = ScrollController();
   final BookletEditorViewModel _viewModel = BookletEditorViewModel();
 
@@ -18,21 +19,42 @@ class _BookletEditorState extends State<BookletEditor> {
   }
 
   void _createEntryBelow(int index) {
+    late final ComponentBox newComponent;
     setState(() {
-      _viewModel.createComponentBelow(index);
+      newComponent = _viewModel.createComponentBelow(index);
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-        );
-      }
-
-      // FocusScope.of(context).requestFocus(newComponent.focusNode);
+      _scrollToComponent(newComponent);
     });
+  }
+
+  void addComponentBelowSelected(String type) {
+    final selectedIndex = _viewModel.components.indexOf(
+      _viewModel.selectedComponent,
+    );
+    late final ComponentBox newComponent;
+    setState(() {
+      newComponent = _viewModel.createComponentBelowType(selectedIndex, type);
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToComponent(newComponent);
+    });
+  }
+
+  void _scrollToComponent(ComponentBox component) {
+    final componentContext = component.componentKey.currentContext;
+    if (componentContext == null) {
+      return;
+    }
+
+    Scrollable.ensureVisible(
+      componentContext,
+      alignment: 0.5,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -53,6 +75,7 @@ class _BookletEditorState extends State<BookletEditor> {
         final isSelected = _viewModel.selectedComponent == component;
 
         return Padding(
+          key: component.componentKey,
           padding: const EdgeInsets.only(bottom: 12),
           child: component.createUI(
             isSelected: isSelected,

@@ -18,6 +18,7 @@ class MainApp extends StatefulWidget {
 
 class _MainAppState extends State<MainApp> {
   final _optionsDockKey = GlobalKey<OptionsDockState>();
+  final _bookletEditorKey = GlobalKey<BookletEditorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -53,13 +54,16 @@ class _MainAppState extends State<MainApp> {
                     child: SizedBox(
                       width: 480,
                       height: double.infinity,
-                      child: BookletEditor(),
+                      child: BookletEditor(key: _bookletEditorKey),
                     ),
                   ),
                   Positioned.fill(
                     child: OptionsDock(
                       key: _optionsDockKey,
-                      onComponentSelected: (_) {},
+                      onComponentSelected: (type) {
+                        _bookletEditorKey.currentState
+                            ?.addComponentBelowSelected(type);
+                      },
                     ),
                   ),
                 ],

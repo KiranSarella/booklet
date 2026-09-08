@@ -22,8 +22,12 @@ class BookletEditorViewModel {
   }
 
   ComponentBox createComponentBelow(int index) {
+    return createComponentBelowType(index, 'Text');
+  }
+
+  ComponentBox createComponentBelowType(int index, String type) {
     final component = ComponentBox(
-      componentInfo: ComponentInfo(renderer: TextComponent()),
+      componentInfo: ComponentInfo(renderer: ComponentRenderer.fromType(type)),
     );
     components.insert(index + 1, component);
     _selectedIndex = index + 1;
