@@ -3,38 +3,30 @@ import 'package:flutter/material.dart';
 class EditorTheme extends ChangeNotifier {
   EditorTheme({
     Color? titleColor,
-    Color? heading1Color,
-    Color? heading2Color,
-    Color? subheading1Color,
-    Color? subheading2Color,
-    Color? subheading3Color,
+    Color? headingColor,
+    Color? subheadingColor,
     Color? textColor,
+    this.baseFontSize = 14,
   }) : titleColor = titleColor ?? const Color(0xFF0E0000),
-       heading1Color = heading1Color ?? const Color(0xFF081CFE),
-       heading2Color = heading2Color ?? const Color(0xFF081CFE),
-       subheading1Color = subheading1Color ?? const Color(0xFF05E0B1),
-       subheading2Color = subheading2Color ?? const Color(0xFFFCDB04),
-       subheading3Color = subheading3Color ?? const Color(0xFFF88010),
+       headingColor = headingColor ?? const Color(0xFF081CFE),
+       subheadingColor = subheadingColor ?? const Color(0xFF05E0B1),
        textColor = textColor ?? const Color(0xFF000800);
 
   Color titleColor;
-  Color heading1Color;
-  Color heading2Color;
-  Color subheading1Color;
-  Color subheading2Color;
-  Color subheading3Color;
+  Color headingColor;
+  Color subheadingColor;
   Color textColor;
+  double baseFontSize;
 
   void updateTitleColor(Color color) => _update(() => titleColor = color);
-  void updateHeading1Color(Color color) => _update(() => heading1Color = color);
-  void updateHeading2Color(Color color) => _update(() => heading2Color = color);
-  void updateSubheading1Color(Color color) =>
-      _update(() => subheading1Color = color);
-  void updateSubheading2Color(Color color) =>
-      _update(() => subheading2Color = color);
-  void updateSubheading3Color(Color color) =>
-      _update(() => subheading3Color = color);
+  void updateHeadingColor(Color color) => _update(() => headingColor = color);
+  void updateSubheadingColor(Color color) =>
+      _update(() => subheadingColor = color);
   void updateTextColor(Color color) => _update(() => textColor = color);
+    void increaseFontSize() => _update(() => baseFontSize += 2);
+    void decreaseFontSize() => _update(() => baseFontSize = baseFontSize > 2
+      ? baseFontSize - 2
+      : baseFontSize);
 
   void _update(VoidCallback update) {
     update();
@@ -65,34 +57,39 @@ class EditorThemeDialog extends StatelessWidget {
                   onChanged: editorTheme.updateTitleColor,
                 ),
                 _ThemeColorRow(
-                  label: 'Heading 1',
-                  color: editorTheme.heading1Color,
-                  onChanged: editorTheme.updateHeading1Color,
+                  label: 'Heading',
+                  color: editorTheme.headingColor,
+                  onChanged: editorTheme.updateHeadingColor,
                 ),
                 _ThemeColorRow(
-                  label: 'Heading 2',
-                  color: editorTheme.heading2Color,
-                  onChanged: editorTheme.updateHeading2Color,
-                ),
-                _ThemeColorRow(
-                  label: 'Subheading 1',
-                  color: editorTheme.subheading1Color,
-                  onChanged: editorTheme.updateSubheading1Color,
-                ),
-                _ThemeColorRow(
-                  label: 'Subheading 2',
-                  color: editorTheme.subheading2Color,
-                  onChanged: editorTheme.updateSubheading2Color,
-                ),
-                _ThemeColorRow(
-                  label: 'Subheading 3',
-                  color: editorTheme.subheading3Color,
-                  onChanged: editorTheme.updateSubheading3Color,
+                  label: 'Subheading',
+                  color: editorTheme.subheadingColor,
+                  onChanged: editorTheme.updateSubheadingColor,
                 ),
                 _ThemeColorRow(
                   label: 'Text',
                   color: editorTheme.textColor,
                   onChanged: editorTheme.updateTextColor,
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Base font size'),
+                  subtitle: Text('${editorTheme.baseFontSize.toInt()} px'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Decrease font size',
+                        onPressed: editorTheme.decreaseFontSize,
+                        icon: const Icon(Icons.remove),
+                      ),
+                      IconButton(
+                        tooltip: 'Increase font size',
+                        onPressed: editorTheme.increaseFontSize,
+                        icon: const Icon(Icons.add),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -2,9 +2,18 @@ import 'package:booklet/ui/editor/options_dock/add_component_menu.dart';
 import 'package:flutter/material.dart';
 
 class OptionsDock extends StatefulWidget {
-  const OptionsDock({super.key, required this.onComponentSelected});
+  const OptionsDock({
+    super.key,
+    required this.onComponentSelected,
+    required this.onComponentTransformed,
+    required this.onComponentDeleted,
+    required this.hasSelection,
+  });
 
   final ValueChanged<String> onComponentSelected;
+  final ValueChanged<String> onComponentTransformed;
+  final VoidCallback onComponentDeleted;
+  final bool hasSelection;
 
   @override
   State<OptionsDock> createState() => OptionsDockState();
@@ -42,7 +51,11 @@ class OptionsDockState extends State<OptionsDock> {
             child: AddComponentMenu(
               title: _openMenu == 'add' ? 'Components' : 'Transform to',
               onSelected: (component) {
-                widget.onComponentSelected(component);
+                if (_openMenu == 'add') {
+                  widget.onComponentSelected(component);
+                } else {
+                  widget.onComponentTransformed(component);
+                }
                 dismissMenu();
               },
             ),
@@ -65,14 +78,23 @@ class OptionsDockState extends State<OptionsDock> {
                 icon: Icons.swap_horiz,
                 color: Colors.amber.shade700,
                 tooltip: 'Transform component',
-                onPressed: () => _toggleMenu('transform'),
+                onPressed: widget.hasSelection
+                    ? () => _toggleMenu('transform')
+                    : null,
+                enabled: widget.hasSelection,
               ),
               const SizedBox(height: 80),
               _DockButton(
                 icon: Icons.delete_outline,
                 color: Colors.red,
                 tooltip: 'Delete component',
-                onPressed: dismissMenu,
+                onPressed: widget.hasSelection
+                    ? () {
+                        widget.onComponentDeleted();
+                        dismissMenu();
+                      }
+                  : null,
+                enabled: widget.hasSelection,
               ),
               const SizedBox(height: 80),
               _DockButton(
@@ -96,13 +118,15 @@ class _DockButton extends StatelessWidget {
     required this.color,
     required this.tooltip,
     required this.onPressed,
+    this.enabled = true,
     this.height = 44,
   });
 
   final IconData icon;
   final Color color;
   final String tooltip;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final bool enabled;
   final double height;
 
   @override
@@ -110,15 +134,19 @@ class _DockButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: const Color(0xFFEDEDED),
+        color: enabled ? const Color(0xFFEDEDED) : const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
-          onTap: onPressed,
+          onTap: enabled ? onPressed : null,
           borderRadius: BorderRadius.circular(12),
           child: SizedBox(
             width: 52,
             height: height,
-            child: Icon(icon, color: color, size: 22),
+            child: Icon(
+              icon,
+              color: enabled ? color : Colors.grey.shade400,
+              size: 22,
+            ),
           ),
         ),
       ),

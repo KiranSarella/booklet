@@ -22,6 +22,7 @@ class _MainAppState extends State<MainApp> {
   final _optionsDockKey = GlobalKey<OptionsDockState>();
   final _bookletEditorKey = GlobalKey<BookletEditorState>();
   final EditorTheme _editorTheme = EditorTheme();
+  bool _hasSelection = false;
 
   @override
   void dispose() {
@@ -80,6 +81,9 @@ class _MainAppState extends State<MainApp> {
                       child: BookletEditor(
                         key: _bookletEditorKey,
                         editorTheme: _editorTheme,
+                        onSelectionChanged: (hasSelection) {
+                          setState(() => _hasSelection = hasSelection);
+                        },
                       ),
                     ),
                   ),
@@ -90,6 +94,15 @@ class _MainAppState extends State<MainApp> {
                         _bookletEditorKey.currentState
                             ?.addComponentBelowSelected(type);
                       },
+                      onComponentTransformed: (type) {
+                        _bookletEditorKey.currentState
+                            ?.transformSelectedComponent(type);
+                      },
+                      onComponentDeleted: () {
+                        _bookletEditorKey.currentState
+                            ?.deleteSelectedComponent();
+                      },
+                      hasSelection: _hasSelection,
                     ),
                   ),
                   Positioned(

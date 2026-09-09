@@ -38,9 +38,15 @@ class BookletEditorViewModel {
 
   final EditorTheme theme;
   final List<ComponentBox> components;
-  int _selectedIndex = 0;
+  int? _selectedIndex;
 
-  ComponentBox get selectedComponent => components[_selectedIndex];
+  ComponentBox? get selectedComponent {
+    final selectedIndex = _selectedIndex;
+    if (selectedIndex == null || selectedIndex >= components.length) {
+      return null;
+    }
+    return components[selectedIndex];
+  }
 
   void selectComponent(int index) {
     _selectedIndex = index;
@@ -59,6 +65,25 @@ class BookletEditorViewModel {
     components.insert(index + 1, component);
     _selectedIndex = index + 1;
     return component;
+  }
+
+  void deleteSelectedComponent() {
+    final selectedIndex = _selectedIndex;
+    if (selectedIndex == null) {
+      return;
+    }
+
+    components.removeAt(selectedIndex).dispose();
+    _selectedIndex = null;
+  }
+
+  void transformSelectedComponent(String type) {
+    final selected = selectedComponent;
+    if (selected == null) {
+      return;
+    }
+
+    selected.componentInfo.renderer = ComponentRenderer.fromType(type, theme);
   }
 
   void dispose() {

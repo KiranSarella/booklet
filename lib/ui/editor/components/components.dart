@@ -44,6 +44,8 @@ abstract class ComponentRenderer {
 abstract class RichTextComponentRenderer implements ComponentRenderer {
   RichTextComponentRenderer(this.name, this.theme);
 
+  double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+
   @override
   final String name;
   final EditorTheme theme;
@@ -62,8 +64,14 @@ abstract class RichTextComponentRenderer implements ComponentRenderer {
       onSelect: onSelect,
       onCreateBelow: onCreateBelow,
       textStyle: textStyle,
+      editorPadding: editorPadding,
     );
   }
+
+  EdgeInsets get editorPadding => const EdgeInsets.symmetric(
+    horizontal: 14,
+    vertical: 12,
+  );
 }
 
 class TitleComponent extends RichTextComponentRenderer {
@@ -71,7 +79,7 @@ class TitleComponent extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 38,
+    fontSize: fontSizePercent(271),
     fontWeight: FontWeight.w800,
     color: theme.titleColor,
     height: 1.4,
@@ -83,9 +91,9 @@ class Heading1Component extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 28,
+    fontSize: fontSizePercent(214),
     fontWeight: FontWeight.w800,
-    color: theme.heading1Color,
+    color: theme.headingColor,
   );
 }
 
@@ -94,9 +102,9 @@ class Heading2Component extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.w600,
-    color: theme.heading2Color,
+    fontSize: fontSizePercent(171),
+    fontWeight: FontWeight.w800,
+    color: theme.headingColor,
   );
 }
 
@@ -109,9 +117,9 @@ class Subheading1Component extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 19,
+    fontSize: fontSizePercent(157),
     fontWeight: FontWeight.w700,
-    color: theme.subheading1Color,
+    color: theme.subheadingColor,
   );
 }
 
@@ -120,9 +128,9 @@ class Subheading2Component extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 17,
+    fontSize: fontSizePercent(129),
     fontWeight: FontWeight.w700,
-    color: theme.subheading2Color,
+    color: theme.subheadingColor,
   );
 }
 
@@ -131,9 +139,9 @@ class Subheading3Component extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 16,
+    fontSize: fontSizePercent(114),
     fontWeight: FontWeight.w700,
-    color: theme.subheading3Color,
+    color: theme.subheadingColor,
   );
 }
 
@@ -142,7 +150,7 @@ class SubtitleComponent extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 22,
+    fontSize: fontSizePercent(157),
     height: 1.2,
     color: theme.textColor,
     fontStyle: .italic,
@@ -155,7 +163,7 @@ class LabelComponent extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 15,
+    fontSize: fontSizePercent(107),
     fontWeight: FontWeight.w600,
     color: theme.textColor,
   );
@@ -166,7 +174,7 @@ class TextComponent extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 14,
+    fontSize: fontSizePercent(100),
     fontWeight: FontWeight.w300,
     color: theme.textColor,
   );
@@ -176,21 +184,24 @@ class DashedListComponent extends RichTextComponentRenderer {
   DashedListComponent(EditorTheme theme) : super('- Dashed List', theme);
 
   @override
-  TextStyle get textStyle => TextStyle(fontSize: 14, color: theme.textColor);
+  TextStyle get textStyle =>
+      TextStyle(fontSize: fontSizePercent(100), color: theme.textColor);
 }
 
 class NumberedListComponent extends RichTextComponentRenderer {
   NumberedListComponent(EditorTheme theme) : super('1. Numbered List', theme);
 
   @override
-  TextStyle get textStyle => TextStyle(fontSize: 14, color: theme.textColor);
+  TextStyle get textStyle =>
+      TextStyle(fontSize: fontSizePercent(100), color: theme.textColor);
 }
 
 class ChecklistComponent extends RichTextComponentRenderer {
   ChecklistComponent(EditorTheme theme) : super('🗸 Checklist', theme);
 
   @override
-  TextStyle get textStyle => TextStyle(fontSize: 14, color: theme.textColor);
+  TextStyle get textStyle =>
+      TextStyle(fontSize: fontSizePercent(100), color: theme.textColor);
 }
 
 class FocusComponent extends RichTextComponentRenderer {
@@ -198,7 +209,7 @@ class FocusComponent extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 14,
+    fontSize: fontSizePercent(100),
     fontWeight: FontWeight.w500,
     color: theme.textColor,
   );
@@ -208,10 +219,15 @@ class BlockTextComponent extends RichTextComponentRenderer {
   BlockTextComponent(EditorTheme theme) : super('Block Text', theme);
 
   @override
+  EdgeInsets get editorPadding => const EdgeInsets.symmetric(
+    horizontal: 40,
+    vertical: 12,
+  );
+
+  @override
   TextStyle get textStyle => TextStyle(
     fontFamily: 'Menlo',
     letterSpacing: 1.2,
-    height: 0.9,
     color: theme.textColor,
   );
 }
@@ -221,7 +237,7 @@ class LocationComponent extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 14,
+    fontSize: fontSizePercent(100),
     fontWeight: FontWeight.w500,
     color: theme.textColor,
   );
@@ -232,7 +248,7 @@ class CaptionComponent extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 12,
+    fontSize: fontSizePercent(86),
     fontWeight: FontWeight.w300,
     color: theme.textColor,
   );
@@ -243,7 +259,7 @@ class FootnoteComponent extends RichTextComponentRenderer {
 
   @override
   TextStyle get textStyle => TextStyle(
-    fontSize: 11,
+    fontSize: fontSizePercent(79),
     fontWeight: FontWeight.w200,
     color: theme.textColor,
   );
@@ -275,6 +291,6 @@ class ComponentBox {
 }
 
 class ComponentInfo {
-  const ComponentInfo({required this.renderer});
-  final ComponentRenderer renderer;
+  ComponentInfo({required this.renderer});
+  ComponentRenderer renderer;
 }

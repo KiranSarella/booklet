@@ -4,9 +4,14 @@ import 'package:booklet/ui/editor/components/components.dart';
 import 'package:booklet/ui/editor/editor_themes/editor_themes.dart';
 
 class BookletEditor extends StatefulWidget {
-  const BookletEditor({super.key, required this.editorTheme});
+  const BookletEditor({
+    super.key,
+    required this.editorTheme,
+    required this.onSelectionChanged,
+  });
 
   final EditorTheme editorTheme;
+  final ValueChanged<bool> onSelectionChanged;
 
   @override
   State<BookletEditor> createState() => BookletEditorState();
@@ -25,6 +30,7 @@ class BookletEditorState extends State<BookletEditor> {
   void _selectIndex(int index) {
     debugPrint('selected index: $index');
     setState(() => _viewModel.selectComponent(index));
+    widget.onSelectionChanged(true);
   }
 
   void _createEntryBelow(int index) {
@@ -39,9 +45,11 @@ class BookletEditorState extends State<BookletEditor> {
   }
 
   void addComponentBelowSelected(String type) {
-    final selectedIndex = _viewModel.components.indexOf(
-      _viewModel.selectedComponent,
-    );
+    final selectedComponent = _viewModel.selectedComponent;
+    if (selectedComponent == null) {
+      return;
+    }
+    final selectedIndex = _viewModel.components.indexOf(selectedComponent);
     late final ComponentBox newComponent;
     setState(() {
       newComponent = _viewModel.createComponentBelowType(selectedIndex, type);
@@ -50,6 +58,15 @@ class BookletEditorState extends State<BookletEditor> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToComponent(newComponent);
     });
+  }
+
+  void deleteSelectedComponent() {
+    setState(_viewModel.deleteSelectedComponent);
+    widget.onSelectionChanged(false);
+  }
+
+  void transformSelectedComponent(String type) {
+    setState(() => _viewModel.transformSelectedComponent(type));
   }
 
   void _scrollToComponent(ComponentBox component) {

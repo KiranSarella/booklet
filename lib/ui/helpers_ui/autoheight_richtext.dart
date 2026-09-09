@@ -145,6 +145,10 @@ class AutoHeightRichText2 extends StatelessWidget {
     required this.onSelect,
     required this.onCreateBelow,
     required this.textStyle,
+    this.editorPadding = const EdgeInsets.symmetric(
+      horizontal: 14,
+      vertical: 12,
+    ),
   });
 
   final BookletComponent component;
@@ -152,6 +156,7 @@ class AutoHeightRichText2 extends StatelessWidget {
   final VoidCallback onSelect;
   final VoidCallback onCreateBelow;
   final TextStyle textStyle;
+  final EdgeInsets editorPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -219,10 +224,7 @@ class AutoHeightRichText2 extends StatelessWidget {
                       focusNode: component.focusNode,
                       config: QuillEditorConfig(
                         scrollable: false,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
+                        padding: editorPadding,
                         expands: false,
                         textInputAction: TextInputAction.newline,
                         customStyles: defaultStyles,
