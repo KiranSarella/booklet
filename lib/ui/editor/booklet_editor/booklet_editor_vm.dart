@@ -1,18 +1,43 @@
 import 'package:booklet/ui/editor/components/components.dart';
+import 'package:booklet/ui/editor/editor_themes/editor_themes.dart';
 
 class BookletEditorViewModel {
-  final List<ComponentBox> components = [
-    ComponentBox(componentInfo: ComponentInfo(renderer: TitleComponent())),
-    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
-    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
-    ComponentBox(componentInfo: ComponentInfo(renderer: HeadingComponent())),
-    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
-    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
-    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
-    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
-    ComponentBox(componentInfo: ComponentInfo(renderer: HeadingComponent())),
-    ComponentBox(componentInfo: ComponentInfo(renderer: TextComponent())),
-  ];
+  BookletEditorViewModel(this.theme)
+    : components = [
+        ComponentBox(
+          componentInfo: ComponentInfo(renderer: TitleComponent(theme)),
+        ),
+        ComponentBox(
+          componentInfo: ComponentInfo(renderer: TextComponent(theme)),
+        ),
+        ComponentBox(
+          componentInfo: ComponentInfo(renderer: TextComponent(theme)),
+        ),
+        ComponentBox(
+          componentInfo: ComponentInfo(renderer: HeadingComponent(theme)),
+        ),
+        ComponentBox(
+          componentInfo: ComponentInfo(renderer: TextComponent(theme)),
+        ),
+        ComponentBox(
+          componentInfo: ComponentInfo(renderer: TextComponent(theme)),
+        ),
+        ComponentBox(
+          componentInfo: ComponentInfo(renderer: TextComponent(theme)),
+        ),
+        ComponentBox(
+          componentInfo: ComponentInfo(renderer: TextComponent(theme)),
+        ),
+        ComponentBox(
+          componentInfo: ComponentInfo(renderer: HeadingComponent(theme)),
+        ),
+        ComponentBox(
+          componentInfo: ComponentInfo(renderer: TextComponent(theme)),
+        ),
+      ];
+
+  final EditorTheme theme;
+  final List<ComponentBox> components;
   int _selectedIndex = 0;
 
   ComponentBox get selectedComponent => components[_selectedIndex];
@@ -27,7 +52,9 @@ class BookletEditorViewModel {
 
   ComponentBox createComponentBelowType(int index, String type) {
     final component = ComponentBox(
-      componentInfo: ComponentInfo(renderer: ComponentRenderer.fromType(type)),
+      componentInfo: ComponentInfo(
+        renderer: ComponentRenderer.fromType(type, theme),
+      ),
     );
     components.insert(index + 1, component);
     _selectedIndex = index + 1;

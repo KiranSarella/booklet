@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:booklet/ui/editor/booklet_editor/booklet_editor_vm.dart';
 import 'package:booklet/ui/editor/components/components.dart';
+import 'package:booklet/ui/editor/editor_themes/editor_themes.dart';
 
 class BookletEditor extends StatefulWidget {
-  const BookletEditor({super.key});
+  const BookletEditor({super.key, required this.editorTheme});
+
+  final EditorTheme editorTheme;
 
   @override
   State<BookletEditor> createState() => BookletEditorState();
@@ -11,7 +14,13 @@ class BookletEditor extends StatefulWidget {
 
 class BookletEditorState extends State<BookletEditor> {
   final ScrollController _scrollController = ScrollController();
-  final BookletEditorViewModel _viewModel = BookletEditorViewModel();
+  late final BookletEditorViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = BookletEditorViewModel(widget.editorTheme);
+  }
 
   void _selectIndex(int index) {
     debugPrint('selected index: $index');
@@ -66,24 +75,27 @@ class BookletEditorState extends State<BookletEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(20),
-      itemCount: _viewModel.components.length,
-      itemBuilder: (context, index) {
-        final component = _viewModel.components[index];
-        final isSelected = _viewModel.selectedComponent == component;
+    return ListenableBuilder(
+      listenable: widget.editorTheme,
+      builder: (context, _) => ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(20),
+        itemCount: _viewModel.components.length,
+        itemBuilder: (context, index) {
+          final component = _viewModel.components[index];
+          final isSelected = _viewModel.selectedComponent == component;
 
-        return Padding(
-          key: component.componentKey,
-          padding: const EdgeInsets.only(bottom: 12),
-          child: component.createUI(
-            isSelected: isSelected,
-            onSelect: () => _selectIndex(index),
-            onCreateBelow: () => _createEntryBelow(index),
-          ),
-        );
-      },
+          return Padding(
+            key: component.componentKey,
+            padding: const EdgeInsets.only(bottom: 6),
+            child: component.createUI(
+              isSelected: isSelected,
+              onSelect: () => _selectIndex(index),
+              onCreateBelow: () => _createEntryBelow(index),
+            ),
+          );
+        },
+      ),
     );
   }
 }
