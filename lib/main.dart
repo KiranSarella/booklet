@@ -76,7 +76,7 @@ class _MainAppState extends State<MainApp> {
                 children: [
                   Center(
                     child: SizedBox(
-                      width: 480,
+                      width: double.infinity,
                       height: double.infinity,
                       child: BookletEditor(
                         key: _bookletEditorKey,
