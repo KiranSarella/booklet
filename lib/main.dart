@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
-import 'package:booklet/ui/editor/booklet_editor/booklet_editor.dart';
-import 'package:booklet/ui/editor/editor_themes/editor_themes.dart';
-import 'package:booklet/ui/editor/options_dock/opitons_dock.dart';
+import 'package:booklet/ui/app/booklet_editor/booklet_editor.dart';
+import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
+import 'package:booklet/ui/app/options_dock/opitons_dock.dart';
 
 void main() {
   runApp(const MainApp());

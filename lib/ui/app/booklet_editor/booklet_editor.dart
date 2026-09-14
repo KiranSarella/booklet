@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:booklet/ui/editor/booklet_editor/booklet_editor_vm.dart';
-import 'package:booklet/ui/editor/components/components.dart';
-import 'package:booklet/ui/editor/editor_themes/editor_themes.dart';
-import 'package:booklet/ui/navigation/navigation.dart';
-import 'package:booklet/ui/navigation/navigation_models.dart';
+import 'package:booklet/ui/app/booklet_editor/booklet_editor_vm.dart';
+import 'package:booklet/ui/app/components/components.dart';
+import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
+import 'package:booklet/ui/app/navigation/navigation.dart';
+import 'package:booklet/ui/app/navigation/navigation_models.dart';
 
 class BookletEditor extends StatefulWidget {
   const BookletEditor({

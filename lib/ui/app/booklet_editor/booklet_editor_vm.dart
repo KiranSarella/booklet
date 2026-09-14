@@ -1,7 +1,7 @@
-import 'package:booklet/ui/editor/components/components.dart';
-import 'package:booklet/ui/editor/editor_themes/editor_themes.dart';
-import 'package:booklet/ui/navigation/navigation_controller.dart';
-import 'package:booklet/ui/navigation/navigation_models.dart';
+import 'package:booklet/ui/app/components/components.dart';
+import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
+import 'package:booklet/ui/app/navigation/navigation_controller.dart';
+import 'package:booklet/ui/app/navigation/navigation_models.dart';
 
 class PageContent {
   PageContent({

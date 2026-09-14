@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
-import 'package:booklet/ui/editor/components/booklet_component.dart';
+import 'package:booklet/ui/app/components/booklet_component.dart';
 
 /*
 isEditable

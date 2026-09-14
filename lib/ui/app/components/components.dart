@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:booklet/ui/helpers_ui/autoheight_richtext.dart';
-import 'package:booklet/ui/editor/components/booklet_component.dart';
-import 'package:booklet/ui/editor/editor_themes/editor_themes.dart';
+import 'package:booklet/ui/app/components/booklet_component.dart';
+import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
 abstract class ComponentRenderer {
