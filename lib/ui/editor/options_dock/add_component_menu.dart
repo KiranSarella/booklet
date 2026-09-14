@@ -27,8 +27,9 @@ class AddComponentMenu extends StatelessWidget {
     '- Dashed List',
     '1. Numbered List',
     '🗸 Checklist',
-    '|  Focus',
+    '┃ Focus',
     'Block Text',
+    '❝Quote❞'
     '📍 Location',
     'Caption',
     'Footnote',

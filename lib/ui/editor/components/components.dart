@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:booklet/ui/helpers_ui/autoheight_richtext.dart';
 import 'package:booklet/ui/editor/components/booklet_component.dart';
 import 'package:booklet/ui/editor/editor_themes/editor_themes.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 abstract class ComponentRenderer {
   String get name;
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
   Widget createUI({
     required BookletComponent component,
     required bool isSelected,
@@ -50,6 +52,8 @@ abstract class RichTextComponentRenderer implements ComponentRenderer {
   final String name;
   final EditorTheme theme;
   TextStyle get textStyle;
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   @override
   Widget createUI({
@@ -64,14 +68,13 @@ abstract class RichTextComponentRenderer implements ComponentRenderer {
       onSelect: onSelect,
       onCreateBelow: onCreateBelow,
       textStyle: textStyle,
+      alignment: alignment,
       editorPadding: editorPadding,
     );
   }
 
-  EdgeInsets get editorPadding => const EdgeInsets.symmetric(
-    horizontal: 14,
-    vertical: 12,
-  );
+  EdgeInsets get editorPadding =>
+      const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
 class TitleComponent extends RichTextComponentRenderer {
@@ -84,6 +87,9 @@ class TitleComponent extends RichTextComponentRenderer {
     color: theme.titleColor,
     height: 1.4,
   );
+
+  @override
+  Attribute<dynamic> get alignment => Attribute.centerAlignment;
 }
 
 class Heading1Component extends RichTextComponentRenderer {
@@ -154,8 +160,14 @@ class SubtitleComponent extends RichTextComponentRenderer {
     height: 1.2,
     color: theme.textColor,
     fontStyle: .italic,
-    fontWeight: .w500,
+    fontWeight: .w200,
+    letterSpacing: 0.2,
   );
+
+
+  @override
+  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+
 }
 
 class LabelComponent extends RichTextComponentRenderer {
@@ -219,10 +231,8 @@ class BlockTextComponent extends RichTextComponentRenderer {
   BlockTextComponent(EditorTheme theme) : super('Block Text', theme);
 
   @override
-  EdgeInsets get editorPadding => const EdgeInsets.symmetric(
-    horizontal: 40,
-    vertical: 12,
-  );
+  EdgeInsets get editorPadding =>
+      const EdgeInsets.symmetric(horizontal: 40, vertical: 12);
 
   @override
   TextStyle get textStyle => TextStyle(
@@ -266,7 +276,8 @@ class FootnoteComponent extends RichTextComponentRenderer {
 }
 
 class ComponentBox {
-  ComponentBox({required this.componentInfo}) : component = BookletComponent();
+  ComponentBox({required this.componentInfo})
+    : component = BookletComponent(componentInfo.renderer.alignment);
 
   final ComponentInfo componentInfo;
   final BookletComponent component;
