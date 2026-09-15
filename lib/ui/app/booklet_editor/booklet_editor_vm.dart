@@ -76,6 +76,11 @@ class BookletEditorViewModel {
     _selectedComponent = null;
   }
 
+  void selectNode(NavigationNode node) {
+    navigation.selectNode(node);
+    _selectedComponent = null;
+  }
+
   void selectComponent(ComponentBox component) {
     if (components.contains(component)) {
       _selectedComponent = component;
@@ -115,6 +120,31 @@ class BookletEditorViewModel {
 
   void addPageAboveSelected() {
     _addPage(PagePlacement.above);
+  }
+
+  void renameSelectedPage(String title) {
+    final selectedNode = navigation.selectedNode;
+    if (selectedNode == null) {
+      return;
+    }
+    final node = navigation.renameNode(selectedNode, title.trim());
+    final pageId = node?.pageId;
+    if (pageId != null) {
+      _pagesById[pageId]?.title = node!.title;
+    }
+  }
+
+  void deleteSelectedPage() {
+    final pageId = selectedPageId;
+    if (pageId == null) {
+      return;
+    }
+    final page = navigation.deletePage(pageId);
+    if (page == null) {
+      return;
+    }
+    _pagesById.remove(pageId)?.dispose();
+    _selectedComponent = null;
   }
 
   void _addPage(PagePlacement placement) {

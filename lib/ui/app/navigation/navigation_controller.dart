@@ -2,6 +2,7 @@ import 'navigation_models.dart';
 
 class NavigationController {
   final List<NavigationNode> groups = [];
+  NavigationNode? selectedNode;
   String? selectedPageId;
 
   NavigationNode addGroup({String title = 'New group'}) {
@@ -11,9 +12,47 @@ class NavigationController {
   }
 
   void selectPage(String pageId) {
-    if (_findNode((node) => node.pageId == pageId) != null) {
-      selectedPageId = pageId;
+    final page = _findNode((node) => node.pageId == pageId);
+    if (page != null) {
+      selectNode(page);
     }
+  }
+
+  void selectNode(NavigationNode node) {
+    if (_findNode((candidate) => candidate == node) == null) {
+      return;
+    }
+    selectedNode = node;
+    selectedPageId = node.pageId;
+  }
+
+  NavigationNode? renamePage(String pageId, String title) {
+    final page = _findNode((node) => node.pageId == pageId);
+    return page == null || page.isGroup ? null : renameNode(page, title);
+  }
+
+  NavigationNode? renameNode(NavigationNode node, String title) {
+    if (_findNode((candidate) => candidate == node) == null) {
+      return null;
+    }
+    node.title = title;
+    return node;
+  }
+
+  NavigationNode? deletePage(String pageId) {
+    final page = _findNode((node) => node.pageId == pageId);
+    if (page == null || page.isGroup) {
+      return null;
+    }
+
+    final siblings = _siblingsOf(page);
+    final index = siblings.indexOf(page);
+    siblings.removeAt(index);
+    selectedNode = siblings.isEmpty
+      ? null
+      : siblings[index.clamp(0, siblings.length - 1)];
+    selectedPageId = selectedNode?.pageId;
+    return page;
   }
 
   NavigationNode addPage({
@@ -24,7 +63,7 @@ class NavigationController {
   }) {
     final page = NavigationNode.page(title: title, pageId: pageId);
     final reference = referencePageId == null
-        ? _selectedNode()
+      ? selectedNode ?? _selectedNode()
         : _findNode((node) => node.pageId == referencePageId);
 
     if (reference == null || reference.isGroup) {
@@ -45,6 +84,7 @@ class NavigationController {
     }
 
     selectedPageId = pageId;
+    selectedNode = page;
     return page;
   }
 

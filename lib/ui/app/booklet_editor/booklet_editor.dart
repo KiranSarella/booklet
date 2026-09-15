@@ -35,11 +35,7 @@ class BookletEditorState extends State<BookletEditor> {
   }
 
   void selectPage(NavigationNode node) {
-    final pageId = node.pageId;
-    if (pageId == null) {
-      return;
-    }
-    setState(() => _viewModel.selectPage(pageId));
+    setState(() => _viewModel.selectNode(node));
     widget.onSelectionChanged(false);
   }
 
@@ -116,6 +112,10 @@ class BookletEditorState extends State<BookletEditor> {
             onAddPageBelow: () => setState(_viewModel.addPageBelowSelected),
             onAddChildPage: () => setState(_viewModel.addChildPageSelected),
             onAddPageAbove: () => setState(_viewModel.addPageAboveSelected),
+            onRenamePage: (title) => setState(
+              () => _viewModel.renameSelectedPage(title),
+            ),
+            onDeletePage: () => setState(_viewModel.deleteSelectedPage),
             onChanged: () => setState(() {}),
           ),
           Expanded(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'navigation_controller.dart';
 import 'navigation_models.dart';
@@ -12,6 +13,8 @@ class BookletNavigation extends StatefulWidget {
     required this.onAddPageBelow,
     required this.onAddChildPage,
     required this.onAddPageAbove,
+    required this.onRenamePage,
+    required this.onDeletePage,
     required this.onChanged,
   });
 
@@ -21,6 +24,8 @@ class BookletNavigation extends StatefulWidget {
   final VoidCallback onAddPageBelow;
   final VoidCallback onAddChildPage;
   final VoidCallback onAddPageAbove;
+  final ValueChanged<String> onRenamePage;
+  final VoidCallback onDeletePage;
   final VoidCallback onChanged;
 
   @override
@@ -28,6 +33,8 @@ class BookletNavigation extends StatefulWidget {
 }
 
 class _BookletNavigationState extends State<BookletNavigation> {
+  NavigationNode? _editingNode;
+
   void _runAction(_NavigationAction action) {
     switch (action) {
       case _NavigationAction.createGroup:
@@ -38,8 +45,25 @@ class _BookletNavigationState extends State<BookletNavigation> {
         widget.onAddChildPage();
       case _NavigationAction.addAbove:
         widget.onAddPageAbove();
+      case _NavigationAction.rename:
+        _startEditing();
+      case _NavigationAction.delete:
+        _editingNode = null;
+        widget.onDeletePage();
     }
     widget.onChanged();
+  }
+
+  void _startEditing() {
+    final selectedNode = widget.controller.selectedNode;
+    if (selectedNode != null) {
+      setState(() => _editingNode = selectedNode);
+    }
+  }
+
+  void _finishEditing(String title) {
+    widget.onRenamePage(title);
+    setState(() => _editingNode = null);
   }
 
   @override
@@ -61,7 +85,7 @@ class _BookletNavigationState extends State<BookletNavigation> {
                   ),
                 ),
                 PopupMenuButton<_NavigationAction>(
-                  tooltip: 'Add to navigation',
+                  tooltip: 'Navigation actions',
                   icon: const Icon(Icons.add, size: 20),
                   onSelected: _runAction,
                   itemBuilder: (context) => const [
@@ -97,6 +121,22 @@ class _BookletNavigationState extends State<BookletNavigation> {
                         contentPadding: EdgeInsets.zero,
                       ),
                     ),
+                    PopupMenuItem(
+                      value: _NavigationAction.rename,
+                      child: ListTile(
+                        leading: Icon(Icons.edit_outlined),
+                        title: Text('Rename item'),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: _NavigationAction.delete,
+                      child: ListTile(
+                        leading: Icon(Icons.delete_outline),
+                        title: Text('Delete page'),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -112,7 +152,11 @@ class _BookletNavigationState extends State<BookletNavigation> {
                     node: group,
                     depth: 0,
                     selectedPageId: widget.controller.selectedPageId,
+                    selectedNode: widget.controller.selectedNode,
                     onSelected: widget.onPageSelected,
+                    editingNode: _editingNode,
+                    onStartEditing: _startEditing,
+                    onRename: _finishEditing,
                     onChanged: () => setState(() {}),
                   ),
               ],
@@ -124,26 +168,99 @@ class _BookletNavigationState extends State<BookletNavigation> {
   }
 }
 
-class _NavigationBranch extends StatelessWidget {
+class _NavigationBranch extends StatefulWidget {
   const _NavigationBranch({
     required this.node,
     required this.depth,
     required this.selectedPageId,
+    required this.selectedNode,
     required this.onSelected,
+    required this.editingNode,
+    required this.onStartEditing,
+    required this.onRename,
     required this.onChanged,
   });
 
   final NavigationNode node;
   final int depth;
   final String? selectedPageId;
+  final NavigationNode? selectedNode;
   final ValueChanged<NavigationNode> onSelected;
+  final NavigationNode? editingNode;
+  final VoidCallback onStartEditing;
+  final ValueChanged<String> onRename;
   final VoidCallback onChanged;
 
   @override
+  State<_NavigationBranch> createState() => _NavigationBranchState();
+}
+
+class _NavigationBranchState extends State<_NavigationBranch> {
+  late final TextEditingController _titleController = TextEditingController(
+    text: widget.node.title,
+  );
+  final FocusNode _rowFocusNode = FocusNode();
+  final FocusNode _titleFocusNode = FocusNode();
+
+  bool get _isEditing => widget.editingNode == widget.node;
+
+  @override
+  void didUpdateWidget(covariant _NavigationBranch oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isEditing && oldWidget.node.title != widget.node.title) {
+      _titleController.text = widget.node.title;
+    }
+    if (_isEditing && oldWidget.editingNode != widget.editingNode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _titleFocusNode.requestFocus();
+          _titleController.selection = TextSelection(
+            baseOffset: 0,
+            extentOffset: _titleController.text.length,
+          );
+        }
+      });
+    }
+    if (widget.selectedNode == widget.node &&
+      oldWidget.selectedNode != widget.selectedNode &&
+        !_isEditing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _rowFocusNode.requestFocus();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _rowFocusNode.dispose();
+    _titleFocusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.enter &&
+        !_isEditing) {
+      widget.onStartEditing();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _submitTitle() {
+    final title = _titleController.text.trim();
+    widget.onRename(title.isEmpty ? widget.node.title : title);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final node = widget.node;
     final hasChildren = node.children.isNotEmpty;
     final canExpand = !node.isGroup && hasChildren;
-    final isSelected = node.pageId == selectedPageId;
+    final isSelected = widget.selectedNode == node;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -153,12 +270,16 @@ class _NavigationBranch extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          InkWell(
-            onTap: () => onSelected(node),
-            child: Container(
+          Focus(
+            focusNode: _rowFocusNode,
+            autofocus: isSelected,
+            onKeyEvent: _handleKey,
+            child: InkWell(
+              onTap: () => widget.onSelected(node),
+              child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
               padding: EdgeInsets.only(
-                left: 8.0 + depth * 18,
+                left: 8.0 + widget.depth * 18,
                 right: 8,
                 top: 7,
                 bottom: 7,
@@ -185,7 +306,7 @@ class _NavigationBranch extends StatelessWidget {
                             ),
                             onPressed: () {
                               node.isExpanded = !node.isExpanded;
-                              onChanged();
+                              widget.onChanged();
                             },
                           )
                         : null,
@@ -193,19 +314,36 @@ class _NavigationBranch extends StatelessWidget {
                   Icon(node.icon, size: 18, color: Colors.grey.shade700),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      node.title,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: node.isGroup
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: const Color(0xFF292929),
-                      ),
-                    ),
+                    child: _isEditing
+                        ? TextField(
+                            controller: _titleController,
+                            focusNode: _titleFocusNode,
+                            autofocus: true,
+                            onSubmitted: (_) => _submitTitle(),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        : Text(
+                            node.title,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: node.isGroup
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: const Color(0xFF292929),
+                            ),
+                          ),
                   ),
                 ],
+              ),
               ),
             ),
           ),
@@ -213,10 +351,14 @@ class _NavigationBranch extends StatelessWidget {
             for (final child in node.children)
               _NavigationBranch(
                 node: child,
-                depth: depth + 1,
-                selectedPageId: selectedPageId,
-                onSelected: onSelected,
-                onChanged: onChanged,
+                depth: widget.depth + 1,
+                selectedPageId: widget.selectedPageId,
+                selectedNode: widget.selectedNode,
+                onSelected: widget.onSelected,
+                editingNode: widget.editingNode,
+                onStartEditing: widget.onStartEditing,
+                onRename: widget.onRename,
+                onChanged: widget.onChanged,
               ),
         ],
       ),
@@ -224,4 +366,11 @@ class _NavigationBranch extends StatelessWidget {
   }
 }
 
-enum _NavigationAction { createGroup, addBelow, addChild, addAbove }
+enum _NavigationAction {
+  createGroup,
+  addBelow,
+  addChild,
+  addAbove,
+  rename,
+  delete,
+}
