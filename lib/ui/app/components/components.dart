@@ -70,6 +70,7 @@ abstract class RichTextComponentRenderer implements ComponentRenderer {
       textStyle: textStyle,
       alignment: alignment,
       editorPadding: editorPadding,
+      placeholder: name,
     );
   }
 
