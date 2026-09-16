@@ -30,7 +30,7 @@ class AddComponentMenu extends StatelessWidget {
     '┃ Focus',
     'Block Text',
     '❝Quote❞'
-    '📍 Location',
+        '📍 Location',
     'Caption',
     'Footnote',
   ];
@@ -40,7 +40,7 @@ class AddComponentMenu extends StatelessWidget {
     return Material(
       elevation: 10,
       borderRadius: BorderRadius.circular(14),
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       child: SizedBox(
         width: 220,
         height: _menuHeight,
@@ -56,7 +56,7 @@ class AddComponentMenu extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontSize: baseFontSize,
                     fontWeight: FontWeight.w700,
-                    color: Colors.grey.shade600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -86,9 +86,9 @@ class AddComponentMenu extends StatelessWidget {
     switch (component) {
       case 'Title':
         return const TextStyle(
-          fontSize: baseFontSize * 2.2, 
+          fontSize: baseFontSize * 2.2,
           height: 1.2,
-          fontWeight: FontWeight.w800
+          fontWeight: FontWeight.w800,
         );
       case 'Heading 1':
         return const TextStyle(

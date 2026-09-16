@@ -93,7 +93,7 @@ class OptionsDockState extends State<OptionsDock> {
                         widget.onComponentDeleted();
                         dismissMenu();
                       }
-                  : null,
+                    : null,
                 enabled: widget.hasSelection,
               ),
               const SizedBox(height: 80),
@@ -134,7 +134,9 @@ class _DockButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: enabled ? const Color(0xFFEDEDED) : const Color(0xFFF5F5F5),
+        color: enabled
+            ? Theme.of(context).colorScheme.surfaceContainer
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: enabled ? onPressed : null,

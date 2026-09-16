@@ -87,6 +87,10 @@ class BookletEditorViewModel {
     }
   }
 
+  void clearSelectedComponent() {
+    _selectedComponent = null;
+  }
+
   ComponentBox createComponentBelow(int index) {
     return createComponentBelowType(index, 'Text');
   }

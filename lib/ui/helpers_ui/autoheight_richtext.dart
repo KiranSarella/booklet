@@ -183,21 +183,21 @@ class AutoHeightRichText2 extends StatelessWidget {
           onTap: onSelect,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: borderColor,
                 width: isSelected ? 1.8 : 0,
               ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: Colors.indigo.withValues(alpha: 0.12),
-                        blurRadius: 12,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
-                  : null,
+              // boxShadow: isSelected
+              //     ? [
+              //         BoxShadow(
+              //           color: Colors.indigo.withValues(alpha: 0.12),
+              //           blurRadius: 12,
+              //           offset: const Offset(0, 3),
+              //         ),
+              //       ]
+              //     : null,
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 54),

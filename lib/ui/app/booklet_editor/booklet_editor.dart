@@ -4,16 +4,12 @@ import 'package:booklet/ui/app/components/components.dart';
 import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
 import 'package:booklet/ui/app/navigation/navigation.dart';
 import 'package:booklet/ui/app/navigation/navigation_models.dart';
+import 'package:booklet/ui/app/options_dock/opitons_dock.dart';
 
 class BookletEditor extends StatefulWidget {
-  const BookletEditor({
-    super.key,
-    required this.editorTheme,
-    required this.onSelectionChanged,
-  });
+  const BookletEditor({super.key, required this.editorTheme});
 
   final EditorTheme editorTheme;
-  final ValueChanged<bool> onSelectionChanged;
 
   @override
   State<BookletEditor> createState() => BookletEditorState();
@@ -21,6 +17,7 @@ class BookletEditor extends StatefulWidget {
 
 class BookletEditorState extends State<BookletEditor> {
   final ScrollController _scrollController = ScrollController();
+  final _optionsDockKey = GlobalKey<OptionsDockState>();
   late final BookletEditorViewModel _viewModel;
 
   @override
@@ -31,15 +28,24 @@ class BookletEditorState extends State<BookletEditor> {
 
   void selectComponent(ComponentBox component) {
     setState(() => _viewModel.selectComponent(component));
-    widget.onSelectionChanged(true);
   }
 
   void selectPage(NavigationNode node) {
     setState(() => _viewModel.selectNode(node));
-    widget.onSelectionChanged(false);
+  }
+
+  void clearSelectionAndFocus() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (_viewModel.selectedComponent != null) {
+      setState(_viewModel.clearSelectedComponent);
+    }
   }
 
   BookletEditorViewModel get viewModel => _viewModel;
+
+  void dismissOptionsMenu() {
+    _optionsDockKey.currentState?.dismissMenu();
+  }
 
   void _createEntryBelow(int index) {
     late final ComponentBox newComponent;
@@ -70,7 +76,6 @@ class BookletEditorState extends State<BookletEditor> {
 
   void deleteSelectedComponent() {
     setState(_viewModel.deleteSelectedComponent);
-    widget.onSelectionChanged(false);
   }
 
   void transformSelectedComponent(String type) {
@@ -102,41 +107,52 @@ class BookletEditorState extends State<BookletEditor> {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.editorTheme,
-      builder: (context, _) => Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      builder: (context, _) => Stack(
         children: [
-          BookletNavigation(
-            controller: _viewModel.navigation,
-            onPageSelected: selectPage,
-            onCreateGroup: () => setState(_viewModel.addGroup),
-            onAddPageBelow: () => setState(_viewModel.addPageBelowSelected),
-            onAddChildPage: () => setState(_viewModel.addChildPageSelected),
-            onAddPageAbove: () => setState(_viewModel.addPageAboveSelected),
-            onRenamePage: (title) => setState(
-              () => _viewModel.renameSelectedPage(title),
-            ),
-            onDeletePage: () => setState(_viewModel.deleteSelectedPage),
-            onChanged: () => setState(() {}),
-          ),
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(20),
-              itemCount: _viewModel.components.length,
-              itemBuilder: (context, index) {
-                final component = _viewModel.components[index];
-                final isSelected = _viewModel.selectedComponent == component;
-
-                return Padding(
-                  key: component.componentKey,
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: component.createUI(
-                    isSelected: isSelected,
-                    onSelect: () => selectComponent(component),
-                    onCreateBelow: () => _createEntryBelow(index),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              BookletNavigation(
+                controller: _viewModel.navigation,
+                onPageSelected: selectPage,
+                onCreateGroup: () => setState(_viewModel.addGroup),
+                onAddPageBelow: () => setState(_viewModel.addPageBelowSelected),
+                onAddChildPage: () => setState(_viewModel.addChildPageSelected),
+                onAddPageAbove: () => setState(_viewModel.addPageAboveSelected),
+                onRenamePage: (title) =>
+                    setState(() => _viewModel.renameSelectedPage(title)),
+                onDeletePage: () => setState(_viewModel.deleteSelectedPage),
+                onChanged: () => setState(() {}),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: clearSelectionAndFocus,
+                  child: ColoredBox(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(54),
+                      child: BookletPageView(
+                        editorTheme: widget.editorTheme,
+                        viewModel: _viewModel,
+                        onSelectComponent: selectComponent,
+                        onCreateEntryBelow: _createEntryBelow,
+                        onTapEmptySpace: clearSelectionAndFocus,
+                      ),
+                    ),
                   ),
-                );
-              },
+                ),
+              ),
+            ],
+          ),
+          Positioned.fill(
+            child: OptionsDock(
+              key: _optionsDockKey,
+              onComponentSelected: addComponentBelowSelected,
+              onComponentTransformed: transformSelectedComponent,
+              onComponentDeleted: deleteSelectedComponent,
+              hasSelection: _viewModel.selectedComponent != null,
             ),
           ),
         ],
@@ -145,67 +161,62 @@ class BookletEditorState extends State<BookletEditor> {
   }
 }
 
-// class _BookletEditorState extends State<BookletEditor> {
-//   final ScrollController _scrollController = ScrollController();
-//   final BookletEditorViewModel _viewModel = BookletEditorViewModel();
+class BookletPageView extends StatelessWidget {
+  const BookletPageView({
+    super.key,
+    required this.editorTheme,
+    required this.viewModel,
+    required this.onSelectComponent,
+    required this.onCreateEntryBelow,
+    required this.onTapEmptySpace,
+  });
 
-//   void _selectIndex(int index) {
-//     debugPrint('selected index: $index');
-//     setState(() => _viewModel.selectComponent(index));
-//   }
+  final EditorTheme editorTheme;
+  final BookletEditorViewModel viewModel;
+  final ValueChanged<ComponentBox> onSelectComponent;
+  final ValueChanged<int> onCreateEntryBelow;
+  final VoidCallback onTapEmptySpace;
 
-//   void _createEntryBelow(int index) {
-//     late final BookletComponent newComponent;
+  @override
+  Widget build(BuildContext context) {
+    final pageTheme = Theme.of(context).copyWith(
+      brightness: editorTheme.effectiveBrightness,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.indigo,
+        brightness: editorTheme.effectiveBrightness,
+      ),
+    );
 
-//     setState(() {
-//       newComponent = _viewModel.createComponentBelow(index);
-//     });
-
-//     WidgetsBinding.instance.addPostFrameCallback((_) {
-//       if (_scrollController.hasClients) {
-//         _scrollController.animateTo(
-//           _scrollController.position.maxScrollExtent,
-//           duration: const Duration(milliseconds: 180),
-//           curve: Curves.easeOut,
-//         );
-//       }
-
-//       FocusScope.of(context).requestFocus(newComponent.focusNode);
-//     });
-//   }
-
-//   @override
-//   void dispose() {
-//     _scrollController.dispose();
-//     _viewModel.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return ListView.builder(
-//       controller: _scrollController,
-//       padding: const EdgeInsets.all(20),
-//       itemCount: _viewModel.components.length,
-//       itemBuilder: (context, index) {
-//         final component = _viewModel.components[index];
-//         final isSelected = _viewModel.selectedComponent == component;
-
-//         return Padding(
-//           padding: const EdgeInsets.only(bottom: 12),
-//           child: AutoHeightRichText2(
-//             component: component,
-//             isSelected: isSelected,
-//             onSelect: () => _selectIndex(index),
-//             onCreateBelow: () => _createEntryBelow(index),
-//             textStyle: TextStyle(
-//               fontSize: 18,
-//               fontWeight: .w600,
-//               color: const Color.fromARGB(255, 10, 84, 13),
-//             ),
-//           ),
-//         );
-//       },
-//     );
-//   }
-// }
+    return Theme(
+      data: pageTheme,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTapEmptySpace,
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(color: editorTheme.pageBackgroundColor),
+          clipBehavior: Clip.antiAlias,
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var index = 0; index < viewModel.components.length; index++)
+                Padding(
+                  key: viewModel.components[index].componentKey,
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: viewModel.components[index].createUI(
+                    isSelected:
+                        viewModel.selectedComponent ==
+                        viewModel.components[index],
+                    onSelect: () =>
+                        onSelectComponent(viewModel.components[index]),
+                    onCreateBelow: () => onCreateEntryBelow(index),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

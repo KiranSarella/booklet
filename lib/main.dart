@@ -4,7 +4,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/ui/app/booklet_editor/booklet_editor.dart';
 import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
-import 'package:booklet/ui/app/options_dock/opitons_dock.dart';
 
 void main() {
   runApp(const MainApp());
@@ -17,15 +16,31 @@ class MainApp extends StatefulWidget {
   State<MainApp> createState() => _MainAppState();
 }
 
-class _MainAppState extends State<MainApp> {
+class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
-  final _optionsDockKey = GlobalKey<OptionsDockState>();
   final _bookletEditorKey = GlobalKey<BookletEditorState>();
   final EditorTheme _editorTheme = EditorTheme();
-  bool _hasSelection = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _editorTheme.updateSystemBrightness(
+      WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    );
+    _editorTheme.load();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    _editorTheme.updateSystemBrightness(
+      WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    );
+  }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _editorTheme.dispose();
     super.dispose();
   }
@@ -55,15 +70,19 @@ class _MainAppState extends State<MainApp> {
       ],
       supportedLocales: const [Locale('en')],
       theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
+      darkTheme: ThemeData(
+        colorSchemeSeed: Colors.indigo,
+        brightness: Brightness.dark,
+        useMaterial3: true,
+      ),
+      themeMode: ThemeMode.system,
       home: Scaffold(
-        // backgroundColor: const Color(0xFFF3F6FF),
-        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         body: SafeArea(
           child: Actions(
             actions: <Type, Action<Intent>>{
               DismissIntent: CallbackAction<DismissIntent>(
                 onInvoke: (_) {
-                  _optionsDockKey.currentState?.dismissMenu();
+                  _bookletEditorKey.currentState?.dismissOptionsMenu();
                   return null;
                 },
               ),
@@ -81,28 +100,7 @@ class _MainAppState extends State<MainApp> {
                       child: BookletEditor(
                         key: _bookletEditorKey,
                         editorTheme: _editorTheme,
-                        onSelectionChanged: (hasSelection) {
-                          setState(() => _hasSelection = hasSelection);
-                        },
                       ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: OptionsDock(
-                      key: _optionsDockKey,
-                      onComponentSelected: (type) {
-                        _bookletEditorKey.currentState
-                            ?.addComponentBelowSelected(type);
-                      },
-                      onComponentTransformed: (type) {
-                        _bookletEditorKey.currentState
-                            ?.transformSelectedComponent(type);
-                      },
-                      onComponentDeleted: () {
-                        _bookletEditorKey.currentState
-                            ?.deleteSelectedComponent();
-                      },
-                      hasSelection: _hasSelection,
                     ),
                   ),
                   Positioned(
@@ -111,7 +109,7 @@ class _MainAppState extends State<MainApp> {
                     child: Tooltip(
                       message: 'Edit theme',
                       child: Material(
-                        color: const Color(0xFFEDEDED),
+                        color: Theme.of(context).colorScheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(12),
                         child: InkWell(
                           onTap: _showThemeEditor,

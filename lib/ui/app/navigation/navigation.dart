@@ -70,7 +70,7 @@ class _BookletNavigationState extends State<BookletNavigation> {
   Widget build(BuildContext context) {
     return Container(
       width: 272,
-      color: const Color(0xFFF7F7F5),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -222,7 +222,7 @@ class _NavigationBranchState extends State<_NavigationBranch> {
       });
     }
     if (widget.selectedNode == widget.node &&
-      oldWidget.selectedNode != widget.selectedNode &&
+        oldWidget.selectedNode != widget.selectedNode &&
         !_isEditing) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -277,73 +277,79 @@ class _NavigationBranchState extends State<_NavigationBranch> {
             child: InkWell(
               onTap: () => widget.onSelected(node),
               child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-              padding: EdgeInsets.only(
-                left: 8.0 + widget.depth * 18,
-                right: 8,
-                top: 7,
-                bottom: 7,
-              ),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFE3E8FF) : null,
-                borderRadius: BorderRadius.circular(7),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: node.isGroup ? 0 : 20,
-                    child: canExpand
-                        ? IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            splashRadius: 16,
-                            tooltip: node.isExpanded ? 'Collapse' : 'Expand',
-                            icon: Icon(
-                              node.isExpanded
-                                  ? Icons.expand_more
-                                  : Icons.chevron_right,
-                              size: 18,
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                padding: EdgeInsets.only(
+                  left: 8.0 + widget.depth * 18,
+                  right: 8,
+                  top: 7,
+                  bottom: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : null,
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: node.isGroup ? 0 : 20,
+                      child: canExpand
+                          ? IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              splashRadius: 16,
+                              tooltip: node.isExpanded ? 'Collapse' : 'Expand',
+                              icon: Icon(
+                                node.isExpanded
+                                    ? Icons.expand_more
+                                    : Icons.chevron_right,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                node.isExpanded = !node.isExpanded;
+                                widget.onChanged();
+                              },
+                            )
+                          : null,
+                    ),
+                    Icon(
+                      node.icon,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _isEditing
+                          ? TextField(
+                              controller: _titleController,
+                              focusNode: _titleFocusNode,
+                              autofocus: true,
+                              onSubmitted: (_) => _submitTitle(),
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            )
+                          : Text(
+                              node.title,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: node.isGroup
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
-                            onPressed: () {
-                              node.isExpanded = !node.isExpanded;
-                              widget.onChanged();
-                            },
-                          )
-                        : null,
-                  ),
-                  Icon(node.icon, size: 18, color: Colors.grey.shade700),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _isEditing
-                        ? TextField(
-                            controller: _titleController,
-                            focusNode: _titleFocusNode,
-                            autofocus: true,
-                            onSubmitted: (_) => _submitTitle(),
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          )
-                        : Text(
-                            node.title,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: node.isGroup
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: const Color(0xFF292929),
-                            ),
-                          ),
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
