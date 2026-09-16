@@ -27,8 +27,6 @@ class AutoHeightRichText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = isSelected ? Colors.indigo : Colors.transparent;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -59,21 +57,8 @@ class AutoHeightRichText extends StatelessWidget {
           onTap: onSelect,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: borderColor,
-                width: isSelected ? 1.8 : 0,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: Colors.indigo.withValues(alpha: 0.12),
-                        blurRadius: 12,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
-                  : null,
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 54),
@@ -164,8 +149,6 @@ class AutoHeightRichText2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = isSelected ? Colors.indigo : Colors.transparent;
-
     final defaultStyles = DefaultStyles(
       paragraph: DefaultTextBlockStyle(
         textStyle,
@@ -179,62 +162,39 @@ class AutoHeightRichText2 extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        GestureDetector(
-          onTap: onSelect,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: borderColor,
-                width: isSelected ? 1.8 : 0,
-              ),
-              // boxShadow: isSelected
-              //     ? [
-              //         BoxShadow(
-              //           color: Colors.indigo.withValues(alpha: 0.12),
-              //           blurRadius: 12,
-              //           offset: const Offset(0, 3),
-              //         ),
-              //       ]
-              //     : null,
-            ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 54),
-              child: Shortcuts(
-                shortcuts: const {
-                  SingleActivator(LogicalKeyboardKey.enter):
-                      _CreateBelowIntent(),
-                },
-                child: Actions(
-                  actions: {
-                    _CreateBelowIntent: CallbackAction<_CreateBelowIntent>(
-                      onInvoke: (_) {
-                        if (isSelected) {
-                          onCreateBelow();
-                        }
-                        return null;
-                      },
-                    ),
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 54),
+          child: Shortcuts(
+            shortcuts: const {
+              SingleActivator(LogicalKeyboardKey.enter): _CreateBelowIntent(),
+            },
+            child: Actions(
+              actions: {
+                _CreateBelowIntent: CallbackAction<_CreateBelowIntent>(
+                  onInvoke: (_) {
+                    if (isSelected) {
+                      onCreateBelow();
+                    }
+                    return null;
                   },
-                  child: Focus(
-                    onFocusChange: (hasFocus) {
-                      if (hasFocus) {
-                        onSelect();
-                      }
-                    },
-                    child: QuillEditor.basic(
-                      controller: component.controller,
-                      focusNode: component.focusNode,
-                      config: QuillEditorConfig(
-                        scrollable: false,
-                        padding: editorPadding,
-                        expands: false,
-                        placeholder: placeholder,
-                        textInputAction: TextInputAction.newline,
-                        customStyles: defaultStyles,
-                      ),
-                    ),
+                ),
+              },
+              child: Focus(
+                onFocusChange: (hasFocus) {
+                  if (hasFocus) {
+                    onSelect();
+                  }
+                },
+                child: QuillEditor.basic(
+                  controller: component.controller,
+                  focusNode: component.focusNode,
+                  config: QuillEditorConfig(
+                    scrollable: false,
+                    padding: editorPadding,
+                    expands: false,
+                    placeholder: placeholder,
+                    textInputAction: TextInputAction.newline,
+                    customStyles: defaultStyles,
                   ),
                 ),
               ),

@@ -205,9 +205,6 @@ class BookletPageView extends StatelessWidget {
                   key: viewModel.components[index].componentKey,
                   padding: const EdgeInsets.only(bottom: 6),
                   child: viewModel.components[index].createUI(
-                    isSelected:
-                        viewModel.selectedComponent ==
-                        viewModel.components[index],
                     onSelect: () =>
                         onSelectComponent(viewModel.components[index]),
                     onCreateBelow: () => onCreateEntryBelow(index),

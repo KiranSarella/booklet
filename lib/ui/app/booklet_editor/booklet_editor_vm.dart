@@ -78,16 +78,23 @@ class BookletEditorViewModel {
 
   void selectNode(NavigationNode node) {
     navigation.selectNode(node);
-    _selectedComponent = null;
+    clearSelectedComponent();
   }
 
   void selectComponent(ComponentBox component) {
     if (components.contains(component)) {
+      for (final item in components) {
+        item.isSelected = false;
+      }
+      component.isSelected = true;
       _selectedComponent = component;
     }
   }
 
   void clearSelectedComponent() {
+    for (final component in components) {
+      component.isSelected = false;
+    }
     _selectedComponent = null;
   }
 
@@ -147,11 +154,12 @@ class BookletEditorViewModel {
     if (page == null) {
       return;
     }
+    clearSelectedComponent();
     _pagesById.remove(pageId)?.dispose();
-    _selectedComponent = null;
   }
 
   void _addPage(PagePlacement placement) {
+    clearSelectedComponent();
     final page = _createPage('Untitled page', [TextComponent(theme)]);
     navigation.addPage(
       pageId: page.id,
@@ -159,7 +167,6 @@ class BookletEditorViewModel {
       placement: placement,
     );
     _pagesById[page.id] = page;
-    _selectedComponent = null;
   }
 
   void deleteSelectedComponent() {
@@ -169,6 +176,7 @@ class BookletEditorViewModel {
       return;
     }
     if (page.components.remove(selected)) {
+      selected.isSelected = false;
       selected.dispose();
       _selectedComponent = null;
     }

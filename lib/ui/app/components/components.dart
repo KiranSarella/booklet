@@ -165,10 +165,8 @@ class SubtitleComponent extends RichTextComponentRenderer {
     letterSpacing: 0.2,
   );
 
-
   @override
   Attribute<dynamic> get alignment => Attribute.centerAlignment;
-
 }
 
 class LabelComponent extends RichTextComponentRenderer {
@@ -285,17 +283,29 @@ class ComponentBox {
   final ComponentInfo componentInfo;
   final BookletComponent component;
   final GlobalKey componentKey = GlobalKey();
+  bool isSelected = false;
 
   Widget createUI({
-    required bool isSelected,
     required VoidCallback onSelect,
     required VoidCallback onCreateBelow,
   }) {
-    return componentInfo.renderer.createUI(
-      component: component,
-      isSelected: isSelected,
-      onSelect: onSelect,
-      onCreateBelow: onCreateBelow,
+    return GestureDetector(
+      onTap: onSelect,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? Colors.indigo : Colors.transparent,
+            width: isSelected ? 1.8 : 0,
+          ),
+        ),
+        child: componentInfo.renderer.createUI(
+          component: component,
+          isSelected: isSelected,
+          onSelect: onSelect,
+          onCreateBelow: onCreateBelow,
+        ),
+      ),
     );
   }
 
