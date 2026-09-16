@@ -277,8 +277,11 @@ class FootnoteComponent extends RichTextComponentRenderer {
 }
 
 class ComponentBox {
-  ComponentBox({required this.componentInfo})
-    : component = BookletComponent(componentInfo.renderer.alignment);
+  ComponentBox({required this.componentInfo, List<dynamic>? delta})
+    : component = BookletComponent(
+        componentInfo.renderer.alignment,
+        delta: delta,
+      );
 
   final ComponentInfo componentInfo;
   final BookletComponent component;

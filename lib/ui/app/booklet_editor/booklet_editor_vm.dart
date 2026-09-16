@@ -50,6 +50,7 @@ class BookletEditorViewModel {
   final Map<String, PageContent> _pagesById = {};
   int _nextId = 0;
   ComponentBox? _selectedComponent;
+  String? _documentPath;
 
   PageContent? get selectedPage => navigation.selectedPageId == null
       ? null
@@ -58,6 +59,11 @@ class BookletEditorViewModel {
   List<ComponentBox> get components => selectedPage?.components ?? [];
   ComponentBox? get selectedComponent => _selectedComponent;
   String? get selectedPageId => navigation.selectedPageId;
+  String? get documentPath => _documentPath;
+
+  void setDocumentPath(String? path) {
+    _documentPath = path;
+  }
 
   PageContent _createPage(String title, List<ComponentRenderer> renderers) {
     final id = 'page-${_nextId++}';
@@ -69,6 +75,87 @@ class BookletEditorViewModel {
           ComponentBox(componentInfo: ComponentInfo(renderer: renderer)),
       ],
     );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'version': 1,
+    'navigation': navigation.groups.map((group) => group.toJson()).toList(),
+    'selectedPageId': selectedPageId,
+    'pages': [
+      for (final page in _pagesById.values)
+        {
+          'id': page.id,
+          'title': page.title,
+          'components': [
+            for (final component in page.components)
+              {
+                'type': component.componentInfo.renderer.name,
+                'delta': component.component.controller.document
+                    .toDelta()
+                    .toJson(),
+              },
+          ],
+        },
+    ],
+  };
+
+  void loadJson(Map<String, dynamic> json) {
+    final pageData = json['pages'];
+    final navigationData = json['navigation'];
+    if (pageData is! List || navigationData is! List) {
+      throw const FormatException('Invalid booklet document structure');
+    }
+
+    for (final page in _pagesById.values) {
+      page.dispose();
+    }
+    _pagesById.clear();
+    _selectedComponent = null;
+
+    for (final rawPage in pageData.whereType<Map>()) {
+      final pageJson = Map<String, dynamic>.from(rawPage);
+      final id = pageJson['id'] as String?;
+      if (id == null || id.isEmpty) {
+        continue;
+      }
+      final components = <ComponentBox>[];
+      final rawComponents = pageJson['components'];
+      if (rawComponents is List) {
+        for (final rawComponent in rawComponents.whereType<Map>()) {
+          final componentJson = Map<String, dynamic>.from(rawComponent);
+          final type = componentJson['type'] as String?;
+          final delta = componentJson['delta'];
+          if (type == null || delta is! List) {
+            continue;
+          }
+          components.add(
+            ComponentBox(
+              componentInfo: ComponentInfo(
+                renderer: ComponentRenderer.fromType(type, theme),
+              ),
+              delta: delta,
+            ),
+          );
+        }
+      }
+      _pagesById[id] = PageContent(
+        id: id,
+        title: pageJson['title'] as String? ?? 'Untitled page',
+        components: components,
+      );
+    }
+
+    navigation.replaceGroups(
+      navigationData
+          .whereType<Map>()
+          .map(
+            (group) =>
+                NavigationNode.fromJson(Map<String, dynamic>.from(group)),
+          )
+          .toList(),
+      selectedPageId: json['selectedPageId'] as String?,
+    );
+    _nextId = _pagesById.length;
   }
 
   void selectPage(String pageId) {

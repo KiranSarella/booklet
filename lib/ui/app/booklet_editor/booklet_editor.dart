@@ -5,6 +5,7 @@ import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
 import 'package:booklet/ui/app/navigation/navigation.dart';
 import 'package:booklet/ui/app/navigation/navigation_models.dart';
 import 'package:booklet/ui/app/options_dock/opitons_dock.dart';
+import 'package:booklet/storage/booklet_file.dart';
 
 class BookletEditor extends StatefulWidget {
   const BookletEditor({super.key, required this.editorTheme});
@@ -42,6 +43,20 @@ class BookletEditorState extends State<BookletEditor> {
   }
 
   BookletEditorViewModel get viewModel => _viewModel;
+
+  Future<bool> saveBooklet() => BookletFile.save(_viewModel);
+
+  Future<bool> saveBookletAs() => BookletFile.saveAs(_viewModel);
+
+  bool get hasOpenedBooklet => _viewModel.documentPath != null;
+
+  Future<bool> openBooklet() async {
+    final opened = await BookletFile.open(_viewModel);
+    if (opened && mounted) {
+      setState(() {});
+    }
+    return opened;
+  }
 
   void dismissOptionsMenu() {
     _optionsDockKey.currentState?.dismissMenu();
@@ -192,25 +207,32 @@ class BookletPageView extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTapEmptySpace,
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(color: editorTheme.pageBackgroundColor),
-          clipBehavior: Clip.antiAlias,
-          padding: const EdgeInsets.all(30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var index = 0; index < viewModel.components.length; index++)
-                Padding(
-                  key: viewModel.components[index].componentKey,
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: viewModel.components[index].createUI(
-                    onSelect: () =>
-                        onSelectComponent(viewModel.components[index]),
-                    onCreateBelow: () => onCreateEntryBelow(index),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 900),
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(color: editorTheme.pageBackgroundColor),
+            clipBehavior: Clip.antiAlias,
+            padding: const EdgeInsets.all(30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (
+                  var index = 0;
+                  index < viewModel.components.length;
+                  index++
+                )
+                  Padding(
+                    key: viewModel.components[index].componentKey,
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: viewModel.components[index].createUI(
+                      onSelect: () =>
+                          onSelectComponent(viewModel.components[index]),
+                      onCreateBelow: () => onCreateEntryBelow(index),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

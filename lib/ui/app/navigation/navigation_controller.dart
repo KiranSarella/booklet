@@ -5,6 +5,16 @@ class NavigationController {
   NavigationNode? selectedNode;
   String? selectedPageId;
 
+  void replaceGroups(List<NavigationNode> nodes, {String? selectedPageId}) {
+    groups
+      ..clear()
+      ..addAll(nodes);
+    this.selectedPageId = selectedPageId;
+    selectedNode = selectedPageId == null
+        ? null
+        : _findNode((node) => node.pageId == selectedPageId);
+  }
+
   NavigationNode addGroup({String title = 'New group'}) {
     final group = NavigationNode.group(title: title);
     groups.add(group);
@@ -49,8 +59,8 @@ class NavigationController {
     final index = siblings.indexOf(page);
     siblings.removeAt(index);
     selectedNode = siblings.isEmpty
-      ? null
-      : siblings[index.clamp(0, siblings.length - 1)];
+        ? null
+        : siblings[index.clamp(0, siblings.length - 1)];
     selectedPageId = selectedNode?.pageId;
     return page;
   }
@@ -63,7 +73,7 @@ class NavigationController {
   }) {
     final page = NavigationNode.page(title: title, pageId: pageId);
     final reference = referencePageId == null
-      ? selectedNode ?? _selectedNode()
+        ? selectedNode ?? _selectedNode()
         : _findNode((node) => node.pageId == referencePageId);
 
     if (reference == null || reference.isGroup) {
