@@ -16,11 +16,11 @@ class AddComponentMenu extends StatelessWidget {
 
   static const _componentTypes = [
     'Title',
-    'Heading 1',
-    'Heading 2',
-    'Subheading 1',
-    'Subheading 2',
-    'Subheading 3',
+    'Heading',
+    // 'Heading 2',
+    'Subheading',
+    // 'Subheading 2',
+    'Inline Heading',
     'Subtitle',
     'Label',
     'Text',
@@ -90,7 +90,7 @@ class AddComponentMenu extends StatelessWidget {
           height: 1.2,
           fontWeight: FontWeight.w800,
         );
-      case 'Heading 1':
+      case 'Heading':
         return const TextStyle(
           fontSize: baseFontSize * 1.75,
           fontWeight: FontWeight.w800,
@@ -100,7 +100,7 @@ class AddComponentMenu extends StatelessWidget {
           fontSize: baseFontSize * 1.55,
           fontWeight: FontWeight.w800,
         );
-      case 'Subheading 1':
+      case 'Subheading':
         return const TextStyle(
           fontSize: baseFontSize * 1.35,
           fontWeight: FontWeight.w700,
@@ -110,17 +110,21 @@ class AddComponentMenu extends StatelessWidget {
           fontSize: baseFontSize * 1.25,
           fontWeight: FontWeight.w700,
         );
-      case 'Subheading 3':
+      case 'Inline Heading':
         return const TextStyle(
           fontSize: baseFontSize * 1.15,
           fontWeight: FontWeight.w700,
         );
       case 'Subtitle':
-        return const TextStyle(fontSize: baseFontSize * 1.55, height: 1);
+        return const TextStyle(
+          fontSize: baseFontSize * 1.35, 
+          height: 1
+          );
       case 'Label':
         return const TextStyle(
+          fontFamily: 'Menlo',
           fontSize: baseFontSize * 1.1,
-          fontWeight: FontWeight.w600,
+          // fontWeight: FontWeight.w600,
         );
       case 'Caption':
         return const TextStyle(

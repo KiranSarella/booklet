@@ -16,11 +16,11 @@ abstract class ComponentRenderer {
   static final Map<String, ComponentRenderer Function(EditorTheme)> _factories =
       {
         'Title': (theme) => TitleComponent(theme),
-        'Heading 1': (theme) => Heading1Component(theme),
-        'Heading 2': (theme) => Heading2Component(theme),
-        'Subheading 1': (theme) => Subheading1Component(theme),
-        'Subheading 2': (theme) => Subheading2Component(theme),
-        'Subheading 3': (theme) => Subheading3Component(theme),
+        'Heading': (theme) => Heading1Component(theme),
+        // 'Heading 2': (theme) => Heading2Component(theme),
+        'Subheading': (theme) => Subheading1Component(theme),
+        // 'Subheading 2': (theme) => Subheading2Component(theme),
+        'Inline Heading': (theme) => Subheading3Component(theme),
         'Subtitle': (theme) => SubtitleComponent(theme),
         'Label': (theme) => LabelComponent(theme),
         'Text': (theme) => TextComponent(theme),
@@ -94,7 +94,7 @@ class TitleComponent extends RichTextComponentRenderer {
 }
 
 class Heading1Component extends RichTextComponentRenderer {
-  Heading1Component(EditorTheme theme) : super('Heading 1', theme);
+  Heading1Component(EditorTheme theme) : super('Heading', theme);
 
   @override
   TextStyle get textStyle => TextStyle(
@@ -120,7 +120,7 @@ class HeadingComponent extends Heading2Component {
 }
 
 class Subheading1Component extends RichTextComponentRenderer {
-  Subheading1Component(EditorTheme theme) : super('Subheading 1', theme);
+  Subheading1Component(EditorTheme theme) : super('Subheading', theme);
 
   @override
   TextStyle get textStyle => TextStyle(
@@ -142,7 +142,7 @@ class Subheading2Component extends RichTextComponentRenderer {
 }
 
 class Subheading3Component extends RichTextComponentRenderer {
-  Subheading3Component(EditorTheme theme) : super('Subheading 3', theme);
+  Subheading3Component(EditorTheme theme) : super('Inline Heading', theme);
 
   @override
   TextStyle get textStyle => TextStyle(

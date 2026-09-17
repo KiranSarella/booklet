@@ -181,7 +181,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                   ),
                   Positioned(
                     top: 12,
-                    right: 12,
+                    right: 102,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

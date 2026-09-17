@@ -147,7 +147,7 @@ class BookletEditorState extends State<BookletEditor> {
                     color: Theme.of(context).scaffoldBackgroundColor,
                     child: SingleChildScrollView(
                       controller: _scrollController,
-                      padding: const EdgeInsets.all(54),
+                      padding: const EdgeInsets.all(90),
                       child: BookletPageView(
                         editorTheme: widget.editorTheme,
                         viewModel: _viewModel,
@@ -213,7 +213,7 @@ class BookletPageView extends StatelessWidget {
             width: double.infinity,
             decoration: BoxDecoration(color: editorTheme.pageBackgroundColor),
             clipBehavior: Clip.antiAlias,
-            padding: const EdgeInsets.all(30),
+            padding: const EdgeInsets.all(60),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
