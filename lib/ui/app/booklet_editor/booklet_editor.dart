@@ -20,6 +20,8 @@ class BookletEditorState extends State<BookletEditor> {
   final ScrollController _scrollController = ScrollController();
   final _optionsDockKey = GlobalKey<OptionsDockState>();
   late final BookletEditorViewModel _viewModel;
+  double _navigationWidth = BookletNavigation.defaultWidth;
+  bool _isNavigationVisible = true;
 
   @override
   void initState() {
@@ -60,6 +62,18 @@ class BookletEditorState extends State<BookletEditor> {
 
   void dismissOptionsMenu() {
     _optionsDockKey.currentState?.dismissMenu();
+  }
+
+  void _toggleNavigation() {
+    setState(() => _isNavigationVisible = !_isNavigationVisible);
+  }
+
+  void _resizeNavigation(double delta) {
+    setState(() {
+      _navigationWidth = (_navigationWidth + delta)
+          .clamp(BookletNavigation.minWidth, BookletNavigation.maxWidth)
+          .toDouble();
+    });
   }
 
   void _createEntryBelow(int index) {
@@ -127,18 +141,25 @@ class BookletEditorState extends State<BookletEditor> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              BookletNavigation(
-                controller: _viewModel.navigation,
-                onPageSelected: selectPage,
-                onCreateGroup: () => setState(_viewModel.addGroup),
-                onAddPageBelow: () => setState(_viewModel.addPageBelowSelected),
-                onAddChildPage: () => setState(_viewModel.addChildPageSelected),
-                onAddPageAbove: () => setState(_viewModel.addPageAboveSelected),
-                onRenamePage: (title) =>
-                    setState(() => _viewModel.renameSelectedPage(title)),
-                onDeletePage: () => setState(_viewModel.deleteSelectedPage),
-                onChanged: () => setState(() {}),
-              ),
+              if (_isNavigationVisible) ...[
+                BookletNavigation(
+                  controller: _viewModel.navigation,
+                  width: _navigationWidth,
+                  onPageSelected: selectPage,
+                  onCreateGroup: () => setState(_viewModel.addGroup),
+                  onAddPageBelow: () =>
+                      setState(_viewModel.addPageBelowSelected),
+                  onAddChildPage: () =>
+                      setState(_viewModel.addChildPageSelected),
+                  onAddPageAbove: () =>
+                      setState(_viewModel.addPageAboveSelected),
+                  onRenamePage: (title) =>
+                      setState(() => _viewModel.renameSelectedPage(title)),
+                  onDeletePage: () => setState(_viewModel.deleteSelectedPage),
+                  onChanged: () => setState(() {}),
+                ),
+                _NavigationResizeHandle(onDragUpdate: _resizeNavigation),
+              ],
               Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -161,6 +182,14 @@ class BookletEditorState extends State<BookletEditor> {
               ),
             ],
           ),
+          Positioned(
+            top: 12,
+            left: _isNavigationVisible ? _navigationWidth + 20 : 12,
+            child: _NavigationToggleButton(
+              isNavigationVisible: _isNavigationVisible,
+              onPressed: _toggleNavigation,
+            ),
+          ),
           Positioned.fill(
             child: OptionsDock(
               key: _optionsDockKey,
@@ -171,6 +200,55 @@ class BookletEditorState extends State<BookletEditor> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NavigationResizeHandle extends StatelessWidget {
+  const _NavigationResizeHandle({required this.onDragUpdate});
+
+  final ValueChanged<double> onDragUpdate;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeColumn,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragUpdate: (details) =>
+            onDragUpdate(details.primaryDelta ?? 0),
+        child: const SizedBox(width: 8),
+      ),
+    );
+  }
+}
+
+class _NavigationToggleButton extends StatelessWidget {
+  const _NavigationToggleButton({
+    required this.isNavigationVisible,
+    required this.onPressed,
+  });
+
+  final bool isNavigationVisible;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: isNavigationVisible ? 'Hide navigation' : 'Show navigation',
+      child: Material(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+        child: IconButton(
+          tooltip: isNavigationVisible ? 'Hide navigation' : 'Show navigation',
+          onPressed: onPressed,
+          icon: Icon(
+            isNavigationVisible ? Icons.chevron_left : Icons.chevron_right,
+          ),
+          constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+          padding: EdgeInsets.zero,
+        ),
       ),
     );
   }

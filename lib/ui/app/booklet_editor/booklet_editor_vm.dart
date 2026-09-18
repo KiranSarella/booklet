@@ -165,7 +165,9 @@ class BookletEditorViewModel {
 
   void selectNode(NavigationNode node) {
     navigation.selectNode(node);
-    clearSelectedComponent();
+    if (node.isPage) {
+      clearSelectedComponent();
+    }
   }
 
   void selectComponent(ComponentBox component) {
@@ -186,7 +188,7 @@ class BookletEditorViewModel {
   }
 
   ComponentBox createComponentBelow(int index) {
-    return createComponentBelowType(index, 'Text');
+    return createComponentBelowType(index, 'text');
   }
 
   ComponentBox createComponentBelowType(int index, String type) {
@@ -233,8 +235,9 @@ class BookletEditorViewModel {
   }
 
   void deleteSelectedPage() {
-    final pageId = selectedPageId;
-    if (pageId == null) {
+    final selectedNode = navigation.selectedNode;
+    final pageId = selectedNode?.pageId;
+    if (selectedNode == null || selectedNode.isGroup || pageId == null) {
       return;
     }
     final page = navigation.deletePage(pageId);

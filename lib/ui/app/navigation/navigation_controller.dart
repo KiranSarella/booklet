@@ -33,7 +33,9 @@ class NavigationController {
       return;
     }
     selectedNode = node;
-    selectedPageId = node.pageId;
+    if (node.isPage) {
+      selectedPageId = node.pageId;
+    }
   }
 
   NavigationNode? renamePage(String pageId, String title) {

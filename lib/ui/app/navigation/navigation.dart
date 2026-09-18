@@ -8,6 +8,7 @@ class BookletNavigation extends StatefulWidget {
   const BookletNavigation({
     super.key,
     required this.controller,
+    required this.width,
     required this.onPageSelected,
     required this.onCreateGroup,
     required this.onAddPageBelow,
@@ -18,7 +19,12 @@ class BookletNavigation extends StatefulWidget {
     required this.onChanged,
   });
 
+  static const double minWidth = 200;
+  static const double maxWidth = 420;
+  static const double defaultWidth = 272;
+
   final NavigationController controller;
+  final double width;
   final ValueChanged<NavigationNode> onPageSelected;
   final VoidCallback onCreateGroup;
   final VoidCallback onAddPageBelow;
@@ -69,7 +75,7 @@ class _BookletNavigationState extends State<BookletNavigation> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 272,
+      width: widget.width,
       color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

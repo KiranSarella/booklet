@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:booklet/ui/helpers_ui/autoheight_richtext.dart';
 import 'package:booklet/ui/app/components/booklet_component.dart';
+import 'package:booklet/ui/app/components/component_types.dart';
 import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
@@ -15,27 +16,28 @@ abstract class ComponentRenderer {
   });
   static final Map<String, ComponentRenderer Function(EditorTheme)> _factories =
       {
-        'Title': (theme) => TitleComponent(theme),
-        'Heading': (theme) => Heading1Component(theme),
+        'title': (theme) => TitleComponent(theme),
+        'heading': (theme) => Heading1Component(theme),
         // 'Heading 2': (theme) => Heading2Component(theme),
-        'Subheading': (theme) => Subheading1Component(theme),
+        'subheading': (theme) => Subheading1Component(theme),
         // 'Subheading 2': (theme) => Subheading2Component(theme),
-        'Inline Heading': (theme) => Subheading3Component(theme),
-        'Subtitle': (theme) => SubtitleComponent(theme),
-        'Label': (theme) => LabelComponent(theme),
-        'Text': (theme) => TextComponent(theme),
-        '- Dashed List': (theme) => DashedListComponent(theme),
-        '1. Numbered List': (theme) => NumberedListComponent(theme),
-        '🗸 Checklist': (theme) => ChecklistComponent(theme),
-        '|  Focus': (theme) => FocusComponent(theme),
-        'Block Text': (theme) => BlockTextComponent(theme),
-        '📍 Location': (theme) => LocationComponent(theme),
-        'Caption': (theme) => CaptionComponent(theme),
-        'Footnote': (theme) => FootnoteComponent(theme),
+        'inline_heading': (theme) => Subheading3Component(theme),
+        'subtitle': (theme) => SubtitleComponent(theme),
+        'label': (theme) => LabelComponent(theme),
+        'text': (theme) => TextComponent(theme),
+        'dashed_list': (theme) => DashedListComponent(theme),
+        'numbered_list': (theme) => NumberedListComponent(theme),
+        'checklist': (theme) => ChecklistComponent(theme),
+        'focus': (theme) => FocusComponent(theme),
+        'block_text': (theme) => BlockTextComponent(theme),
+        'location': (theme) => LocationComponent(theme),
+        'caption': (theme) => CaptionComponent(theme),
+        'footnote': (theme) => FootnoteComponent(theme),
       };
 
   static ComponentRenderer fromType(String type, EditorTheme theme) {
-    final factory = _factories[type];
+    final factory =
+        _factories[type] ?? _factories[ComponentTypes.getIdForTitle(type)];
     if (factory == null) {
       throw ArgumentError.value(type, 'type', 'Unknown component type');
     }

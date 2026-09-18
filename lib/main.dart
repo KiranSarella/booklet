@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/ui/app/booklet_editor/booklet_editor.dart';
 import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
+import 'package:booklet/ui/app/start_booklet.dart';
 
 void main() {
   runApp(const MainApp());
@@ -21,6 +22,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   final _bookletEditorKey = GlobalKey<BookletEditorState>();
   final EditorTheme _editorTheme = EditorTheme();
+  bool _showStartupScreen = true;
 
   @override
   void initState() {
@@ -30,43 +32,15 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
       WidgetsBinding.instance.platformDispatcher.platformBrightness,
     );
     _editorTheme.load();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showStartupChoice();
-    });
   }
 
-  Future<void> _showStartupChoice() async {
-    final context = _navigatorKey.currentContext;
-    if (context == null || !context.mounted) {
-      return;
-    }
+  void _createBooklet() {
+    setState(() => _showStartupScreen = false);
+  }
 
-    final choice = await showDialog<_StartupChoice>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Start booklet'),
-        content: const Text('Open an existing booklet or create a new one.'),
-        actions: [
-          TextButton.icon(
-            onPressed: () =>
-                Navigator.of(context).pop(_StartupChoice.newBooklet),
-            icon: const Icon(Icons.add),
-            label: const Text('Create new'),
-          ),
-          FilledButton.icon(
-            onPressed: () =>
-                Navigator.of(context).pop(_StartupChoice.openExisting),
-            icon: const Icon(Icons.folder_open_outlined),
-            label: const Text('Open existing'),
-          ),
-        ],
-      ),
-    );
-
-    if (choice == _StartupChoice.openExisting && mounted) {
-      await _openBooklet();
-    }
+  Future<void> _openBookletFromStartup() async {
+    setState(() => _showStartupScreen = false);
+    await _openBooklet();
   }
 
   @override
@@ -205,6 +179,11 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                       ],
                     ),
                   ),
+                  if (_showStartupScreen)
+                    StartBooklet(
+                      onCreateNew: _createBooklet,
+                      onOpenExisting: _openBookletFromStartup,
+                    ),
                 ],
               ),
             ),
@@ -214,8 +193,6 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     );
   }
 }
-
-enum _StartupChoice { newBooklet, openExisting }
 
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
