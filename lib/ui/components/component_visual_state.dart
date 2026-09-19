@@ -9,8 +9,8 @@ final _plainTextClipboardConfig = QuillControllerConfig(
   ),
 );
 
-class BookletComponent {
-  BookletComponent(Attribute<dynamic> alignment, {List<dynamic>? delta})
+class ComponentVisualState {
+  ComponentVisualState(Attribute<dynamic> alignment, {List<dynamic>? delta})
     : controller = delta == null
           ? QuillController.basic()
           : QuillController(

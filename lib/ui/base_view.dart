@@ -1,32 +1,33 @@
-import 'package:flutter/material.dart';
-import 'package:booklet/ui/app/booklet_editor/booklet_editor_vm.dart';
-import 'package:booklet/ui/app/components/components.dart';
-import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
-import 'package:booklet/ui/app/navigation/navigation.dart';
-import 'package:booklet/ui/app/navigation/navigation_models.dart';
-import 'package:booklet/ui/app/options_dock/opitons_dock.dart';
+import 'package:booklet/ui/page_view/page_view.dart';
+import 'package:flutter/material.dart' hide PageView;
+import 'package:booklet/ui/base_vm.dart';
+import 'package:booklet/ui/components/components.dart';
+import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/ui/navigation/navigation_panel_view.dart';
+import 'package:booklet/ui/navigation/navigation_node.dart';
+import 'package:booklet/ui/options_dock/opitons_dock.dart';
 import 'package:booklet/storage/booklet_file.dart';
 
-class BookletEditor extends StatefulWidget {
-  const BookletEditor({super.key, required this.editorTheme});
+class BaseView extends StatefulWidget {
+  const BaseView({super.key, required this.editorTheme});
 
   final EditorTheme editorTheme;
 
   @override
-  State<BookletEditor> createState() => BookletEditorState();
+  State<BaseView> createState() => BaseViewState();
 }
 
-class BookletEditorState extends State<BookletEditor> {
+class BaseViewState extends State<BaseView> {
   final ScrollController _scrollController = ScrollController();
   final _optionsDockKey = GlobalKey<OptionsDockState>();
-  late final BookletEditorViewModel _viewModel;
-  double _navigationWidth = BookletNavigation.defaultWidth;
+  late final BaseVM _viewModel;
+  double _navigationWidth = NavigationPanelView.defaultWidth;
   bool _isNavigationVisible = true;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = BookletEditorViewModel(widget.editorTheme);
+    _viewModel = BaseVM(widget.editorTheme);
   }
 
   void selectComponent(ComponentBox component) {
@@ -44,7 +45,7 @@ class BookletEditorState extends State<BookletEditor> {
     }
   }
 
-  BookletEditorViewModel get viewModel => _viewModel;
+  BaseVM get viewModel => _viewModel;
 
   Future<bool> saveBooklet() => BookletFile.save(_viewModel);
 
@@ -71,7 +72,7 @@ class BookletEditorState extends State<BookletEditor> {
   void _resizeNavigation(double delta) {
     setState(() {
       _navigationWidth = (_navigationWidth + delta)
-          .clamp(BookletNavigation.minWidth, BookletNavigation.maxWidth)
+          .clamp(NavigationPanelView.minWidth, NavigationPanelView.maxWidth)
           .toDouble();
     });
   }
@@ -142,7 +143,7 @@ class BookletEditorState extends State<BookletEditor> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (_isNavigationVisible) ...[
-                BookletNavigation(
+                NavigationPanelView(
                   controller: _viewModel.navigation,
                   width: _navigationWidth,
                   onPageSelected: selectPage,
@@ -169,7 +170,7 @@ class BookletEditorState extends State<BookletEditor> {
                     child: SingleChildScrollView(
                       controller: _scrollController,
                       padding: const EdgeInsets.all(90),
-                      child: BookletPageView(
+                      child: PageView(
                         editorTheme: widget.editorTheme,
                         viewModel: _viewModel,
                         onSelectComponent: selectComponent,
@@ -248,70 +249,6 @@ class _NavigationToggleButton extends StatelessWidget {
           ),
           constraints: const BoxConstraints.tightFor(width: 44, height: 44),
           padding: EdgeInsets.zero,
-        ),
-      ),
-    );
-  }
-}
-
-class BookletPageView extends StatelessWidget {
-  const BookletPageView({
-    super.key,
-    required this.editorTheme,
-    required this.viewModel,
-    required this.onSelectComponent,
-    required this.onCreateEntryBelow,
-    required this.onTapEmptySpace,
-  });
-
-  final EditorTheme editorTheme;
-  final BookletEditorViewModel viewModel;
-  final ValueChanged<ComponentBox> onSelectComponent;
-  final ValueChanged<int> onCreateEntryBelow;
-  final VoidCallback onTapEmptySpace;
-
-  @override
-  Widget build(BuildContext context) {
-    final pageTheme = Theme.of(context).copyWith(
-      brightness: editorTheme.effectiveBrightness,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.indigo,
-        brightness: editorTheme.effectiveBrightness,
-      ),
-    );
-
-    return Theme(
-      data: pageTheme,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTapEmptySpace,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 900),
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(color: editorTheme.pageBackgroundColor),
-            clipBehavior: Clip.antiAlias,
-            padding: const EdgeInsets.all(60),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (
-                  var index = 0;
-                  index < viewModel.components.length;
-                  index++
-                )
-                  Padding(
-                    key: viewModel.components[index].componentKey,
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: viewModel.components[index].createUI(
-                      onSelect: () =>
-                          onSelectComponent(viewModel.components[index]),
-                      onCreateBelow: () => onCreateEntryBelow(index),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ),
       ),
     );

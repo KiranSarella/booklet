@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
-import 'package:booklet/ui/app/booklet_editor/booklet_editor.dart';
-import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
-import 'package:booklet/ui/app/start_booklet.dart';
+import 'package:booklet/application/app.dart';
+import 'package:booklet/ui/base_view.dart';
+import 'package:booklet/ui/document_toolbar.dart';
+import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/ui/start_booklet.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(MainApp(application: App()));
 }
 
 class MainApp extends StatefulWidget {
-  const MainApp({super.key});
+  const MainApp({super.key, required this.application});
+
+  final App application;
 
   @override
   State<MainApp> createState() => _MainAppState();
@@ -19,10 +23,9 @@ class MainApp extends StatefulWidget {
 
 class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
-  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
-  final _bookletEditorKey = GlobalKey<BookletEditorState>();
+  final _bookletEditorKey = GlobalKey<BaseViewState>();
+  final _documentToolbarKey = GlobalKey<DocumentToolbarState>();
   final EditorTheme _editorTheme = EditorTheme();
-  bool _showStartupScreen = true;
 
   @override
   void initState() {
@@ -34,13 +37,9 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     _editorTheme.load();
   }
 
-  void _createBooklet() {
-    setState(() => _showStartupScreen = false);
-  }
-
   Future<void> _openBookletFromStartup() async {
-    setState(() => _showStartupScreen = false);
-    await _openBooklet();
+    widget.application.openBooklet();
+    await _documentToolbarKey.currentState?.openBooklet();
   }
 
   @override
@@ -54,6 +53,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _editorTheme.dispose();
+    widget.application.dispose();
     super.dispose();
   }
 
@@ -69,155 +69,73 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _saveBooklet() async {
-    final editor = _bookletEditorKey.currentState;
-    if (editor == null) {
-      return;
-    }
-    if (!editor.hasOpenedBooklet) {
-      _showMessage('Opening save dialog...');
-    }
-    try {
-      final saved = await editor.saveBooklet();
-      if (saved) {
-        _showMessage('Booklet saved');
-      }
-    } catch (error) {
-      _showMessage('Could not save booklet: $error');
-    }
-  }
-
-  Future<void> _openBooklet() async {
-    _showMessage('Opening file dialog...');
-    try {
-      final opened =
-          await _bookletEditorKey.currentState?.openBooklet() ?? false;
-      if (opened) {
-        _showMessage('Booklet opened');
-      }
-    } catch (error) {
-      _showMessage('Could not open booklet: $error');
-    }
-  }
-
-  void _showMessage(String message) {
-    _messengerKey.currentState
-      ?..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
-
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: _navigatorKey,
-      scaffoldMessengerKey: _messengerKey,
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: [
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        FlutterQuillLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en')],
-      theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-      darkTheme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
-        brightness: Brightness.dark,
-        useMaterial3: true,
-      ),
-      themeMode: ThemeMode.system,
-      home: Scaffold(
-        body: SafeArea(
-          child: Actions(
-            actions: <Type, Action<Intent>>{
-              DismissIntent: CallbackAction<DismissIntent>(
-                onInvoke: (_) {
-                  _bookletEditorKey.currentState?.dismissOptionsMenu();
-                  return null;
-                },
-              ),
-            },
-            child: Shortcuts(
-              shortcuts: const <ShortcutActivator, Intent>{
-                SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+    return AnimatedBuilder(
+      animation: widget.application,
+      builder: (context, _) => MaterialApp(
+        navigatorKey: _navigatorKey,
+        debugShowCheckedModeBanner: false,
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          FlutterQuillLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en')],
+        theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
+        darkTheme: ThemeData(
+          colorSchemeSeed: Colors.indigo,
+          brightness: Brightness.dark,
+          useMaterial3: true,
+        ),
+        themeMode: ThemeMode.system,
+        home: Scaffold(
+          body: SafeArea(
+            child: Actions(
+              actions: <Type, Action<Intent>>{
+                DismissIntent: CallbackAction<DismissIntent>(
+                  onInvoke: (_) {
+                    _bookletEditorKey.currentState?.dismissOptionsMenu();
+                    return null;
+                  },
+                ),
               },
-              child: Stack(
-                children: [
-                  Center(
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: double.infinity,
-                      child: BookletEditor(
-                        key: _bookletEditorKey,
-                        editorTheme: _editorTheme,
+              child: Shortcuts(
+                shortcuts: const <ShortcutActivator, Intent>{
+                  SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+                },
+                child: Stack(
+                  children: [
+                    Center(
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: BaseView(
+                          key: _bookletEditorKey,
+                          editorTheme: _editorTheme,
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    top: 12,
-                    right: 102,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _ActionButton(
-                          tooltip: 'Open booklet',
-                          icon: Icons.folder_open_outlined,
-                          onPressed: _openBooklet,
-                        ),
-                        const SizedBox(width: 8),
-                        _ActionButton(
-                          tooltip: 'Save booklet',
-                          icon: Icons.save_outlined,
-                          onPressed: _saveBooklet,
-                        ),
-                        const SizedBox(width: 8),
-                        _ActionButton(
-                          tooltip: 'Edit theme',
-                          icon: Icons.palette_outlined,
-                          onPressed: _showThemeEditor,
-                        ),
-                      ],
+                    Positioned(
+                      top: 12,
+                      right: 102,
+                      child: DocumentToolbar(
+                        key: _documentToolbarKey,
+                        editorKey: _bookletEditorKey,
+                        onEditTheme: _showThemeEditor,
+                      ),
                     ),
-                  ),
-                  if (_showStartupScreen)
-                    StartBooklet(
-                      onCreateNew: _createBooklet,
-                      onOpenExisting: _openBookletFromStartup,
-                    ),
-                ],
+                    if (widget.application.screen == AppScreen.startup)
+                      StartBooklet(
+                        onCreateNew: widget.application.createBooklet,
+                        onOpenExisting: _openBookletFromStartup,
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-        child: IconButton(
-          onPressed: onPressed,
-          icon: Icon(icon),
-          constraints: const BoxConstraints.tightFor(width: 52, height: 44),
-          padding: EdgeInsets.zero,
-          tooltip: tooltip,
         ),
       ),
     );

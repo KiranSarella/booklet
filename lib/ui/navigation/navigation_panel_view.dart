@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'navigation_controller.dart';
-import 'navigation_models.dart';
+import 'navigation_panel_vm.dart';
+import 'navigation_menu.dart';
+import 'navigation_node.dart';
 
-class BookletNavigation extends StatefulWidget {
-  const BookletNavigation({
+class NavigationPanelView extends StatefulWidget {
+  const NavigationPanelView({
     super.key,
     required this.controller,
     required this.width,
@@ -23,7 +24,7 @@ class BookletNavigation extends StatefulWidget {
   static const double maxWidth = 420;
   static const double defaultWidth = 272;
 
-  final NavigationController controller;
+  final NavigationPanelVM controller;
   final double width;
   final ValueChanged<NavigationNode> onPageSelected;
   final VoidCallback onCreateGroup;
@@ -35,30 +36,11 @@ class BookletNavigation extends StatefulWidget {
   final VoidCallback onChanged;
 
   @override
-  State<BookletNavigation> createState() => _BookletNavigationState();
+  State<NavigationPanelView> createState() => _NavigationPanelViewState();
 }
 
-class _BookletNavigationState extends State<BookletNavigation> {
+class _NavigationPanelViewState extends State<NavigationPanelView> {
   NavigationNode? _editingNode;
-
-  void _runAction(_NavigationAction action) {
-    switch (action) {
-      case _NavigationAction.createGroup:
-        widget.onCreateGroup();
-      case _NavigationAction.addBelow:
-        widget.onAddPageBelow();
-      case _NavigationAction.addChild:
-        widget.onAddChildPage();
-      case _NavigationAction.addAbove:
-        widget.onAddPageAbove();
-      case _NavigationAction.rename:
-        _startEditing();
-      case _NavigationAction.delete:
-        _editingNode = null;
-        widget.onDeletePage();
-    }
-    widget.onChanged();
-  }
 
   void _startEditing() {
     final selectedNode = widget.controller.selectedNode;
@@ -90,60 +72,17 @@ class _BookletNavigationState extends State<BookletNavigation> {
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                   ),
                 ),
-                PopupMenuButton<_NavigationAction>(
-                  tooltip: 'Navigation actions',
-                  icon: const Icon(Icons.add, size: 20),
-                  onSelected: _runAction,
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: _NavigationAction.createGroup,
-                      child: ListTile(
-                        leading: Icon(Icons.view_list_outlined),
-                        title: Text('Create group'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _NavigationAction.addBelow,
-                      child: ListTile(
-                        leading: Icon(Icons.note_add_outlined),
-                        title: Text('Add page below'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _NavigationAction.addChild,
-                      child: ListTile(
-                        leading: Icon(Icons.account_tree_outlined),
-                        title: Text('Add child page'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _NavigationAction.addAbove,
-                      child: ListTile(
-                        leading: Icon(Icons.note_add_outlined),
-                        title: Text('Add page above'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _NavigationAction.rename,
-                      child: ListTile(
-                        leading: Icon(Icons.edit_outlined),
-                        title: Text('Rename item'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _NavigationAction.delete,
-                      child: ListTile(
-                        leading: Icon(Icons.delete_outline),
-                        title: Text('Delete page'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ],
+                NavigationMenu(
+                  onCreateGroup: widget.onCreateGroup,
+                  onAddPageBelow: widget.onAddPageBelow,
+                  onAddChildPage: widget.onAddChildPage,
+                  onAddPageAbove: widget.onAddPageAbove,
+                  onRename: _startEditing,
+                  onDelete: () {
+                    _editingNode = null;
+                    widget.onDeletePage();
+                  },
+                  onChanged: widget.onChanged,
                 ),
               ],
             ),
@@ -376,13 +315,4 @@ class _NavigationBranchState extends State<_NavigationBranch> {
       ),
     );
   }
-}
-
-enum _NavigationAction {
-  createGroup,
-  addBelow,
-  addChild,
-  addAbove,
-  rename,
-  delete,
 }

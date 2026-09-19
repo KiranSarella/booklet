@@ -1,4 +1,4 @@
-import 'package:booklet/ui/app/options_dock/add_component_menu.dart';
+import 'package:booklet/ui/options_dock/add_component_menu.dart';
 import 'package:flutter/material.dart';
 
 class OptionsDock extends StatefulWidget {

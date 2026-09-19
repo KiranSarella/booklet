@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
-import 'package:booklet/ui/app/booklet_editor/booklet_editor_vm.dart';
+import 'package:booklet/ui/base_vm.dart';
 
 class BookletFile {
   static const _extension = 'booklet';
   static const _manifestName = 'content.json';
 
   static Future<bool> save(
-    BookletEditorViewModel viewModel, {
+    BaseVM viewModel, {
     bool saveAs = false,
   }) async {
     var packagePath = saveAs ? null : viewModel.documentPath;
@@ -48,10 +48,10 @@ class BookletFile {
     return true;
   }
 
-  static Future<bool> saveAs(BookletEditorViewModel viewModel) =>
+  static Future<bool> saveAs(BaseVM viewModel) =>
       save(viewModel, saveAs: true);
 
-  static Future<bool> open(BookletEditorViewModel viewModel) async {
+  static Future<bool> open(BaseVM viewModel) async {
     final file = await openFile();
     if (file == null) {
       return false;

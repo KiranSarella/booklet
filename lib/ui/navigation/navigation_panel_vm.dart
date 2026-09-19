@@ -1,6 +1,6 @@
-import 'navigation_models.dart';
+import 'navigation_node.dart';
 
-class NavigationController {
+class NavigationPanelVM {
   final List<NavigationNode> groups = [];
   NavigationNode? selectedNode;
   String? selectedPageId;

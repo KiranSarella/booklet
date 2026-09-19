@@ -1,28 +1,11 @@
-import 'package:booklet/ui/app/components/components.dart';
-import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
-import 'package:booklet/ui/app/navigation/navigation_controller.dart';
-import 'package:booklet/ui/app/navigation/navigation_models.dart';
+import 'package:booklet/business/page_content.dart';
+import 'package:booklet/ui/components/components.dart';
+import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/ui/navigation/navigation_panel_vm.dart';
+import 'package:booklet/ui/navigation/navigation_node.dart';
 
-class PageContent {
-  PageContent({
-    required this.id,
-    required this.title,
-    required this.components,
-  });
-
-  final String id;
-  String title;
-  final List<ComponentBox> components;
-
-  void dispose() {
-    for (final component in components) {
-      component.dispose();
-    }
-  }
-}
-
-class BookletEditorViewModel {
-  BookletEditorViewModel(this.theme) {
+class BaseVM {
+  BaseVM(this.theme) {
     final starterPage = _createPage('Introduction', [
       TitleComponent(theme),
       TextComponent(theme),
@@ -46,7 +29,7 @@ class BookletEditorViewModel {
   }
 
   final EditorTheme theme;
-  final NavigationController navigation = NavigationController();
+  final NavigationPanelVM navigation = NavigationPanelVM();
   final Map<String, PageContent> _pagesById = {};
   int _nextId = 0;
   ComponentBox? _selectedComponent;
@@ -65,7 +48,7 @@ class BookletEditorViewModel {
     _documentPath = path;
   }
 
-  PageContent _createPage(String title, List<ComponentRenderer> renderers) {
+  PageContent _createPage(String title, List<Component> renderers) {
     final id = 'page-${_nextId++}';
     return PageContent(
       id: id,
@@ -131,7 +114,7 @@ class BookletEditorViewModel {
           components.add(
             ComponentBox(
               componentInfo: ComponentInfo(
-                renderer: ComponentRenderer.fromType(type, theme),
+                renderer: Component.fromType(type, theme),
               ),
               delta: delta,
             ),
@@ -198,7 +181,7 @@ class BookletEditorViewModel {
     }
     final component = ComponentBox(
       componentInfo: ComponentInfo(
-        renderer: ComponentRenderer.fromType(type, theme),
+        renderer: Component.fromType(type, theme),
       ),
     );
     page.components.insert(index + 1, component);
@@ -277,7 +260,7 @@ class BookletEditorViewModel {
     if (selected == null) {
       return;
     }
-    selected.componentInfo.renderer = ComponentRenderer.fromType(type, theme);
+    selected.componentInfo.renderer = Component.fromType(type, theme);
   }
 
   void dispose() {

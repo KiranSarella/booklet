@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:booklet/ui/helpers_ui/autoheight_richtext.dart';
-import 'package:booklet/ui/app/components/booklet_component.dart';
-import 'package:booklet/ui/app/components/component_types.dart';
-import 'package:booklet/ui/app/editor_themes/editor_themes.dart';
+import 'package:booklet/ui/_helpers/autoheight_richtext.dart';
+import 'package:booklet/ui/components/component_visual_state.dart';
+import 'package:booklet/ui/components/component_types.dart';
+import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
-abstract class ComponentRenderer {
+abstract class Component {
+  // String get id;
   String get name;
   Attribute<dynamic> get alignment => Attribute.leftAlignment;
   Widget createUI({
-    required BookletComponent component,
+    required ComponentVisualState component,
     required bool isSelected,
     required VoidCallback onSelect,
     required VoidCallback onCreateBelow,
   });
-  static final Map<String, ComponentRenderer Function(EditorTheme)> _factories =
+  static final Map<String, Component Function(EditorTheme)> _factories =
       {
         'title': (theme) => TitleComponent(theme),
         'heading': (theme) => Heading1Component(theme),
@@ -35,7 +36,7 @@ abstract class ComponentRenderer {
         'footnote': (theme) => FootnoteComponent(theme),
       };
 
-  static ComponentRenderer fromType(String type, EditorTheme theme) {
+  static Component fromType(String type, EditorTheme theme) {
     final factory =
         _factories[type] ?? _factories[ComponentTypes.getIdForTitle(type)];
     if (factory == null) {
@@ -45,7 +46,7 @@ abstract class ComponentRenderer {
   }
 }
 
-abstract class RichTextComponentRenderer implements ComponentRenderer {
+abstract class RichTextComponentRenderer implements Component {
   RichTextComponentRenderer(this.name, this.theme);
 
   double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
@@ -59,13 +60,13 @@ abstract class RichTextComponentRenderer implements ComponentRenderer {
 
   @override
   Widget createUI({
-    required BookletComponent component,
+    required ComponentVisualState component,
     required bool isSelected,
     required VoidCallback onSelect,
     required VoidCallback onCreateBelow,
   }) {
     return AutoHeightRichText2(
-      component: component,
+      visualState: component,
       isSelected: isSelected,
       onSelect: onSelect,
       onCreateBelow: onCreateBelow,
@@ -280,13 +281,13 @@ class FootnoteComponent extends RichTextComponentRenderer {
 
 class ComponentBox {
   ComponentBox({required this.componentInfo, List<dynamic>? delta})
-    : component = BookletComponent(
+    : component = ComponentVisualState(
         componentInfo.renderer.alignment,
         delta: delta,
       );
 
   final ComponentInfo componentInfo;
-  final BookletComponent component;
+  final ComponentVisualState component;
   final GlobalKey componentKey = GlobalKey();
   bool isSelected = false;
 
@@ -321,5 +322,5 @@ class ComponentBox {
 
 class ComponentInfo {
   ComponentInfo({required this.renderer});
-  ComponentRenderer renderer;
+  Component renderer;
 }
