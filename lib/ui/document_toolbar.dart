@@ -1,14 +1,14 @@
-import 'package:booklet/ui/base_view.dart';
+import 'package:booklet/application/editor_controller.dart';
 import 'package:flutter/material.dart';
 
 class DocumentToolbar extends StatefulWidget {
   const DocumentToolbar({
     super.key,
-    required this.editorKey,
+    required this.controller,
     required this.onEditTheme,
   });
 
-  final GlobalKey<BaseViewState> editorKey;
+  final EditorController controller;
   final VoidCallback onEditTheme;
 
   @override
@@ -17,15 +17,11 @@ class DocumentToolbar extends StatefulWidget {
 
 class DocumentToolbarState extends State<DocumentToolbar> {
   Future<void> saveBooklet() async {
-    final editor = widget.editorKey.currentState;
-    if (editor == null) {
-      return;
-    }
-    if (!editor.hasOpenedBooklet) {
+    if (!widget.controller.hasOpenedBooklet) {
       _showMessage('Opening save dialog...');
     }
     try {
-      final saved = await editor.saveBooklet();
+      final saved = await widget.controller.saveBooklet();
       if (saved) {
         _showMessage('Booklet saved');
       }
@@ -37,8 +33,7 @@ class DocumentToolbarState extends State<DocumentToolbar> {
   Future<void> openBooklet() async {
     _showMessage('Opening file dialog...');
     try {
-      final opened =
-          await widget.editorKey.currentState?.openBooklet() ?? false;
+      final opened = await widget.controller.openBooklet();
       if (opened) {
         _showMessage('Booklet opened');
       }

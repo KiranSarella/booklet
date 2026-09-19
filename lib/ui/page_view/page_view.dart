@@ -1,4 +1,4 @@
-import 'package:booklet/ui/base_vm.dart';
+import 'package:booklet/business/page_content.dart';
 import 'package:booklet/ui/components/components.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:flutter/material.dart';
@@ -7,14 +7,14 @@ class PageView extends StatelessWidget {
   const PageView({
     super.key,
     required this.editorTheme,
-    required this.viewModel,
+    required this.page,
     required this.onSelectComponent,
     required this.onCreateEntryBelow,
     required this.onTapEmptySpace,
   });
 
   final EditorTheme editorTheme;
-  final BaseVM viewModel;
+  final PageContent? page;
   final ValueChanged<ComponentBox> onSelectComponent;
   final ValueChanged<int> onCreateEntryBelow;
   final VoidCallback onTapEmptySpace;
@@ -46,15 +46,15 @@ class PageView extends StatelessWidget {
               children: [
                 for (
                   var index = 0;
-                  index < viewModel.components.length;
+                  index < (page?.components.length ?? 0);
                   index++
                 )
                   Padding(
-                    key: viewModel.components[index].componentKey,
+                    key: page!.components[index].componentKey,
                     padding: const EdgeInsets.only(bottom: 6),
-                    child: viewModel.components[index].createUI(
+                    child: page!.components[index].createUI(
                       onSelect: () =>
-                          onSelectComponent(viewModel.components[index]),
+                          onSelectComponent(page!.components[index]),
                       onCreateBelow: () => onCreateEntryBelow(index),
                     ),
                   ),

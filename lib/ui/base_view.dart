@@ -1,17 +1,16 @@
 import 'package:booklet/ui/page_view/page_view.dart';
 import 'package:flutter/material.dart' hide PageView;
+import 'package:booklet/application/editor_controller.dart';
 import 'package:booklet/ui/base_vm.dart';
 import 'package:booklet/ui/components/components.dart';
-import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:booklet/ui/navigation/navigation_panel_view.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 import 'package:booklet/ui/options_dock/opitons_dock.dart';
-import 'package:booklet/storage/booklet_file.dart';
 
 class BaseView extends StatefulWidget {
-  const BaseView({super.key, required this.editorTheme});
+  const BaseView({super.key, required this.controller});
 
-  final EditorTheme editorTheme;
+  final EditorController controller;
 
   @override
   State<BaseView> createState() => BaseViewState();
@@ -20,14 +19,14 @@ class BaseView extends StatefulWidget {
 class BaseViewState extends State<BaseView> {
   final ScrollController _scrollController = ScrollController();
   final _optionsDockKey = GlobalKey<OptionsDockState>();
-  late final BaseVM _viewModel;
   double _navigationWidth = NavigationPanelView.defaultWidth;
   bool _isNavigationVisible = true;
+
+  BaseVM get _viewModel => widget.controller.viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = BaseVM(widget.editorTheme);
   }
 
   void selectComponent(ComponentBox component) {
@@ -35,7 +34,7 @@ class BaseViewState extends State<BaseView> {
   }
 
   void selectPage(NavigationNode node) {
-    setState(() => _viewModel.selectNode(node));
+    widget.controller.selectNode(node);
   }
 
   void clearSelectionAndFocus() {
@@ -47,19 +46,13 @@ class BaseViewState extends State<BaseView> {
 
   BaseVM get viewModel => _viewModel;
 
-  Future<bool> saveBooklet() => BookletFile.save(_viewModel);
+  Future<bool> saveBooklet() => widget.controller.saveBooklet();
 
-  Future<bool> saveBookletAs() => BookletFile.saveAs(_viewModel);
+  Future<bool> saveBookletAs() => widget.controller.saveBookletAs();
 
-  bool get hasOpenedBooklet => _viewModel.documentPath != null;
+  bool get hasOpenedBooklet => widget.controller.hasOpenedBooklet;
 
-  Future<bool> openBooklet() async {
-    final opened = await BookletFile.open(_viewModel);
-    if (opened && mounted) {
-      setState(() {});
-    }
-    return opened;
-  }
+  Future<bool> openBooklet() => widget.controller.openBooklet();
 
   void dismissOptionsMenu() {
     _optionsDockKey.currentState?.dismissMenu();
@@ -129,14 +122,13 @@ class BaseViewState extends State<BaseView> {
   @override
   void dispose() {
     _scrollController.dispose();
-    _viewModel.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: widget.editorTheme,
+      listenable: widget.controller,
       builder: (context, _) => Stack(
         children: [
           Row(
@@ -171,8 +163,8 @@ class BaseViewState extends State<BaseView> {
                       controller: _scrollController,
                       padding: const EdgeInsets.all(90),
                       child: PageView(
-                        editorTheme: widget.editorTheme,
-                        viewModel: _viewModel,
+                        editorTheme: widget.controller.editorTheme,
+                        page: widget.controller.selectedPage,
                         onSelectComponent: selectComponent,
                         onCreateEntryBelow: _createEntryBelow,
                         onTapEmptySpace: clearSelectionAndFocus,

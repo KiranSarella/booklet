@@ -1,27 +1,45 @@
-
 import 'package:flutter/foundation.dart';
+import 'package:booklet/ui/editor_themes/editor_themes.dart';
+
+import 'editor_controller.dart';
 
 enum AppScreen { startup, editor }
 
 class App extends ChangeNotifier {
-	AppScreen _screen = AppScreen.startup;
+  App(this.editorTheme) : editorController = EditorController(editorTheme);
 
-	AppScreen get screen => _screen;
+  final EditorTheme editorTheme;
+  final EditorController editorController;
+  AppScreen _screen = AppScreen.startup;
 
-	void createBooklet() {
-		_showEditor();
-	}
+  AppScreen get screen => _screen;
 
-	void openBooklet() {
-		_showEditor();
-	}
+  void createBooklet() {
+    editorController.createBooklet();
+    _showEditor();
+  }
 
-	void _showEditor() {
-		if (_screen == AppScreen.editor) {
-			return;
-		}
+  Future<bool> openBooklet() async {
+    final opened = await editorController.openBooklet();
+    if (opened) {
+      _showEditor();
+    }
+    return opened;
+  }
 
-		_screen = AppScreen.editor;
-		notifyListeners();
-	}
+  void _showEditor() {
+    if (_screen == AppScreen.editor) {
+      return;
+    }
+
+    _screen = AppScreen.editor;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    editorController.dispose();
+    editorTheme.dispose();
+    super.dispose();
+  }
 }

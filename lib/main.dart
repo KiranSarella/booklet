@@ -9,7 +9,7 @@ import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:booklet/ui/start_booklet.dart';
 
 void main() {
-  runApp(MainApp(application: App()));
+  runApp(MainApp(application: App(EditorTheme())));
 }
 
 class MainApp extends StatefulWidget {
@@ -25,26 +25,24 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _bookletEditorKey = GlobalKey<BaseViewState>();
   final _documentToolbarKey = GlobalKey<DocumentToolbarState>();
-  final EditorTheme _editorTheme = EditorTheme();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _editorTheme.updateSystemBrightness(
+    widget.application.editorTheme.updateSystemBrightness(
       WidgetsBinding.instance.platformDispatcher.platformBrightness,
     );
-    _editorTheme.load();
+    widget.application.editorTheme.load();
   }
 
   Future<void> _openBookletFromStartup() async {
-    widget.application.openBooklet();
-    await _documentToolbarKey.currentState?.openBooklet();
+    await widget.application.openBooklet();
   }
 
   @override
   void didChangePlatformBrightness() {
-    _editorTheme.updateSystemBrightness(
+    widget.application.editorTheme.updateSystemBrightness(
       WidgetsBinding.instance.platformDispatcher.platformBrightness,
     );
   }
@@ -52,7 +50,6 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _editorTheme.dispose();
     widget.application.dispose();
     super.dispose();
   }
@@ -65,7 +62,8 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
 
     showDialog<void>(
       context: navigatorContext,
-      builder: (context) => EditorThemeDialog(editorTheme: _editorTheme),
+      builder: (context) =>
+          EditorThemeDialog(editorTheme: widget.application.editorTheme),
     );
   }
 
@@ -113,7 +111,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                         height: double.infinity,
                         child: BaseView(
                           key: _bookletEditorKey,
-                          editorTheme: _editorTheme,
+                          controller: widget.application.editorController,
                         ),
                       ),
                     ),
@@ -122,7 +120,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                       right: 102,
                       child: DocumentToolbar(
                         key: _documentToolbarKey,
-                        editorKey: _bookletEditorKey,
+                        controller: widget.application.editorController,
                         onEditTheme: _showThemeEditor,
                       ),
                     ),
