@@ -1,4 +1,4 @@
-import 'package:booklet/ui/components/components.dart';
+import 'package:booklet/ui/components/component_box.dart';
 
 class PageContent {
   PageContent({

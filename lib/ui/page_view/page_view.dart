@@ -1,5 +1,5 @@
 import 'package:booklet/business/page_content.dart';
-import 'package:booklet/ui/components/components.dart';
+import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:flutter/material.dart';
 
@@ -52,7 +52,8 @@ class PageView extends StatelessWidget {
                   Padding(
                     key: page!.components[index].componentKey,
                     padding: const EdgeInsets.only(bottom: 6),
-                    child: page!.components[index].createUI(
+                    child: page!.components[index].buildUI(
+                      theme: editorTheme,
                       onSelect: () =>
                           onSelectComponent(page!.components[index]),
                       onCreateBelow: () => onCreateEntryBelow(index),

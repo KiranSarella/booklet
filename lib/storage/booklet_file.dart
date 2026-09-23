@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:booklet/business/page_content.dart';
-import 'package:booklet/ui/components/components.dart';
+import 'package:booklet/ui/components/inbuilt_component_objects.dart';
+import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:booklet/ui/components/component_box.dart';
 
 class BookletManifest {
   const BookletManifest({
@@ -90,12 +92,16 @@ class BookletFile {
           continue;
         }
         components.add(
-          ComponentBox(
-            componentInfo: ComponentInfo(
-              renderer: Component.fromType(type, theme),
-            ),
-            delta: delta,
-          ),
+          ComponentBox(component: InbuiltComponents.prepareCompoent("id", type),
+          delta: delta 
+        )
+
+          // ComponentBox(
+          //   componentInfo: ComponentInfo(
+          //     renderer: Component.fromType(type, theme),
+          //   ),
+          //   delta: delta,
+          // ),
         );
       }
     }
@@ -127,10 +133,10 @@ class BookletFile {
       'id': page.id,
       'title': page.title,
       'components': [
-        for (final component in page.components)
+        for (final componentBox in page.components)
           {
-            'type': component.componentInfo.renderer.name,
-            'delta': component.component.controller.document.toDelta().toJson(),
+            'type': componentBox.component.def.name,
+            'delta': componentBox.componentState.controller.document.toDelta().toJson(),
           },
       ],
     });

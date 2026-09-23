@@ -1,5 +1,8 @@
 import 'package:booklet/business/page_content.dart';
-import 'package:booklet/ui/components/components.dart';
+import 'package:booklet/ui/components/component.dart';
+import 'package:booklet/ui/components/inbuilt_component_objects.dart';
+import 'package:booklet/ui/components/inbuilt_components.dart';
+import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:booklet/ui/navigation/navigation_panel_vm.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
@@ -12,16 +15,8 @@ class BaseVM {
     }
 
     final starterPage = _createPage('Introduction', [
-      TitleComponent(theme),
-      TextComponent(theme),
-      TextComponent(theme),
-      HeadingComponent(theme),
-      TextComponent(theme),
-      TextComponent(theme),
-      TextComponent(theme),
-      TextComponent(theme),
-      HeadingComponent(theme),
-      TextComponent(theme),
+      InbuiltComponents.prepareCompoent(Uuid().toString(), 'title'),
+      InbuiltComponents.prepareCompoent(Uuid().toString(), 'text'),
     ]);
     navigation.addGroup(title: 'Booklet');
     navigation.addPage(
@@ -74,14 +69,14 @@ class BaseVM {
     _documentPath = path;
   }
 
-  PageContent _createPage(String title, List<Component> renderers) {
+  PageContent _createPage(String title, List<Component> components) {
     final id = const Uuid().v4();
     return PageContent(
       id: id,
       title: title,
       components: [
-        for (final renderer in renderers)
-          ComponentBox(componentInfo: ComponentInfo(renderer: renderer)),
+        for (final component in components)
+          ComponentBox(component: component)
       ],
     );
   }
@@ -96,40 +91,6 @@ class BaseVM {
     if (node.isPage) {
       clearSelectedComponent();
     }
-  }
-
-  void selectComponent(ComponentBox component) {
-    if (components.contains(component)) {
-      for (final item in components) {
-        item.isSelected = false;
-      }
-      component.isSelected = true;
-      _selectedComponent = component;
-    }
-  }
-
-  void clearSelectedComponent() {
-    for (final component in components) {
-      component.isSelected = false;
-    }
-    _selectedComponent = null;
-  }
-
-  ComponentBox createComponentBelow(int index) {
-    return createComponentBelowType(index, 'text');
-  }
-
-  ComponentBox createComponentBelowType(int index, String type) {
-    final page = selectedPage;
-    if (page == null) {
-      throw StateError('No page is selected');
-    }
-    final component = ComponentBox(
-      componentInfo: ComponentInfo(renderer: Component.fromType(type, theme)),
-    );
-    page.components.insert(index + 1, component);
-    _selectedComponent = component;
-    return component;
   }
 
   void addGroup() {
@@ -176,7 +137,7 @@ class BaseVM {
 
   void _addPage(PagePlacement placement) {
     clearSelectedComponent();
-    final page = _createPage('Untitled page', [TextComponent(theme)]);
+    final page = _createPage('Untitled page', [InbuiltComponents.prepareCompoent(Uuid().toString(), "text")]);
     navigation.addPage(
       pageId: page.id,
       title: page.title,
@@ -184,6 +145,52 @@ class BaseVM {
     );
     _pagesById[page.id] = page;
   }
+
+  // MARK: - Components
+
+  void selectComponent(ComponentBox component) {
+    if (components.contains(component)) {
+      for (final item in components) {
+        item.isSelected = false;
+      }
+      component.isSelected = true;
+      _selectedComponent = component;
+    }
+  }
+
+  void clearSelectedComponent() {
+    for (final component in components) {
+      component.isSelected = false;
+    }
+    _selectedComponent = null;
+  }
+
+  ComponentBox createComponentBelow(int index) {
+    return createComponentBelowType(index, 'text');
+  }
+
+  ComponentBox createComponentBelowType(int index, String type) {
+    final page = selectedPage;
+    if (page == null) {
+      throw StateError('No page is selected');
+    }
+    final component = ComponentBox(
+      component: InbuiltComponents.prepareCompoent(Uuid().toString(), type)
+    );
+    page.components.insert(index + 1, component);
+    _selectedComponent = component;
+    return component;
+  }
+
+
+  void transformSelectedComponent(String type) {
+    final selected = _selectedComponent;
+    if (selected == null) {
+      return;
+    }
+    selected.component = InbuiltComponents.prepareCompoent(Uuid().toString(), type);
+  }
+
 
   void deleteSelectedComponent() {
     final page = selectedPage;
@@ -198,13 +205,6 @@ class BaseVM {
     }
   }
 
-  void transformSelectedComponent(String type) {
-    final selected = _selectedComponent;
-    if (selected == null) {
-      return;
-    }
-    selected.componentInfo.renderer = Component.fromType(type, theme);
-  }
 
   void dispose() {
     for (final page in _pagesById.values) {

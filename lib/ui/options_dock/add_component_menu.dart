@@ -17,9 +17,7 @@ class AddComponentMenu extends StatelessWidget {
   static const _componentTypes = [
     'Title',
     'Heading',
-    // 'Heading 2',
     'Subheading',
-    // 'Subheading 2',
     'Inline Heading',
     'Subtitle',
     'Label',
