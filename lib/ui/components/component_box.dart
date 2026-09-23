@@ -12,7 +12,7 @@ class ComponentBox {
         delta: delta,
       );
 
-  final Component component;
+  Component component;
   final ComponentVisualState componentState;
   final GlobalKey componentKey = GlobalKey();
   bool isSelected = false;

@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:booklet/business/page_content.dart';
-import 'package:booklet/ui/components/inbuilt_component_objects.dart';
+import 'package:booklet/storage/rich_text_codec.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:booklet/ui/components/component_box.dart';
+import 'package:uuid/uuid.dart';
 
 class BookletManifest {
   const BookletManifest({
@@ -87,21 +88,27 @@ class BookletFile {
       for (final rawComponent in rawComponents.whereType<Map>()) {
         final componentJson = Map<String, dynamic>.from(rawComponent);
         final type = componentJson['type'] as String?;
-        final delta = componentJson['delta'];
-        if (type == null || delta is! List) {
+        if (type == null) {
           continue;
         }
-        components.add(
-          ComponentBox(component: InbuiltComponents.prepareCompoent("id", type),
-          delta: delta 
-        )
 
-          // ComponentBox(
-          //   componentInfo: ComponentInfo(
-          //     renderer: Component.fromType(type, theme),
-          //   ),
-          //   delta: delta,
-          // ),
+        List<dynamic>? delta;
+        if (componentJson.containsKey('content') ||
+            componentJson.containsKey('styles') ||
+            componentJson.containsKey('text') ||
+            componentJson.containsKey('spans')) {
+          final richText = RichTextData.fromJson(componentJson);
+          delta = RichTextCodec.richTextToDelta(richText);
+        } else if (componentJson['delta'] is List) {
+          delta = componentJson['delta'] as List<dynamic>;
+        }
+
+        final id = componentJson['id'] as String? ?? const Uuid().v4();
+        components.add(
+          ComponentBox(
+            component: InbuiltComponents.prepareCompoent(id, type),
+            delta: delta,
+          ),
         );
       }
     }
@@ -134,10 +141,18 @@ class BookletFile {
       'title': page.title,
       'components': [
         for (final componentBox in page.components)
-          {
-            'type': componentBox.component.def.name,
-            'delta': componentBox.componentState.controller.document.toDelta().toJson(),
-          },
+          () {
+            final delta = componentBox.componentState.controller.document
+                .toDelta()
+                .toJson();
+            final richText = RichTextCodec.deltaToRichText(delta);
+            return {
+              'id': componentBox.component.id,
+              'type': componentBox.component.def.key,
+              'content': richText.content,
+              'styles': richText.styles.map((s) => s.toJson()).toList(),
+            };
+          }(),
       ],
     });
     await File('$packagePath/$_pagesDirectory/${page.id}.json')

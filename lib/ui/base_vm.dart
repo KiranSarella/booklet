@@ -175,7 +175,7 @@ class BaseVM {
       throw StateError('No page is selected');
     }
     final component = ComponentBox(
-      component: InbuiltComponents.prepareCompoent(Uuid().toString(), type)
+      component: InbuiltComponents.prepareCompoent(const Uuid().v4(), type),
     );
     page.components.insert(index + 1, component);
     _selectedComponent = component;
@@ -188,7 +188,7 @@ class BaseVM {
     if (selected == null) {
       return;
     }
-    selected.component = InbuiltComponents.prepareCompoent(Uuid().toString(), type);
+    selected.component = InbuiltComponents.prepareCompoent(selected.component.id, type);
   }
 
 
