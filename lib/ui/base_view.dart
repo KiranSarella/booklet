@@ -2,7 +2,6 @@ import 'package:booklet/ui/page_view/page_view.dart';
 import 'package:flutter/material.dart' hide PageView;
 import 'package:booklet/application/editor_controller.dart';
 import 'package:booklet/ui/base_vm.dart';
-import 'package:booklet/ui/components/inbuilt_component_objects.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/navigation/navigation_panel_view.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
@@ -78,7 +77,9 @@ class BaseViewState extends State<BaseView> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _scrollToComponent(newComponent);
+      newComponent.requestFocus();
     });
   }
 
@@ -94,7 +95,9 @@ class BaseViewState extends State<BaseView> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _scrollToComponent(newComponent);
+      newComponent.requestFocus();
     });
   }
 

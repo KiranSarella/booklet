@@ -15,8 +15,8 @@ class BaseVM {
     }
 
     final starterPage = _createPage('Introduction', [
-      InbuiltComponents.prepareCompoent(Uuid().toString(), 'title'),
-      InbuiltComponents.prepareCompoent(Uuid().toString(), 'text'),
+      InbuiltComponents.prepareCompoent(const Uuid().v4(), 'title'),
+      InbuiltComponents.prepareCompoent(const Uuid().v4(), 'text'),
     ]);
     navigation.addGroup(title: 'Booklet');
     navigation.addPage(
@@ -137,7 +137,9 @@ class BaseVM {
 
   void _addPage(PagePlacement placement) {
     clearSelectedComponent();
-    final page = _createPage('Untitled page', [InbuiltComponents.prepareCompoent(Uuid().toString(), "text")]);
+    final page = _createPage('Untitled page', [
+      InbuiltComponents.prepareCompoent(const Uuid().v4(), "text"),
+    ]);
     navigation.addPage(
       pageId: page.id,
       title: page.title,
@@ -178,7 +180,7 @@ class BaseVM {
       component: InbuiltComponents.prepareCompoent(const Uuid().v4(), type),
     );
     page.components.insert(index + 1, component);
-    _selectedComponent = component;
+    selectComponent(component);
     return component;
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:booklet/ui/components/inbuilt_components.dart';
 
 class AddComponentMenu extends StatelessWidget {
   const AddComponentMenu({
@@ -11,27 +12,20 @@ class AddComponentMenu extends StatelessWidget {
   static const double _menuHeight = 480;
 
   final String title;
-  final List<String> componentTypes = _componentTypes;
   final ValueChanged<String> onSelected;
 
-  static const _componentTypes = [
-    'Title',
-    'Heading',
-    'Subheading',
-    'Inline Heading',
-    'Subtitle',
-    'Label',
-    'Text',
-    '- Dashed List',
-    '1. Numbered List',
-    '🗸 Checklist',
-    '┃ Focus',
-    'Block Text',
-    '❝Quote❞',
-    '📍 Location',
-    'Caption',
-    'Footnote',
-  ];
+  List<String> get componentTypes => _componentTypes;
+
+  static final List<String> _componentTypes = InbuiltComponents
+      .getComponentMenuItems()
+      .map((definition) => definition.key)
+      .toList(growable: false);
+
+  static String titleforkey(String key) {
+    return InbuiltComponents.getComponentMenuItems()
+        .firstWhere((definition) => definition.key == key)
+        .name;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,16 +53,16 @@ class AddComponentMenu extends StatelessWidget {
                 ),
               ),
               ...componentTypes.map(
-                (component) => InkWell(
-                  onTap: () => onSelected(component),
+                (componentKey) => InkWell(
+                  onTap: () => onSelected(componentKey),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 8,
                     ),
                     child: Text(
-                      component,
-                      style: _styleForComponent(component),
+                      titleforkey(componentKey),
+                      style: _styleForComponent(titleforkey(componentKey)),
                     ),
                   ),
                 ),

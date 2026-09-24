@@ -33,7 +33,7 @@ class TitleComponent implements Component {
     double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
-      fontSize: fontSizePercent(271),
+      fontSize: fontSizePercent(290),
       fontWeight: FontWeight.w800,
       color: theme.titleColor,
       height: 1.4,
@@ -193,8 +193,8 @@ class InlineHeadingComponent implements Component {
     double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
-      fontSize: fontSizePercent(157),
-      fontWeight: FontWeight.w700,
+      fontSize: fontSizePercent(117),
+      fontWeight: FontWeight.w600,
       color: theme.subheadingColor,
     );
 
@@ -532,15 +532,28 @@ class FocusComponent implements Component {
       color: theme.textColor,
     );
 
-    return AutoHeightRichText2(
-      visualState: componentState,
-      isSelected: isSelected,
-      onSelect: onSelect,
-      onCreateBelow: onCreateBelow,
-      textStyle: textStyle,
-      alignment: alignment,
-      editorPadding: editorPadding,
-      placeholder: def.name,
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            left: BorderSide(
+              color: Colors.red,
+              width: 4,
+            ),
+          ),
+        ),
+        child: AutoHeightRichText2(
+          visualState: componentState,
+          isSelected: isSelected,
+          onSelect: onSelect,
+          onCreateBelow: onCreateBelow,
+          textStyle: textStyle,
+          alignment: alignment,
+          editorPadding: editorPadding,
+          placeholder: def.name,
+        ),
+      ),
     );
   }
 
@@ -549,6 +562,67 @@ class FocusComponent implements Component {
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
+
+
+
+
+class FocusComponent2 implements Component {
+
+  FocusComponent2({required String id});
+
+  @override
+  String id = "";
+
+  @override
+  ComponentDef get def => FocusComponentDef();
+
+  @override
+  Widget buildUI({
+    required EditorTheme theme, 
+    required ComponentVisualState componentState, 
+    required bool isSelected, 
+    required VoidCallback onSelect, 
+    required VoidCallback onCreateBelow
+    }) {
+
+    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+
+    TextStyle textStyle = TextStyle(
+      fontSize: fontSizePercent(100),
+      fontWeight: FontWeight.w500,
+      color: theme.textColor,
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          width: 4,
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          color: theme.textColor,
+        ),
+        Expanded(
+          child: AutoHeightRichText2(
+            visualState: componentState,
+            isSelected: isSelected,
+            onSelect: onSelect,
+            onCreateBelow: onCreateBelow,
+            textStyle: textStyle,
+            alignment: alignment,
+            editorPadding: editorPadding,
+            placeholder: def.name,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+
+  EdgeInsets get editorPadding =>
+      const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
+}
+
 
 
 

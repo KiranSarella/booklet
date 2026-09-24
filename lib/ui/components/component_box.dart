@@ -1,5 +1,5 @@
+import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/ui/components/component_visual_state.dart';
-import 'package:booklet/ui/components/inbuilt_component_objects.dart';
 import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:flutter/material.dart';
@@ -43,7 +43,15 @@ class ComponentBox {
     );
   }
 
+  bool get isTextComponent => component.def.type == ComponentType.text;
+
+  void requestFocus() {
+    if (isTextComponent) {
+      componentState.focusNode.requestFocus();
+    }
+  }
+
   void dispose() {
-    // component.dispose();
+    componentState.dispose();
   }
 }
