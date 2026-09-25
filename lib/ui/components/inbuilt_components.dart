@@ -36,6 +36,8 @@ class InbuiltComponents {
         return BlockTextComponent(id: id);
       case 'quote':
         return QuoteComponent(id: id);
+      case 'image':
+        return ImageComponent(id: id);
       case 'location':
         return LocationComponent(id: id);
       case 'caption':
@@ -62,6 +64,7 @@ class InbuiltComponents {
       FocusComponentDef(),
       BlockTextComponentDef(),
       QuoteComponentDef(),
+      ImageComponentDef(),
       LocationComponentDef(),
       CaptionComponentDef(),
       FootnoteComponentDef(),

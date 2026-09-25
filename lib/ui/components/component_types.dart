@@ -31,6 +31,8 @@ class ComponentTypes {
         return 'Block Text';
       case 'location':
         return '📍 Location';
+      case 'image':
+        return 'Image';
       case 'caption':
         return 'Caption';
       case 'footnote':
@@ -69,6 +71,8 @@ class ComponentTypes {
         return 'block_text';
       case '📍 Location':
         return 'location';
+      case 'Image':
+        return 'image';
       case 'Caption':
         return 'caption';
       case 'Footnote':

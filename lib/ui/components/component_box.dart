@@ -1,21 +1,20 @@
 import 'package:booklet/business/components_business/component_def.dart';
-import 'package:booklet/ui/components/component_visual_state.dart';
 import 'package:booklet/ui/components/component.dart';
+import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 
 class ComponentBox {
-  ComponentBox({required this.component, List<dynamic>? delta})
-    : componentState = ComponentVisualState(
-        Attribute.leftAlignment,
-        delta: delta,
-      );
+  ComponentBox({required this.component, List<dynamic>? delta}) {
+    component.initialize(delta: delta);
+  }
 
   Component component;
-  final ComponentVisualState componentState;
   final GlobalKey componentKey = GlobalKey();
-  bool isSelected = false;
+
+  bool get isSelected => component.state.isSelected;
+
+  set isSelected(bool value) => component.state.isSelected = value;
 
   Widget buildUI({
     required EditorTheme theme,
@@ -34,7 +33,7 @@ class ComponentBox {
         ),
         child: component.buildUI(
           theme: theme,
-          componentState: componentState,
+          componentState: component.state,
           isSelected: isSelected,
           onSelect: onSelect,
           onCreateBelow: onCreateBelow,
@@ -46,12 +45,13 @@ class ComponentBox {
   bool get isTextComponent => component.def.type == ComponentType.text;
 
   void requestFocus() {
-    if (isTextComponent) {
-      componentState.focusNode.requestFocus();
+    final state = component.state;
+    if (state is TextComponentState) {
+      state.focusNode.requestFocus();
     }
   }
 
   void dispose() {
-    componentState.dispose();
+    component.dispose();
   }
 }

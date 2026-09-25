@@ -183,6 +183,17 @@ class QuoteComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
+class ImageComponentDef extends ComponentDef {
+  @override
+  String get key => "image";
+
+  @override
+  String get name => "Image";
+
+  @override
+  ComponentType get type => ComponentType.media;
+}
+
 
 class LocationComponentDef extends ComponentDef {
   @override

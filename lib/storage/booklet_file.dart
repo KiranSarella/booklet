@@ -8,7 +8,9 @@ import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:booklet/ui/components/component_box.dart';
+import 'package:booklet/ui/components/component_state.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 class BookletManifest {
   const BookletManifest({
@@ -104,9 +106,23 @@ class BookletFile {
         }
 
         final id = componentJson['id'] as String? ?? const Uuid().v4();
+        final component = InbuiltComponents.prepareCompoent(id, type);
+        final componentState = component.state;
+        if (componentState is ImageComponentState) {
+          componentState.mediaPath = componentJson['mediaPath'] as String?;
+        } else if (componentState is QuoteComponentState &&
+            componentJson['author'] is String) {
+          final authorData = RichTextData.fromJson({
+            'content': componentJson['author'],
+            'styles': componentJson['authorStyles'],
+          });
+          componentState.author.controller.document = Document.fromJson(
+            RichTextCodec.richTextToDelta(authorData),
+          );
+        }
         components.add(
           ComponentBox(
-            component: InbuiltComponents.prepareCompoent(id, type),
+            component: component,
             delta: delta,
           ),
         );
@@ -142,16 +158,43 @@ class BookletFile {
       'components': [
         for (final componentBox in page.components)
           () {
-            final delta = componentBox.componentState.controller.document
-                .toDelta()
-                .toJson();
-            final richText = RichTextCodec.deltaToRichText(delta);
-            return {
-              'id': componentBox.component.id,
-              'type': componentBox.component.def.key,
-              'content': richText.content,
-              'styles': richText.styles.map((s) => s.toJson()).toList(),
-            };
+            final state = componentBox.component.state;
+            if (state is TextComponentState) {
+              final delta = state.controller.document.toDelta().toJson();
+              final richText = RichTextCodec.deltaToRichText(delta);
+              return {
+                'id': componentBox.component.id,
+                'type': componentBox.component.def.key,
+                'content': richText.content,
+                'styles': richText.styles.map((s) => s.toJson()).toList(),
+              };
+            }
+            if (state is QuoteComponentState) {
+              final quote = RichTextCodec.deltaToRichText(
+                state.quote.controller.document.toDelta().toJson(),
+              );
+              final author = RichTextCodec.deltaToRichText(
+                state.author.controller.document.toDelta().toJson(),
+              );
+              return {
+                'id': componentBox.component.id,
+                'type': componentBox.component.def.key,
+                'content': quote.content,
+                'styles': quote.styles.map((s) => s.toJson()).toList(),
+                'author': author.content,
+                'authorStyles': author.styles
+                    .map((s) => s.toJson())
+                    .toList(),
+              };
+            }
+            if (state is ImageComponentState) {
+              return {
+                'id': componentBox.component.id,
+                'type': componentBox.component.def.key,
+                'mediaPath': state.mediaPath,
+              };
+            }
+            throw StateError('Unsupported component state');
           }(),
       ],
     });

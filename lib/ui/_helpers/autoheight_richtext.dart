@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
-import 'package:booklet/ui/components/component_visual_state.dart';
+import 'package:booklet/ui/components/component_state.dart';
 
 
 class _CreateBelowIntent extends Intent {
@@ -24,7 +24,7 @@ class AutoHeightRichText2 extends StatelessWidget {
     ),
   });
 
-  final ComponentVisualState visualState;
+  final ComponentState visualState;
   final bool isSelected;
   final VoidCallback onSelect;
   final VoidCallback onCreateBelow;
@@ -67,13 +67,14 @@ class AutoHeightRichText2 extends StatelessWidget {
               },
               child: Focus(
                 onFocusChange: (hasFocus) {
+                  visualState.isFocused = hasFocus;
                   if (hasFocus) {
                     onSelect();
                   }
                 },
                 child: QuillEditor.basic(
-                  controller: visualState.controller,
-                  focusNode: visualState.focusNode,
+                  controller: (visualState as TextComponentState).controller,
+                  focusNode: (visualState as TextComponentState).focusNode,
                   config: QuillEditorConfig(
                     scrollable: false,
                     padding: editorPadding,

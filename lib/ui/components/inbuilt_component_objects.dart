@@ -1,17 +1,14 @@
-import 'dart:ffi';
-
 import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/ui/components/component.dart';
 import 'package:flutter/material.dart';
 import 'package:booklet/ui/_helpers/autoheight_richtext.dart';
-import 'package:booklet/ui/components/component_visual_state.dart';
-import 'package:booklet/ui/components/component_types.dart';
+import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/business/components_business/inbuilt_components/inbuit_components_definations.dart';
 
 
-class TitleComponent implements Component {
+class TitleComponent with TextComponentStateOwner implements Component {
 
   TitleComponent({required String id});
 
@@ -24,7 +21,7 @@ class TitleComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -58,7 +55,7 @@ class TitleComponent implements Component {
 }
 
 
-class HeadingComponent implements Component {
+class HeadingComponent with TextComponentStateOwner implements Component {
 
   HeadingComponent({required String id});
 
@@ -71,7 +68,7 @@ class HeadingComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -105,7 +102,7 @@ class HeadingComponent implements Component {
 
 
 
-class SubheadingComponent implements Component {
+class SubheadingComponent with TextComponentStateOwner implements Component {
 
   SubheadingComponent({required String id});
 
@@ -118,7 +115,7 @@ class SubheadingComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -153,7 +150,7 @@ class SubheadingComponent implements Component {
 
 
 
-class InlineHeadingComponent implements Component {
+class InlineHeadingComponent with TextComponentStateOwner implements Component {
 
   InlineHeadingComponent({required String id});
 
@@ -166,7 +163,7 @@ class InlineHeadingComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -200,7 +197,7 @@ class InlineHeadingComponent implements Component {
 
 
 
-class SubtitleComponent implements Component {
+class SubtitleComponent with TextComponentStateOwner implements Component {
 
   SubtitleComponent({required String id});
 
@@ -213,7 +210,7 @@ class SubtitleComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -250,7 +247,7 @@ class SubtitleComponent implements Component {
 
 
 
-class LabelComponent implements Component {
+class LabelComponent with TextComponentStateOwner implements Component {
 
   LabelComponent({required String id});
 
@@ -263,7 +260,7 @@ class LabelComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -296,7 +293,7 @@ class LabelComponent implements Component {
 }
 
 
-class TextComponent implements Component {
+class TextComponent with TextComponentStateOwner implements Component {
 
   TextComponent({required String id});
 
@@ -309,7 +306,7 @@ class TextComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -343,7 +340,7 @@ class TextComponent implements Component {
 }
 
 
-class DashedListComponent implements Component {
+class DashedListComponent with TextComponentStateOwner implements Component {
 
   DashedListComponent({required String id});
 
@@ -356,7 +353,7 @@ class DashedListComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -391,7 +388,7 @@ class DashedListComponent implements Component {
 
 
 
-class NumberedListComponent implements Component {
+class NumberedListComponent with TextComponentStateOwner implements Component {
 
   NumberedListComponent({required String id});
 
@@ -404,7 +401,7 @@ class NumberedListComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -439,7 +436,7 @@ class NumberedListComponent implements Component {
 
 
 
-class ChecklistComponent implements Component {
+class ChecklistComponent with TextComponentStateOwner implements Component {
 
   ChecklistComponent({required String id});
 
@@ -452,7 +449,7 @@ class ChecklistComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -487,7 +484,7 @@ class ChecklistComponent implements Component {
 
 
 
-class FocusComponent implements Component {
+class FocusComponent with TextComponentStateOwner implements Component {
 
   FocusComponent({required String id});
 
@@ -500,7 +497,7 @@ class FocusComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -547,7 +544,7 @@ class FocusComponent implements Component {
 
 
 
-class BlockTextComponent implements Component {
+class BlockTextComponent with TextComponentStateOwner implements Component {
 
   BlockTextComponent({required String id});
 
@@ -560,7 +557,7 @@ class BlockTextComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -601,6 +598,22 @@ class QuoteComponent implements Component {
   QuoteComponent({required String id});
 
   @override
+  final QuoteComponentState state = QuoteComponentState();
+
+  @override
+  Object get output => state.output;
+
+  @override
+  void dispose() => state.dispose();
+
+  @override
+  void initialize({List<dynamic>? delta}) {
+    if (delta != null) {
+      state.quote.controller.document = Document.fromJson(delta);
+    }
+  }
+
+  @override
   String id = "";
 
   @override
@@ -609,7 +622,7 @@ class QuoteComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -618,12 +631,22 @@ class QuoteComponent implements Component {
     double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
-      fontSize: fontSizePercent(180),
+      fontSize: fontSizePercent(160),
+      // fontFamily: 'Menlo',
+      letterSpacing: 2,
+      color: theme.subheadingColor,
+      height: 1.2,
+    );
+
+    TextStyle authorTextStyle = TextStyle(
+      fontSize: fontSizePercent(120),
       // fontFamily: 'Menlo',
       letterSpacing: 2.4,
-      color: theme.subheadingColor,
-      height: 1.5,
+      color: theme.textColor,
+      // height: 1.5,
     );
+
+
 
     return Padding(
       padding: const EdgeInsets.all(15.0),
@@ -640,7 +663,7 @@ class QuoteComponent implements Component {
             ],
           ),
           AutoHeightRichText2(
-            visualState: componentState,
+            visualState: state.quote,
             isSelected: isSelected,
             onSelect: onSelect,
             onCreateBelow: onCreateBelow,
@@ -650,11 +673,11 @@ class QuoteComponent implements Component {
             placeholder: def.name,
           ),
           AutoHeightRichText2(
-            visualState: componentState,
+            visualState: state.author,
             isSelected: isSelected,
             onSelect: onSelect,
             onCreateBelow: onCreateBelow,
-            textStyle: textStyle,
+            textStyle: authorTextStyle,
             alignment: alignment,
             editorPadding: editorPadding,
             placeholder: "caption",
@@ -680,11 +703,61 @@ class QuoteComponent implements Component {
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12);
 }
 
+class ImageComponent implements Component {
+  ImageComponent({required this.id, String? mediaPath})
+    : state = ImageComponentState(mediaPath: mediaPath);
+
+  @override
+  final String id;
+
+  @override
+  final ImageComponentState state;
+
+  @override
+  Object? get output => state.output;
+
+  @override
+  void initialize({List<dynamic>? delta}) {}
+
+  @override
+  void dispose() => state.dispose();
+
+  @override
+  ComponentDef get def => ImageComponentDef();
+
+  @override
+  Widget buildUI({
+    required EditorTheme theme,
+    required ComponentState componentState,
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    final path = state.mediaPath;
+    return GestureDetector(
+      onTap: onSelect,
+      child: path == null || path.isEmpty
+          ? const SizedBox(
+              height: 180,
+              child: Center(child: Text('Choose an image')),
+            )
+          : Image.network(
+              path,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => const SizedBox(
+                height: 180,
+                child: Center(child: Text('Image unavailable')),
+              ),
+            ),
+    );
+  }
+}
 
 
 
 
-class LocationComponent implements Component {
+
+class LocationComponent with TextComponentStateOwner implements Component {
 
   LocationComponent({required String id});
 
@@ -697,7 +770,7 @@ class LocationComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -730,7 +803,7 @@ class LocationComponent implements Component {
 }
 
 
-class CaptionComponent implements Component {
+class CaptionComponent with TextComponentStateOwner implements Component {
 
   CaptionComponent({required String id});
 
@@ -743,7 +816,7 @@ class CaptionComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
@@ -777,7 +850,7 @@ class CaptionComponent implements Component {
 
 
 
-class FootnoteComponent implements Component {
+class FootnoteComponent with TextComponentStateOwner implements Component {
 
   FootnoteComponent({required String id});
 
@@ -790,7 +863,7 @@ class FootnoteComponent implements Component {
   @override
   Widget buildUI({
     required EditorTheme theme, 
-    required ComponentVisualState componentState, 
+    required ComponentState componentState,
     required bool isSelected, 
     required VoidCallback onSelect, 
     required VoidCallback onCreateBelow
