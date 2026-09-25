@@ -13,6 +13,8 @@ abstract class ComponentState {
 
   Object? get output;
 
+  List<dynamic>? get textDelta => null;
+
   void dispose();
 }
 
@@ -31,6 +33,8 @@ mixin TextComponentStateOwner {
   }
 
   Object get output => state.output;
+
+  List<dynamic> get textDelta => state.textDelta;
 
   void dispose() => state.dispose();
 }
@@ -52,6 +56,9 @@ class TextComponentState extends ComponentState {
 
   @override
   String get output => controller.document.toPlainText();
+
+  @override
+  List<dynamic> get textDelta => controller.document.toDelta().toJson();
 
   @override
   void dispose() {
@@ -85,6 +92,30 @@ class QuoteComponentState extends ComponentState {
     'quote': quote.output,
     'author': author.output,
   };
+
+  @override
+  List<dynamic> get textDelta => [
+    ..._withoutDocumentTerminator(quote.textDelta),
+    {'insert': '\n'},
+    ...author.textDelta,
+  ];
+
+  static List<dynamic> _withoutDocumentTerminator(List<dynamic> delta) {
+    final result = delta.map((operation) {
+      if (operation is Map) {
+        return Map<String, dynamic>.from(operation);
+      }
+      return operation;
+    }).toList();
+
+    if (result.isNotEmpty && result.last is Map) {
+      final last = result.last as Map<String, dynamic>;
+      if (last['insert'] == '\n') {
+        result.removeLast();
+      }
+    }
+    return result;
+  }
 
   @override
   void dispose() {

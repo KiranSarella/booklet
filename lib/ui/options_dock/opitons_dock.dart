@@ -8,12 +8,14 @@ class OptionsDock extends StatefulWidget {
     required this.onComponentTransformed,
     required this.onComponentDeleted,
     required this.hasSelection,
+    required this.canTransformSelection,
   });
 
   final ValueChanged<String> onComponentSelected;
   final ValueChanged<String> onComponentTransformed;
   final VoidCallback onComponentDeleted;
   final bool hasSelection;
+  final bool canTransformSelection;
 
   @override
   State<OptionsDock> createState() => OptionsDockState();
@@ -50,6 +52,7 @@ class OptionsDockState extends State<OptionsDock> {
             right: 78,
             child: AddComponentMenu(
               title: _openMenu == 'add' ? 'Components' : 'Transform to',
+              textOnly: _openMenu == 'transform',
               onSelected: (component) {
                 if (_openMenu == 'add') {
                   widget.onComponentSelected(component);
@@ -78,10 +81,10 @@ class OptionsDockState extends State<OptionsDock> {
                 icon: Icons.swap_horiz,
                 color: Colors.amber.shade700,
                 tooltip: 'Transform component',
-                onPressed: widget.hasSelection
+                onPressed: widget.canTransformSelection
                     ? () => _toggleMenu('transform')
                     : null,
-                enabled: widget.hasSelection,
+                enabled: widget.canTransformSelection,
               ),
               const SizedBox(height: 80),
               _DockButton(

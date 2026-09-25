@@ -6,6 +6,7 @@ class AddComponentMenu extends StatelessWidget {
     super.key,
     required this.title,
     required this.onSelected,
+    this.textOnly = false,
   });
 
   static const double baseFontSize = 14;
@@ -13,8 +14,17 @@ class AddComponentMenu extends StatelessWidget {
 
   final String title;
   final ValueChanged<String> onSelected;
+  final bool textOnly;
 
-  List<String> get componentTypes => _componentTypes;
+  List<String> get componentTypes => textOnly
+      ? _componentTypes
+            .where(
+              (key) => InbuiltComponents.getComponentMenuItems()
+                  .firstWhere((definition) => definition.key == key)
+                  .type.name == 'text',
+            )
+            .toList(growable: false)
+      : _componentTypes;
 
   static final List<String> _componentTypes = InbuiltComponents
       .getComponentMenuItems()

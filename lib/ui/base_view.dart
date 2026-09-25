@@ -200,6 +200,7 @@ May this day of your birth be auspicious!
               onComponentTransformed: transformSelectedComponent,
               onComponentDeleted: deleteSelectedComponent,
               hasSelection: _viewModel.selectedComponent != null,
+              canTransformSelection: _viewModel.canTransformSelectedComponent,
             ),
           ),
         ],

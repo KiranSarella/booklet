@@ -604,6 +604,9 @@ class QuoteComponent implements Component {
   Object get output => state.output;
 
   @override
+  List<dynamic> get textDelta => state.textDelta;
+
+  @override
   void dispose() => state.dispose();
 
   @override
@@ -715,6 +718,9 @@ class ImageComponent implements Component {
 
   @override
   Object? get output => state.output;
+
+  @override
+  List<dynamic>? get textDelta => state.textDelta;
 
   @override
   void initialize({List<dynamic>? delta}) {}

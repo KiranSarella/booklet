@@ -20,5 +20,7 @@ abstract class Component {
 
   Object? get output => state.output;
 
+  List<dynamic>? get textDelta => state.textDelta;
+
   void dispose() => state.dispose();
 }

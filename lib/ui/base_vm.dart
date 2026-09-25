@@ -1,6 +1,6 @@
 import 'package:booklet/business/page_content.dart';
+import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/ui/components/component.dart';
-import 'package:booklet/ui/components/inbuilt_component_objects.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
@@ -41,6 +41,8 @@ class BaseVM {
   List<ComponentBox> get components => selectedPage?.components ?? [];
   Iterable<PageContent> get loadedPages => _pagesById.values;
   ComponentBox? get selectedComponent => _selectedComponent;
+  bool get canTransformSelectedComponent =>
+      _selectedComponent?.component.def.type == ComponentType.text;
   String? get selectedPageId => navigation.selectedPageId;
   String? get documentPath => _documentPath;
 
@@ -187,10 +189,23 @@ class BaseVM {
 
   void transformSelectedComponent(String type) {
     final selected = _selectedComponent;
-    if (selected == null) {
+    if (selected == null || !canTransformSelectedComponent) {
       return;
     }
-    selected.component = InbuiltComponents.prepareCompoent(selected.component.id, type);
+
+    final oldComponent = selected.component;
+    final newComponent = InbuiltComponents.prepareCompoent(
+      oldComponent.id,
+      type,
+    );
+    if (newComponent.def.type != ComponentType.text) {
+      return;
+    }
+
+    newComponent.initialize(delta: oldComponent.textDelta);
+    newComponent.state.isSelected = oldComponent.state.isSelected;
+    selected.component = newComponent;
+    oldComponent.dispose();
   }
 
 
