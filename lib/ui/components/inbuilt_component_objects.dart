@@ -58,24 +58,6 @@ class TitleComponent implements Component {
 }
 
 
-
-// class TitleComponent2 extends RichTextComponentRenderer {
-//   TitleComponent(EditorTheme theme) : super('Title', theme);
-
-//   @override
-//   TextStyle get textStyle => TextStyle(
-//     fontSize: fontSizePercent(271),
-//     fontWeight: FontWeight.w800,
-//     color: theme.titleColor,
-//     height: 1.4,
-//   );
-
-//   @override
-//   Attribute<dynamic> get alignment => Attribute.centerAlignment;
-// }
-
-
-
 class HeadingComponent implements Component {
 
   HeadingComponent({required String id});
@@ -565,67 +547,6 @@ class FocusComponent implements Component {
 
 
 
-
-class FocusComponent2 implements Component {
-
-  FocusComponent2({required String id});
-
-  @override
-  String id = "";
-
-  @override
-  ComponentDef get def => FocusComponentDef();
-
-  @override
-  Widget buildUI({
-    required EditorTheme theme, 
-    required ComponentVisualState componentState, 
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
-
-    TextStyle textStyle = TextStyle(
-      fontSize: fontSizePercent(100),
-      fontWeight: FontWeight.w500,
-      color: theme.textColor,
-    );
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          width: 4,
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          color: theme.textColor,
-        ),
-        Expanded(
-          child: AutoHeightRichText2(
-            visualState: componentState,
-            isSelected: isSelected,
-            onSelect: onSelect,
-            onCreateBelow: onCreateBelow,
-            textStyle: textStyle,
-            alignment: alignment,
-            editorPadding: editorPadding,
-            placeholder: def.name,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
-
-  EdgeInsets get editorPadding =>
-      const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
-}
-
-
-
-
 class BlockTextComponent implements Component {
 
   BlockTextComponent({required String id});
@@ -648,6 +569,7 @@ class BlockTextComponent implements Component {
     double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
+      fontSize: fontSizePercent(100),
       fontFamily: 'Menlo',
       letterSpacing: 1.2,
       color: theme.textColor,
@@ -671,6 +593,94 @@ class BlockTextComponent implements Component {
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12);
 }
+
+
+
+class QuoteComponent implements Component {
+
+  QuoteComponent({required String id});
+
+  @override
+  String id = "";
+
+  @override
+  ComponentDef get def => QuoteComponentDef();
+
+  @override
+  Widget buildUI({
+    required EditorTheme theme, 
+    required ComponentVisualState componentState, 
+    required bool isSelected, 
+    required VoidCallback onSelect, 
+    required VoidCallback onCreateBelow
+    }) {
+
+    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+
+    TextStyle textStyle = TextStyle(
+      fontSize: fontSizePercent(180),
+      // fontFamily: 'Menlo',
+      letterSpacing: 2.4,
+      color: theme.subheadingColor,
+      height: 1.5,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.all(15.0),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: .start,
+            children: [
+              Text("❝", style: 
+                TextStyle(
+                  fontSize: fontSizePercent(200),
+                )
+              ),
+            ],
+          ),
+          AutoHeightRichText2(
+            visualState: componentState,
+            isSelected: isSelected,
+            onSelect: onSelect,
+            onCreateBelow: onCreateBelow,
+            textStyle: textStyle,
+            alignment: alignment,
+            editorPadding: editorPadding,
+            placeholder: def.name,
+          ),
+          AutoHeightRichText2(
+            visualState: componentState,
+            isSelected: isSelected,
+            onSelect: onSelect,
+            onCreateBelow: onCreateBelow,
+            textStyle: textStyle,
+            alignment: alignment,
+            editorPadding: editorPadding,
+            placeholder: "caption",
+          ),
+          Row(
+            mainAxisAlignment: .end,
+            children: [
+              Text("❞", style: 
+                TextStyle(
+                  fontSize: fontSizePercent(200),
+                )
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+
+  EdgeInsets get editorPadding =>
+      const EdgeInsets.symmetric(horizontal: 40, vertical: 12);
+}
+
+
 
 
 

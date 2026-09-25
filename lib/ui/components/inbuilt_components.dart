@@ -34,6 +34,8 @@ class InbuiltComponents {
         return FocusComponent(id: id);
       case 'block_text':
         return BlockTextComponent(id: id);
+      case 'quote':
+        return QuoteComponent(id: id);
       case 'location':
         return LocationComponent(id: id);
       case 'caption':

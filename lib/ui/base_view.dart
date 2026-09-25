@@ -101,6 +101,12 @@ class BaseViewState extends State<BaseView> {
     });
   }
 
+/*
+
+May this day of your birth be auspicious!
+
+*/
+
   void deleteSelectedComponent() {
     setState(_viewModel.deleteSelectedComponent);
   }
