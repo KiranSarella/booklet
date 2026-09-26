@@ -7,27 +7,25 @@ import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/business/components_business/inbuilt_components/inbuit_components_definations.dart';
 
-
 class TitleComponent with TextComponentStateOwner implements Component {
-
-  TitleComponent({required String id});
+  TitleComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => TitleComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(290),
@@ -54,27 +52,25 @@ class TitleComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
 class HeadingComponent with TextComponentStateOwner implements Component {
-
-  HeadingComponent({required String id});
+  HeadingComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => HeadingComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(214),
@@ -100,28 +96,25 @@ class HeadingComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
-
 class SubheadingComponent with TextComponentStateOwner implements Component {
-
-  SubheadingComponent({required String id});
+  SubheadingComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => SubheadingComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(157),
@@ -147,29 +140,25 @@ class SubheadingComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
-
-
 class InlineHeadingComponent with TextComponentStateOwner implements Component {
-
-  InlineHeadingComponent({required String id});
+  InlineHeadingComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => InlineHeadingComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(117),
@@ -195,28 +184,25 @@ class InlineHeadingComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
-
 class SubtitleComponent with TextComponentStateOwner implements Component {
-
-  SubtitleComponent({required String id});
+  SubtitleComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => SubtitleComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(157),
@@ -245,28 +231,25 @@ class SubtitleComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
-
 class LabelComponent with TextComponentStateOwner implements Component {
-
-  LabelComponent({required String id});
+  LabelComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => LabelComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(107),
@@ -292,27 +275,25 @@ class LabelComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
 class TextComponent with TextComponentStateOwner implements Component {
-
-  TextComponent({required String id});
+  TextComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => TextComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(100),
@@ -339,27 +320,25 @@ class TextComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
 class DashedListComponent with TextComponentStateOwner implements Component {
-
-  DashedListComponent({required String id});
+  DashedListComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => DashedListComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(100),
@@ -386,28 +365,25 @@ class DashedListComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
-
 class NumberedListComponent with TextComponentStateOwner implements Component {
-
-  NumberedListComponent({required String id});
+  NumberedListComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => NumberedListComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(100),
@@ -434,28 +410,25 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
-
 class ChecklistComponent with TextComponentStateOwner implements Component {
-
-  ChecklistComponent({required String id});
+  ChecklistComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => ChecklistComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(100),
@@ -482,28 +455,25 @@ class ChecklistComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
-
 class FocusComponent with TextComponentStateOwner implements Component {
-
-  FocusComponent({required String id});
+  FocusComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => FocusComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(100),
@@ -515,12 +485,7 @@ class FocusComponent with TextComponentStateOwner implements Component {
       padding: const EdgeInsets.all(8.0),
       child: Container(
         decoration: const BoxDecoration(
-          border: Border(
-            left: BorderSide(
-              color: Colors.red,
-              width: 4,
-            ),
-          ),
+          border: Border(left: BorderSide(color: Colors.red, width: 4)),
         ),
         child: AutoHeightRichText2(
           visualState: componentState,
@@ -542,28 +507,25 @@ class FocusComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
-
 class BlockTextComponent with TextComponentStateOwner implements Component {
-
-  BlockTextComponent({required String id});
+  BlockTextComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => BlockTextComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(100),
@@ -591,11 +553,8 @@ class BlockTextComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12);
 }
 
-
-
 class QuoteComponent implements Component {
-
-  QuoteComponent({required String id});
+  QuoteComponent({required this.id});
 
   @override
   final QuoteComponentState state = QuoteComponentState();
@@ -617,21 +576,21 @@ class QuoteComponent implements Component {
   }
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => QuoteComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(160),
@@ -649,8 +608,6 @@ class QuoteComponent implements Component {
       // height: 1.5,
     );
 
-
-
     return Padding(
       padding: const EdgeInsets.all(15.0),
       child: Column(
@@ -658,11 +615,7 @@ class QuoteComponent implements Component {
           Row(
             mainAxisAlignment: .start,
             children: [
-              Text("❝", style: 
-                TextStyle(
-                  fontSize: fontSizePercent(200),
-                )
-              ),
+              Text("❝", style: TextStyle(fontSize: fontSizePercent(200))),
             ],
           ),
           AutoHeightRichText2(
@@ -688,11 +641,7 @@ class QuoteComponent implements Component {
           Row(
             mainAxisAlignment: .end,
             children: [
-              Text("❞", style: 
-                TextStyle(
-                  fontSize: fontSizePercent(200),
-                )
-              ),
+              Text("❞", style: TextStyle(fontSize: fontSizePercent(200))),
             ],
           ),
         ],
@@ -706,28 +655,25 @@ class QuoteComponent implements Component {
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12);
 }
 
-
-
 class LocationComponent with TextComponentStateOwner implements Component {
-
-  LocationComponent({required String id});
+  LocationComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => LocationComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(100),
@@ -753,27 +699,25 @@ class LocationComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
 class CaptionComponent with TextComponentStateOwner implements Component {
-
-  CaptionComponent({required String id});
+  CaptionComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => CaptionComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(86),
@@ -799,28 +743,25 @@ class CaptionComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-
-
 class FootnoteComponent with TextComponentStateOwner implements Component {
-
-  FootnoteComponent({required String id});
+  FootnoteComponent({required this.id});
 
   @override
-  String id = "";
+  final String id;
 
   @override
   ComponentDef get def => FootnoteComponentDef();
 
   @override
   Widget buildUI({
-    required EditorTheme theme, 
+    required EditorTheme theme,
     required ComponentState componentState,
-    required bool isSelected, 
-    required VoidCallback onSelect, 
-    required VoidCallback onCreateBelow
-    }) {
-
-    double fontSizePercent(double percent) => theme.baseFontSize * percent / 100;
+    required bool isSelected,
+    required VoidCallback onSelect,
+    required VoidCallback onCreateBelow,
+  }) {
+    double fontSizePercent(double percent) =>
+        theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(79),
@@ -845,5 +786,3 @@ class FootnoteComponent with TextComponentStateOwner implements Component {
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
-
-

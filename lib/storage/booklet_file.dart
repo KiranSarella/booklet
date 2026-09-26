@@ -106,7 +106,10 @@ class BookletFile {
           delta = componentJson['delta'] as List<dynamic>;
         }
 
-        final id = componentJson['id'] as String? ?? const Uuid().v4();
+        final storedId = componentJson['id'];
+        final id = storedId is String && storedId.isNotEmpty
+            ? storedId
+            : const Uuid().v4();
         final component = InbuiltComponents.prepareCompoent(id, type);
         final componentState = component.state;
         if (componentState is ImageComponentState) {
