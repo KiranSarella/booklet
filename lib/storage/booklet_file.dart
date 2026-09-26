@@ -131,12 +131,7 @@ class BookletFile {
             RichTextCodec.richTextToDelta(authorData),
           );
         }
-        components.add(
-          ComponentBox(
-            component: component,
-            delta: delta,
-          ),
-        );
+        components.add(ComponentBox(component: component, delta: delta));
       }
     }
 
@@ -246,10 +241,23 @@ class BookletFile {
       };
     }
 
-    final extension = _imageExtension(sourcePath) ?? 'png';
     final mediaDirectory = Directory('$packagePath/$_mediaDirectory');
     await mediaDirectory.create(recursive: true);
+    final normalizedSourcePath = sourceFile.absolute.path.replaceAll('\\', '/');
+    final normalizedMediaPath = mediaDirectory.absolute.path.replaceAll(
+      '\\',
+      '/',
+    );
+    if (normalizedSourcePath.startsWith('$normalizedMediaPath/')) {
+      return {
+        'mediaPath': _toPackageMediaPath(packagePath, sourcePath),
+        'imageSize': state.imageSize ?? 'medium',
+        'width': state.width,
+        'height': state.height,
+      };
+    }
 
+    final extension = _imageExtension(sourcePath) ?? 'png';
     final targetPath = '${mediaDirectory.path}/${const Uuid().v4()}.$extension';
     final targetFile = File(targetPath);
     await sourceFile.copy(targetFile.path);
@@ -264,7 +272,10 @@ class BookletFile {
     };
   }
 
-  static String? _resolvePackageMediaPath(String packagePath, String? mediaPath) {
+  static String? _resolvePackageMediaPath(
+    String packagePath,
+    String? mediaPath,
+  ) {
     if (mediaPath == null || mediaPath.isEmpty) {
       return null;
     }

@@ -10,7 +10,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('BookletFile image persistence', () {
     test('copies image to media folder and stores size metadata', () async {
-      final tempDir = await Directory.systemTemp.createTemp('booklet_image_test');
+      final tempDir = await Directory.systemTemp.createTemp(
+        'booklet_image_test',
+      );
       final packagePath = '${tempDir.path}/test_booklet';
       final sourceFile = File('${tempDir.path}/source.png');
       await sourceFile.writeAsBytes([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -22,9 +24,7 @@ void main() {
       final page = PageContent(
         id: 'page-1',
         title: 'Test page',
-        components: [
-          ComponentBox(component: image),
-        ],
+        components: [ComponentBox(component: image)],
       );
 
       await BookletFile.savePage(packagePath, page);
@@ -43,6 +43,18 @@ void main() {
       );
       expect(savedImage['width'], 640);
       expect(savedImage['height'], 480);
+
+      await BookletFile.savePage(packagePath, page);
+
+      final resavedPageJson = jsonDecode(
+        await File('$packagePath/pages/page-1.json').readAsString(),
+      ) as Map<String, dynamic>;
+      final resavedImage =
+          resavedPageJson['components'][0] as Map<String, dynamic>;
+      final mediaFiles = await Directory('$packagePath/media').list().toList();
+
+      expect(resavedImage['mediaPath'], savedImage['mediaPath']);
+      expect(mediaFiles, hasLength(1));
 
       page.dispose();
       await tempDir.delete(recursive: true);
