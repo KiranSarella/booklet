@@ -16,6 +16,7 @@ dependencies:
   desktop_drop: ^0.8.4
   shared_preferences: ^2.5.3
   uuid: ^4.5.1
+  video_player: ^2.14.0
 
 dev_dependencies:
   flutter_test:

@@ -194,6 +194,17 @@ class ImageComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.media;
 }
 
+class VideoComponentDef extends ComponentDef {
+  @override
+  String get key => "video";
+
+  @override
+  String get name => "Video";
+
+  @override
+  ComponentType get type => ComponentType.media;
+}
+
 
 class LocationComponentDef extends ComponentDef {
   @override

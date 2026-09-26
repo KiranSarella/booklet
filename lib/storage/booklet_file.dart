@@ -124,6 +124,11 @@ class BookletFile {
           final height = componentJson['height'];
           componentState.width = width is num ? width.toInt() : null;
           componentState.height = height is num ? height.toInt() : null;
+        } else if (componentState is VideoComponentState) {
+          componentState.mediaPath = _resolvePackageMediaPath(
+            packagePath,
+            componentJson['mediaPath'] as String?,
+          );
         } else if (componentState is QuoteComponentState &&
             componentJson['author'] is String) {
           final authorData = RichTextData.fromJson({
@@ -205,6 +210,14 @@ class BookletFile {
         });
         continue;
       }
+      if (state is VideoComponentState) {
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': componentBox.component.def.key,
+          'mediaPath': await _persistVideoAsset(packagePath, state),
+        });
+        continue;
+      }
       throw StateError('Unsupported component state');
     }
 
@@ -260,7 +273,7 @@ class BookletFile {
       };
     }
 
-    final extension = _imageExtension(sourcePath) ?? 'png';
+    final extension = _mediaExtension(sourcePath) ?? 'png';
     final targetPath = '${mediaDirectory.path}/${const Uuid().v4()}.$extension';
     final targetFile = File(targetPath);
     await sourceFile.copy(targetFile.path);
@@ -275,12 +288,53 @@ class BookletFile {
     };
   }
 
+  static Future<String?> _persistVideoAsset(
+    String packagePath,
+    VideoComponentState state,
+  ) async {
+    final sourcePath = state.mediaPath;
+    if (sourcePath == null || sourcePath.isEmpty) {
+      return null;
+    }
+
+    final uri = Uri.tryParse(sourcePath);
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      return sourcePath;
+    }
+
+    final sourceFile = File(sourcePath);
+    if (!await sourceFile.exists()) {
+      return _toPackageMediaPath(
+        packagePath,
+        _resolvePackageMediaPath(packagePath, sourcePath)!,
+      );
+    }
+
+    final mediaDirectory = Directory('$packagePath/$_mediaDirectory');
+    await mediaDirectory.create(recursive: true);
+    final normalizedSourcePath = sourceFile.absolute.path.replaceAll('\\', '/');
+    final normalizedMediaPath = mediaDirectory.absolute.path.replaceAll('\\', '/');
+    if (normalizedSourcePath.startsWith('$normalizedMediaPath/')) {
+      return _toPackageMediaPath(packagePath, sourcePath);
+    }
+
+    final extension = _mediaExtension(sourcePath) ?? 'mp4';
+    final targetFile = File('${mediaDirectory.path}/${const Uuid().v4()}.$extension');
+    await sourceFile.copy(targetFile.path);
+    state.mediaPath = targetFile.path;
+    return _toPackageMediaPath(packagePath, targetFile.path);
+  }
+
   static String? _resolvePackageMediaPath(
     String packagePath,
     String? mediaPath,
   ) {
     if (mediaPath == null || mediaPath.isEmpty) {
       return null;
+    }
+    final uri = Uri.tryParse(mediaPath);
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      return mediaPath;
     }
     if (mediaPath.startsWith('media/') || mediaPath.startsWith('media\\')) {
       return '$packagePath/${mediaPath.replaceAll('\\', '/')}';
@@ -303,7 +357,7 @@ class BookletFile {
         : normalizedAbsolutePath;
   }
 
-  static String? _imageExtension(String path) {
+  static String? _mediaExtension(String path) {
     final extension = path.split('.').last.toLowerCase();
     if (extension.isEmpty) {
       return null;

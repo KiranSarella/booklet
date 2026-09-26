@@ -82,6 +82,18 @@ class ImageComponentState extends ComponentState {
   void dispose() {}
 }
 
+class VideoComponentState extends ComponentState {
+  VideoComponentState({this.mediaPath});
+
+  String? mediaPath;
+
+  @override
+  String? get output => mediaPath;
+
+  @override
+  void dispose() {}
+}
+
 class QuoteComponentState extends ComponentState {
   QuoteComponentState({List<dynamic>? delta})
     : quote = TextComponentState(Attribute.centerAlignment, delta: delta),

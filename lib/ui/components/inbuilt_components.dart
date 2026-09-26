@@ -2,6 +2,7 @@ import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_types.dart';
 import 'package:booklet/ui/components/inbuilt_component_objects.dart';
 import 'package:booklet/ui/components/image_component.dart';
+import 'package:booklet/ui/components/video_component.dart';
 import 'package:booklet/business/components_business/inbuilt_components/inbuit_components_definations.dart';
 import 'package:booklet/business/components_business/component_def.dart';
 
@@ -39,6 +40,8 @@ class InbuiltComponents {
         return QuoteComponent(id: id);
       case 'image':
         return ImageComponent(id: id);
+      case 'video':
+        return VideoComponent(id: id);
       case 'location':
         return LocationComponent(id: id);
       case 'caption':
@@ -66,6 +69,7 @@ class InbuiltComponents {
       BlockTextComponentDef(),
       QuoteComponentDef(),
       ImageComponentDef(),
+      VideoComponentDef(),
       LocationComponentDef(),
       CaptionComponentDef(),
       FootnoteComponentDef(),
