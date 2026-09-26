@@ -68,9 +68,12 @@ class TextComponentState extends ComponentState {
 }
 
 class ImageComponentState extends ComponentState {
-  ImageComponentState({this.mediaPath});
+  ImageComponentState({this.mediaPath, this.imageSize, this.width, this.height});
 
   String? mediaPath;
+  String? imageSize;
+  int? width;
+  int? height;
 
   @override
   String? get output => mediaPath;

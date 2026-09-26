@@ -28,6 +28,7 @@ class BookletFile {
   static const _extension = 'booklet';
   static const _manifestName = 'content.json';
   static const _pagesDirectory = 'pages';
+  static const _mediaDirectory = 'media';
 
   static Future<String?> chooseSavePath() async {
     final location = await getSaveLocation(suggestedName: 'Untitled.booklet');
@@ -109,7 +110,17 @@ class BookletFile {
         final component = InbuiltComponents.prepareCompoent(id, type);
         final componentState = component.state;
         if (componentState is ImageComponentState) {
-          componentState.mediaPath = componentJson['mediaPath'] as String?;
+          final mediaPath = componentJson['mediaPath'] as String?;
+          componentState.mediaPath = _resolvePackageMediaPath(
+            packagePath,
+            mediaPath,
+          );
+          componentState.imageSize =
+              (componentJson['imageSize'] as String?) ?? 'medium';
+          final width = componentJson['width'];
+          final height = componentJson['height'];
+          componentState.width = width is num ? width.toInt() : null;
+          componentState.height = height is num ? height.toInt() : null;
         } else if (componentState is QuoteComponentState &&
             componentJson['author'] is String) {
           final authorData = RichTextData.fromJson({
@@ -152,51 +163,57 @@ class BookletFile {
 
   static Future<void> savePage(String packagePath, PageContent page) async {
     await _ensurePackageDirectories(packagePath);
+
+    final componentJson = <Map<String, dynamic>>[];
+    for (final componentBox in page.components) {
+      final state = componentBox.component.state;
+      if (state is TextComponentState) {
+        final delta = state.controller.document.toDelta().toJson();
+        final richText = RichTextCodec.deltaToRichText(delta);
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': componentBox.component.def.key,
+          'content': richText.content,
+          'styles': richText.styles.map((s) => s.toJson()).toList(),
+        });
+        continue;
+      }
+      if (state is QuoteComponentState) {
+        final quote = RichTextCodec.deltaToRichText(
+          state.quote.controller.document.toDelta().toJson(),
+        );
+        final author = RichTextCodec.deltaToRichText(
+          state.author.controller.document.toDelta().toJson(),
+        );
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': componentBox.component.def.key,
+          'content': quote.content,
+          'styles': quote.styles.map((s) => s.toJson()).toList(),
+          'author': author.content,
+          'authorStyles': author.styles.map((s) => s.toJson()).toList(),
+        });
+        continue;
+      }
+      if (state is ImageComponentState) {
+        final asset = await _persistImageAsset(packagePath, state);
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': componentBox.component.def.key,
+          'mediaPath': asset['mediaPath'],
+          'imageSize': state.imageSize ?? 'medium',
+          'width': asset['width'],
+          'height': asset['height'],
+        });
+        continue;
+      }
+      throw StateError('Unsupported component state');
+    }
+
     final json = const JsonEncoder.withIndent('  ').convert({
       'id': page.id,
       'title': page.title,
-      'components': [
-        for (final componentBox in page.components)
-          () {
-            final state = componentBox.component.state;
-            if (state is TextComponentState) {
-              final delta = state.controller.document.toDelta().toJson();
-              final richText = RichTextCodec.deltaToRichText(delta);
-              return {
-                'id': componentBox.component.id,
-                'type': componentBox.component.def.key,
-                'content': richText.content,
-                'styles': richText.styles.map((s) => s.toJson()).toList(),
-              };
-            }
-            if (state is QuoteComponentState) {
-              final quote = RichTextCodec.deltaToRichText(
-                state.quote.controller.document.toDelta().toJson(),
-              );
-              final author = RichTextCodec.deltaToRichText(
-                state.author.controller.document.toDelta().toJson(),
-              );
-              return {
-                'id': componentBox.component.id,
-                'type': componentBox.component.def.key,
-                'content': quote.content,
-                'styles': quote.styles.map((s) => s.toJson()).toList(),
-                'author': author.content,
-                'authorStyles': author.styles
-                    .map((s) => s.toJson())
-                    .toList(),
-              };
-            }
-            if (state is ImageComponentState) {
-              return {
-                'id': componentBox.component.id,
-                'type': componentBox.component.def.key,
-                'mediaPath': state.mediaPath,
-              };
-            }
-            throw StateError('Unsupported component state');
-          }(),
-      ],
+      'components': componentJson,
     });
     await File('$packagePath/$_pagesDirectory/${page.id}.json')
         .writeAsString(json);
@@ -204,6 +221,81 @@ class BookletFile {
 
   static String _normalizePackagePath(String path) =>
       path.endsWith('.$_extension') ? path : '$path.$_extension';
+
+  static Future<Map<String, dynamic>> _persistImageAsset(
+    String packagePath,
+    ImageComponentState state,
+  ) async {
+    final sourcePath = state.mediaPath;
+    if (sourcePath == null || sourcePath.isEmpty) {
+      return {
+        'mediaPath': null,
+        'imageSize': state.imageSize ?? 'medium',
+        'width': state.width,
+        'height': state.height,
+      };
+    }
+
+    final sourceFile = File(sourcePath);
+    if (!await sourceFile.exists()) {
+      return {
+        'mediaPath': _resolvePackageMediaPath(packagePath, sourcePath),
+        'imageSize': state.imageSize ?? 'medium',
+        'width': state.width,
+        'height': state.height,
+      };
+    }
+
+    final extension = _imageExtension(sourcePath) ?? 'png';
+    final mediaDirectory = Directory('$packagePath/$_mediaDirectory');
+    await mediaDirectory.create(recursive: true);
+
+    final targetPath = '${mediaDirectory.path}/${const Uuid().v4()}.$extension';
+    final targetFile = File(targetPath);
+    await sourceFile.copy(targetFile.path);
+
+    final relativePath = _toPackageMediaPath(packagePath, targetFile.path);
+    state.mediaPath = targetFile.path;
+    return {
+      'mediaPath': relativePath,
+      'imageSize': state.imageSize ?? 'medium',
+      'width': state.width,
+      'height': state.height,
+    };
+  }
+
+  static String? _resolvePackageMediaPath(String packagePath, String? mediaPath) {
+    if (mediaPath == null || mediaPath.isEmpty) {
+      return null;
+    }
+    if (mediaPath.startsWith('media/') || mediaPath.startsWith('media\\')) {
+      return '$packagePath/${mediaPath.replaceAll('\\', '/')}';
+    }
+    if (FileSystemEntity.isFileSync(mediaPath)) {
+      return mediaPath;
+    }
+    final normalizedMediaPath = mediaPath.replaceAll('\\', '/');
+    if (normalizedMediaPath.startsWith('/')) {
+      return normalizedMediaPath;
+    }
+    return '$packagePath/$normalizedMediaPath';
+  }
+
+  static String _toPackageMediaPath(String packagePath, String absolutePath) {
+    final normalizedPackagePath = packagePath.replaceAll('\\', '/');
+    final normalizedAbsolutePath = absolutePath.replaceAll('\\', '/');
+    return normalizedAbsolutePath.startsWith('$normalizedPackagePath/')
+        ? normalizedAbsolutePath.substring(normalizedPackagePath.length + 1)
+        : normalizedAbsolutePath;
+  }
+
+  static String? _imageExtension(String path) {
+    final extension = path.split('.').last.toLowerCase();
+    if (extension.isEmpty) {
+      return null;
+    }
+    return extension;
+  }
 
   static Future<void> _migrateLegacyPages(
     String packagePath,
@@ -232,7 +324,7 @@ class BookletFile {
   static Future<void> _ensurePackageDirectories(String packagePath) async {
     await Directory(packagePath).create(recursive: true);
     await Directory('$packagePath/$_pagesDirectory').create(recursive: true);
-    await Directory('$packagePath/media').create(recursive: true);
+    await Directory('$packagePath/$_mediaDirectory').create(recursive: true);
     await Directory('$packagePath/custom_components').create(recursive: true);
     await Directory('$packagePath/metadata').create(recursive: true);
   }

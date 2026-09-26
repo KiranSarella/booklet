@@ -1,6 +1,7 @@
 import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_types.dart';
 import 'package:booklet/ui/components/inbuilt_component_objects.dart';
+import 'package:booklet/ui/components/image_component.dart';
 import 'package:booklet/business/components_business/inbuilt_components/inbuit_components_definations.dart';
 import 'package:booklet/business/components_business/component_def.dart';
 

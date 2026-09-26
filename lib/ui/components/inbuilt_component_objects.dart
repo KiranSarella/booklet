@@ -706,61 +706,6 @@ class QuoteComponent implements Component {
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12);
 }
 
-class ImageComponent implements Component {
-  ImageComponent({required this.id, String? mediaPath})
-    : state = ImageComponentState(mediaPath: mediaPath);
-
-  @override
-  final String id;
-
-  @override
-  final ImageComponentState state;
-
-  @override
-  Object? get output => state.output;
-
-  @override
-  List<dynamic>? get textDelta => state.textDelta;
-
-  @override
-  void initialize({List<dynamic>? delta}) {}
-
-  @override
-  void dispose() => state.dispose();
-
-  @override
-  ComponentDef get def => ImageComponentDef();
-
-  @override
-  Widget buildUI({
-    required EditorTheme theme,
-    required ComponentState componentState,
-    required bool isSelected,
-    required VoidCallback onSelect,
-    required VoidCallback onCreateBelow,
-  }) {
-    final path = state.mediaPath;
-    return GestureDetector(
-      onTap: onSelect,
-      child: path == null || path.isEmpty
-          ? const SizedBox(
-              height: 180,
-              child: Center(child: Text('Choose an image')),
-            )
-          : Image.network(
-              path,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const SizedBox(
-                height: 180,
-                child: Center(child: Text('Image unavailable')),
-              ),
-            ),
-    );
-  }
-}
-
-
-
 
 
 class LocationComponent with TextComponentStateOwner implements Component {
