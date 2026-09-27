@@ -6,6 +6,7 @@ import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/components/audio_component.dart';
 import 'package:booklet/ui/components/code_block_component.dart';
 import 'package:booklet/ui/components/math_component.dart';
+import 'package:booklet/ui/components/embed_component.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/image_component.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
@@ -244,6 +245,45 @@ void main() {
       final loadedMath = loadedPage.components.single.component;
       expect(loadedMath, isA<MathComponent>());
       expect(loadedMath.output, formula);
+
+      page.dispose();
+      loadedPage.dispose();
+      await tempDir.delete(recursive: true);
+    });
+  });
+
+  group('BookletFile embed persistence', () {
+    test('persists and restores pasted embed content', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'booklet_embed_test',
+      );
+      final packagePath = '${tempDir.path}/test_booklet';
+      const content =
+          '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>';
+      final component = EmbedComponent(id: 'embed-1', content: content);
+      final page = PageContent(
+        id: 'page-1',
+        title: 'Test page',
+        components: [ComponentBox(component: component)],
+      );
+
+      await BookletFile.savePage(packagePath, page);
+      final savedPageJson = jsonDecode(
+        await File('$packagePath/pages/page-1.json').readAsString(),
+      ) as Map<String, dynamic>;
+      final savedEmbed = savedPageJson['components'][0] as Map<String, dynamic>;
+
+      expect(savedEmbed['type'], 'embed');
+      expect(savedEmbed['content'], content);
+
+      final loadedPage = await BookletFile.loadPage(
+        packagePath,
+        'page-1',
+        EditorTheme(),
+      );
+      final loadedEmbed = loadedPage.components.single.component;
+      expect(loadedEmbed, isA<EmbedComponent>());
+      expect(loadedEmbed.output, content);
 
       page.dispose();
       loadedPage.dispose();

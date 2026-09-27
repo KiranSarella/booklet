@@ -54,6 +54,8 @@ class ComponentBox {
       state.focusNode.requestFocus();
     } else if (state is MathComponentState) {
       state.focusNode.requestFocus();
+    } else if (state is EmbedComponentState) {
+      state.focusNode.requestFocus();
     }
   }
 

@@ -221,6 +221,17 @@ class AudioComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.media;
 }
 
+class EmbedComponentDef extends ComponentDef {
+  @override
+  String get key => "embed";
+
+  @override
+  String get name => "Embed";
+
+  @override
+  ComponentType get type => ComponentType.media;
+}
+
 class LocationComponentDef extends ComponentDef {
   @override
   String get key => "location";

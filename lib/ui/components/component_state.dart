@@ -109,6 +109,33 @@ class AudioComponentState extends ComponentState {
   void dispose() {}
 }
 
+class EmbedComponentState extends ComponentState {
+  EmbedComponentState({String? content})
+    : contentController = TextEditingController(text: content ?? ''),
+      content = content ?? '';
+
+  final TextEditingController contentController;
+  final FocusNode focusNode = FocusNode();
+  String content;
+
+  void setContent(String value) {
+    content = value;
+    contentController.value = TextEditingValue(
+      text: content,
+      selection: TextSelection.collapsed(offset: content.length),
+    );
+  }
+
+  @override
+  String get output => content;
+
+  @override
+  void dispose() {
+    contentController.dispose();
+    focusNode.dispose();
+  }
+}
+
 class QuoteComponentState extends ComponentState {
   QuoteComponentState({List<dynamic>? delta})
     : quote = TextComponentState(Attribute.centerAlignment, delta: delta),

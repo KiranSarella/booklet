@@ -145,6 +145,10 @@ class BookletFile {
         } else if (componentState is MathComponentState) {
           componentState.controller.text =
               (componentJson['formula'] as String?) ?? '';
+        } else if (componentState is EmbedComponentState) {
+          componentState.setContent(
+            (componentJson['content'] as String?) ?? '',
+          );
         } else if (componentState is QuoteComponentState &&
             componentJson['author'] is String) {
           final authorData = RichTextData.fromJson({
@@ -256,6 +260,14 @@ class BookletFile {
           'id': componentBox.component.id,
           'type': componentBox.component.def.key,
           'formula': state.controller.text,
+        });
+        continue;
+      }
+      if (state is EmbedComponentState) {
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': componentBox.component.def.key,
+          'content': state.content,
         });
         continue;
       }
