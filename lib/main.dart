@@ -3,14 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/application/app.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/base_view.dart';
 import 'package:booklet/ui/document_toolbar.dart';
-import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/ui/page_settings/page_settings_view.dart';
+import 'package:booklet/ui/page_settings/page_settings_vm.dart';
 import 'package:booklet/ui/start_booklet.dart';
 
 void main() {
-  runApp(MainApp(application: App(EditorTheme())));
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MainApp(application: App(PageSettingsController())));
 }
+
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key, required this.application});
@@ -34,6 +38,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
       WidgetsBinding.instance.platformDispatcher.platformBrightness,
     );
     widget.application.editorTheme.load();
+    widget.application.editorController.documentSettingsController.load();
   }
 
   Future<void> _openBookletFromStartup() async {
@@ -62,8 +67,13 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
 
     showDialog<void>(
       context: navigatorContext,
-      builder: (context) =>
-          EditorThemeDialog(editorTheme: widget.application.editorTheme),
+      builder: (context) => PageSettingsDialog(
+        viewModel: PageSettingsVM(
+          pageSettingsController: widget.application.editorTheme,
+          documentSettingsController:
+              widget.application.editorController.documentSettingsController,
+        ),
+      ),
     );
   }
 

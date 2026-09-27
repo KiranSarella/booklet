@@ -3,7 +3,7 @@ import 'package:booklet/ui/components/component.dart';
 import 'package:flutter/material.dart';
 import 'package:booklet/ui/_helpers/autoheight_richtext.dart';
 import 'package:booklet/ui/components/component_state.dart';
-import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/business/components_business/inbuilt_components/inbuit_components_definations.dart';
 
@@ -18,7 +18,7 @@ class TitleComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -63,7 +63,7 @@ class HeadingComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -107,7 +107,7 @@ class SubheadingComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -151,7 +151,7 @@ class InlineHeadingComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -195,7 +195,7 @@ class SubtitleComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -242,7 +242,7 @@ class LabelComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -286,7 +286,7 @@ class TextComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -331,7 +331,7 @@ class DashedListComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -376,7 +376,7 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -421,7 +421,7 @@ class ChecklistComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -466,7 +466,7 @@ class FocusComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -518,7 +518,7 @@ class BlockTextComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -583,7 +583,7 @@ class QuoteComponent implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -666,7 +666,7 @@ class LocationComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -710,7 +710,7 @@ class CaptionComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -754,7 +754,7 @@ class FootnoteComponent with TextComponentStateOwner implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,

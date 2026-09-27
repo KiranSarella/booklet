@@ -4,7 +4,7 @@ import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/business/components_business/inbuilt_components/inbuit_components_definations.dart';
 import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_state.dart';
-import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_all/webview_all.dart';
 
@@ -143,7 +143,7 @@ class EmbedComponent implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,

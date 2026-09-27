@@ -6,7 +6,7 @@ import 'package:booklet/storage/rich_text_codec.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/ui/components/code_block_component.dart';
 import 'package:booklet/ui/components/math_component.dart';
-import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:booklet/ui/components/component_box.dart';
@@ -78,7 +78,7 @@ class BookletFile {
   static Future<PageContent> loadPage(
     String packagePath,
     String pageId,
-    EditorTheme theme,
+    PageSettingsController theme,
   ) async {
     final pageFile = File('$packagePath/$_pagesDirectory/$pageId.json');
     final json = jsonDecode(await pageFile.readAsString());

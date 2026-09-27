@@ -8,7 +8,7 @@ import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/business/components_business/inbuilt_components/inbuit_components_definations.dart';
-import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 
 class ImageComponent implements Component {
   ImageComponent({required this.id, String? mediaPath})
@@ -37,7 +37,7 @@ class ImageComponent implements Component {
 
   @override
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required ComponentState componentState,
     required bool isSelected,
     required VoidCallback onSelect,
@@ -62,7 +62,7 @@ class ImageComponentView extends StatefulWidget {
   });
 
   final ImageComponentState state;
-  final EditorTheme theme;
+  final PageSettingsController theme;
   final bool isSelected;
   final VoidCallback onSelect;
 

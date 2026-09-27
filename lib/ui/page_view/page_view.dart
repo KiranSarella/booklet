@@ -1,6 +1,6 @@
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/ui/components/component_box.dart';
-import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/material.dart';
 
 class PageView extends StatelessWidget {
@@ -13,7 +13,7 @@ class PageView extends StatelessWidget {
     required this.onTapEmptySpace,
   });
 
-  final EditorTheme editorTheme;
+  final PageSettingsController editorTheme;
   final PageContent? page;
   final ValueChanged<ComponentBox> onSelectComponent;
   final ValueChanged<int> onCreateEntryBelow;
@@ -34,32 +34,39 @@ class PageView extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTapEmptySpace,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 900),
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(color: editorTheme.pageBackgroundColor),
-            clipBehavior: Clip.antiAlias,
-            padding: const EdgeInsets.all(60),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (
-                  var index = 0;
-                  index < (page?.components.length ?? 0);
-                  index++
-                )
-                  Padding(
-                    key: page!.components[index].componentKey,
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: page!.components[index].buildUI(
-                      theme: editorTheme,
-                      onSelect: () =>
-                          onSelectComponent(page!.components[index]),
-                      onCreateBelow: () => onCreateEntryBelow(index),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: 900,
+              maxWidth: editorTheme.maxContentWidth ?? double.infinity,
+            ),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: editorTheme.pageBackgroundColor,
+              ),
+              clipBehavior: Clip.antiAlias,
+              padding: const EdgeInsets.all(60),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (
+                    var index = 0;
+                    index < (page?.components.length ?? 0);
+                    index++
+                  )
+                    Padding(
+                      key: page!.components[index].componentKey,
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: page!.components[index].buildUI(
+                        theme: editorTheme,
+                        onSelect: () =>
+                            onSelectComponent(page!.components[index]),
+                        onCreateBelow: () => onCreateEntryBelow(index),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

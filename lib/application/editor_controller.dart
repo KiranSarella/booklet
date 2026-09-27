@@ -2,13 +2,16 @@ import 'package:flutter/foundation.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/base_vm.dart';
-import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/application/document_settings_controller.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 
 class EditorController extends ChangeNotifier {
   EditorController(this.editorTheme) : viewModel = BaseVM(editorTheme);
 
-  final EditorTheme editorTheme;
+  final PageSettingsController editorTheme;
+  final DocumentSettingsController documentSettingsController =
+      DocumentSettingsController();
   final BaseVM viewModel;
   bool isLoadingPage = false;
   String? _documentPath;
@@ -135,6 +138,7 @@ class EditorController extends ChangeNotifier {
   @override
   void dispose() {
     viewModel.dispose();
+    documentSettingsController.dispose();
     super.dispose();
   }
 }

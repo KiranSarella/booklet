@@ -3,7 +3,7 @@ import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/components/code_block_component.dart';
 import 'package:booklet/ui/components/math_component.dart';
-import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/material.dart';
 
 class ComponentBox {
@@ -19,7 +19,7 @@ class ComponentBox {
   set isSelected(bool value) => component.state.isSelected = value;
 
   Widget buildUI({
-    required EditorTheme theme,
+    required PageSettingsController theme,
     required VoidCallback onSelect,
     required VoidCallback onCreateBelow,
   }) {

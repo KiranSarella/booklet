@@ -1,4 +1,6 @@
 import 'package:booklet/application/editor_controller.dart';
+import 'package:booklet/ui/document_settings/document_settings_view.dart';
+import 'package:booklet/ui/document_settings/document_settings_vm.dart';
 import 'package:flutter/material.dart';
 
 class DocumentToolbar extends StatefulWidget {
@@ -16,6 +18,18 @@ class DocumentToolbar extends StatefulWidget {
 }
 
 class DocumentToolbarState extends State<DocumentToolbar> {
+  void _showDocumentSettings() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => DocumentSettingsDialog(
+        viewModel: DocumentSettingsVM(
+          settingsController: widget.controller.documentSettingsController,
+          editorTheme: widget.controller.editorTheme,
+        ),
+      ),
+    );
+  }
+
   Future<void> saveBooklet() async {
     if (!widget.controller.hasOpenedBooklet) {
       _showMessage('Opening save dialog...');
@@ -69,6 +83,12 @@ class DocumentToolbarState extends State<DocumentToolbar> {
           tooltip: 'Edit theme',
           icon: Icons.palette_outlined,
           onPressed: widget.onEditTheme,
+        ),
+        const SizedBox(width: 8),
+        _ActionButton(
+          tooltip: 'Document settings',
+          icon: Icons.settings_outlined,
+          onPressed: _showDocumentSettings,
         ),
       ],
     );

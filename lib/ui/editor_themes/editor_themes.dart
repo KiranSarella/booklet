@@ -3,8 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum EditorAppearanceMode { light, dark, auto }
 
-class EditorTheme extends ChangeNotifier {
-  EditorTheme({this.baseFontSize = 14})
+class PageSettingsController extends ChangeNotifier {
+  PageSettingsController({this.baseFontSize = 14})
     : _light = _Palette.light(),
       _dark = _Palette.dark();
 
@@ -158,10 +158,10 @@ class _Palette {
   }
 }
 
-class EditorThemeDialog extends StatelessWidget {
-  const EditorThemeDialog({super.key, required this.editorTheme});
+class PageSettingsDialog extends StatelessWidget {
+  const PageSettingsDialog({super.key, required this.editorTheme});
 
-  final EditorTheme editorTheme;
+  final PageSettingsController editorTheme;
 
   @override
   Widget build(BuildContext context) {

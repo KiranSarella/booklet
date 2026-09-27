@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:booklet/ui/editor_themes/editor_themes.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 
 import 'editor_controller.dart';
 
@@ -8,7 +8,7 @@ enum AppScreen { startup, editor }
 class App extends ChangeNotifier {
   App(this.editorTheme) : editorController = EditorController(editorTheme);
 
-  final EditorTheme editorTheme;
+  final PageSettingsController editorTheme;
   final EditorController editorController;
   AppScreen _screen = AppScreen.startup;
 
