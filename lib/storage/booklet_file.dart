@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/rich_text_codec.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
+import 'package:booklet/ui/components/code_block_component.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 import 'package:file_selector/file_selector.dart';
@@ -134,6 +135,12 @@ class BookletFile {
             packagePath,
             componentJson['mediaPath'] as String?,
           );
+        } else if (componentState is CodeBlockComponentState) {
+          componentState.controller.text =
+              (componentJson['code'] as String?) ?? '';
+          componentState.setLanguage(
+            (componentJson['language'] as String?) ?? 'plaintext',
+          );
         } else if (componentState is QuoteComponentState &&
             componentJson['author'] is String) {
           final authorData = RichTextData.fromJson({
@@ -228,6 +235,15 @@ class BookletFile {
           'id': componentBox.component.id,
           'type': componentBox.component.def.key,
           'mediaPath': await _persistAudioAsset(packagePath, state),
+        });
+        continue;
+      }
+      if (state is CodeBlockComponentState) {
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': componentBox.component.def.key,
+          'code': state.controller.text,
+          'language': state.languageId,
         });
         continue;
       }
