@@ -13,6 +13,7 @@ import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/image_component.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/application/page_settings_controller.dart';
+import 'package:booklet/application/document_settings_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -49,14 +50,14 @@ void main() {
       final loadedPage = await BookletFile.loadPage(
         packagePath,
         'page-1',
-        PageSettingsController(),
+        PageSettingsController(DocumentSettingsController()),
       );
       expect(loadedPage.components.single.component.id, componentId);
 
       final loadedAgain = await BookletFile.loadPage(
         packagePath,
         'page-1',
-        PageSettingsController(),
+        PageSettingsController(DocumentSettingsController()),
       );
       expect(loadedAgain.components.single.component.id, componentId);
 
@@ -154,7 +155,7 @@ void main() {
       final loadedPage = await BookletFile.loadPage(
         packagePath,
         'page-1',
-        PageSettingsController(),
+        PageSettingsController(DocumentSettingsController()),
       );
       final loadedAudio = loadedPage.components.single.component;
       expect(loadedAudio, isA<AudioComponent>());
@@ -199,7 +200,7 @@ void main() {
       final loadedPage = await BookletFile.loadPage(
         packagePath,
         'page-1',
-        PageSettingsController(),
+        PageSettingsController(DocumentSettingsController()),
       );
       final loadedCodeBlock = loadedPage.components.single.component;
 
@@ -242,7 +243,7 @@ void main() {
       final loadedPage = await BookletFile.loadPage(
         packagePath,
         'page-1',
-        PageSettingsController(),
+        PageSettingsController(DocumentSettingsController()),
       );
       final loadedMath = loadedPage.components.single.component;
       expect(loadedMath, isA<MathComponent>());
@@ -281,7 +282,7 @@ void main() {
       final loadedPage = await BookletFile.loadPage(
         packagePath,
         'page-1',
-        PageSettingsController(),
+        PageSettingsController(DocumentSettingsController()),
       );
       final loadedEmbed = loadedPage.components.single.component;
       expect(loadedEmbed, isA<EmbedComponent>());
@@ -323,7 +324,7 @@ void main() {
       final loadedPage = await BookletFile.loadPage(
         packagePath,
         'page-1',
-        PageSettingsController(),
+        PageSettingsController(DocumentSettingsController()),
       );
       final loadedLink = loadedPage.components.single.component;
       expect(loadedLink, isA<LinkComponent>());

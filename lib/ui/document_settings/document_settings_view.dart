@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/document_settings_controller.dart';
-import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/document_settings/document_settings_vm.dart';
 
 class DocumentSettingsDialog extends StatelessWidget {
@@ -15,10 +15,7 @@ class DocumentSettingsDialog extends StatelessWidget {
       content: SizedBox(
         width: 360,
         child: AnimatedBuilder(
-          animation: Listenable.merge([
-            viewModel.settingsController,
-            viewModel.editorTheme,
-          ]),
+          animation: viewModel.settingsController,
           builder: (context, _) => Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,6 +46,10 @@ class DocumentSettingsDialog extends StatelessWidget {
               Text(
                 'Appearance',
                 style: Theme.of(context).textTheme.titleSmall,
+              ),
+              Text(
+                'Applies to the whole app (navigation, menus). Not the page view.',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
               SizedBox(

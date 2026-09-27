@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/application/app.dart';
+import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/base_view.dart';
 import 'package:booklet/ui/document_toolbar.dart';
@@ -12,7 +13,15 @@ import 'package:booklet/ui/start_booklet.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(MainApp(application: App(PageSettingsController())));
+  final documentSettingsController = DocumentSettingsController();
+  final pageSettingsController = PageSettingsController(
+    documentSettingsController,
+  );
+  runApp(
+    MainApp(
+      application: App(pageSettingsController, documentSettingsController),
+    ),
+  );
 }
 
 
@@ -34,11 +43,11 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    widget.application.editorTheme.updateSystemBrightness(
+    widget.application.documentSettingsController.updateSystemBrightness(
       WidgetsBinding.instance.platformDispatcher.platformBrightness,
     );
+    widget.application.documentSettingsController.load();
     widget.application.editorTheme.load();
-    widget.application.editorController.documentSettingsController.load();
   }
 
   Future<void> _openBookletFromStartup() async {
@@ -47,7 +56,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
 
   @override
   void didChangePlatformBrightness() {
-    widget.application.editorTheme.updateSystemBrightness(
+    widget.application.documentSettingsController.updateSystemBrightness(
       WidgetsBinding.instance.platformDispatcher.platformBrightness,
     );
   }
@@ -70,8 +79,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
       builder: (context) => PageSettingsDialog(
         viewModel: PageSettingsVM(
           pageSettingsController: widget.application.editorTheme,
-          documentSettingsController:
-              widget.application.editorController.documentSettingsController,
+          documentSettingsController: widget.application.documentSettingsController,
         ),
       ),
     );
@@ -80,7 +88,10 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: widget.application,
+      animation: Listenable.merge([
+        widget.application,
+        widget.application.documentSettingsController,
+      ]),
       builder: (context, _) => MaterialApp(
         navigatorKey: _navigatorKey,
         debugShowCheckedModeBanner: false,
@@ -97,7 +108,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
           brightness: Brightness.dark,
           useMaterial3: true,
         ),
-        themeMode: ThemeMode.system,
+        themeMode: widget.application.documentSettingsController.themeMode,
         home: Scaffold(
           body: SafeArea(
             child: Actions(

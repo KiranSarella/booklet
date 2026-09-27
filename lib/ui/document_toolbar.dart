@@ -24,7 +24,6 @@ class DocumentToolbarState extends State<DocumentToolbar> {
       builder: (context) => DocumentSettingsDialog(
         viewModel: DocumentSettingsVM(
           settingsController: widget.controller.documentSettingsController,
-          editorTheme: widget.controller.editorTheme,
         ),
       ),
     );

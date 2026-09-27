@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 

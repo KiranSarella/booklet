@@ -7,11 +7,11 @@ import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 
 class EditorController extends ChangeNotifier {
-  EditorController(this.editorTheme) : viewModel = BaseVM(editorTheme);
+  EditorController(this.editorTheme, this.documentSettingsController)
+    : viewModel = BaseVM(editorTheme);
 
   final PageSettingsController editorTheme;
-  final DocumentSettingsController documentSettingsController =
-      DocumentSettingsController();
+  final DocumentSettingsController documentSettingsController;
   final BaseVM viewModel;
   bool isLoadingPage = false;
   String? _documentPath;
@@ -138,7 +138,6 @@ class EditorController extends ChangeNotifier {
   @override
   void dispose() {
     viewModel.dispose();
-    documentSettingsController.dispose();
     super.dispose();
   }
 }

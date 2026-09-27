@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-enum EditorAppearanceMode { light, dark, auto }
+import 'package:booklet/application/appearance_mode.dart';
+import 'package:booklet/application/document_settings_controller.dart';
 
 enum PageWidth { normal, wide, twoColumns }
 
 class PageSettingsController extends ChangeNotifier {
-  PageSettingsController({this.baseFontSize = 14})
+  PageSettingsController(this.documentSettingsController, {this.baseFontSize = 14})
     : _light = _Palette.light(),
       _dark = _Palette.dark();
 
@@ -15,24 +15,21 @@ class PageSettingsController extends ChangeNotifier {
   static const _paletteKeyPrefix = 'editor.palette';
   static const _pageWidthKey = 'editor.pageWidth';
 
+  // Secondary appearance: scoped to the page view only. 'auto' follows the
+  // primary document appearance instead of the system brightness directly.
+  final DocumentSettingsController documentSettingsController;
   final _preferences = SharedPreferences.getInstance();
   final _Palette _light;
   final _Palette _dark;
   double baseFontSize;
   EditorAppearanceMode _appearanceMode = EditorAppearanceMode.auto;
   PageWidth _pageWidth = PageWidth.normal;
-  Brightness _systemBrightness = Brightness.light;
 
   EditorAppearanceMode get appearanceMode => _appearanceMode;
   PageWidth get pageWidth => _pageWidth;
-  ThemeMode get themeMode => switch (_appearanceMode) {
-    EditorAppearanceMode.light => ThemeMode.light,
-    EditorAppearanceMode.dark => ThemeMode.dark,
-    EditorAppearanceMode.auto => ThemeMode.system,
-  };
   Brightness get effectiveBrightness =>
       _appearanceMode == EditorAppearanceMode.auto
-      ? _systemBrightness
+      ? documentSettingsController.effectiveBrightness
       : _appearanceMode == EditorAppearanceMode.dark
       ? Brightness.dark
       : Brightness.light;
@@ -76,13 +73,6 @@ class PageSettingsController extends ChangeNotifier {
       _update(() => _appearanceMode = mode);
   void updatePageWidth(PageWidth width) =>
       _update(() => _pageWidth = width);
-  void updateSystemBrightness(Brightness brightness) {
-    if (_systemBrightness == brightness) {
-      return;
-    }
-    _systemBrightness = brightness;
-    notifyListeners();
-  }
 
   void increaseFontSize() => _update(() => baseFontSize += 2);
   void decreaseFontSize() => _update(

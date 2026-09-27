@@ -138,7 +138,11 @@ May this day of your birth be auspicious!
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([widget.controller, widget.controller.editorTheme]),
+      listenable: Listenable.merge([
+        widget.controller,
+        widget.controller.editorTheme,
+        widget.controller.documentSettingsController,
+      ]),
       builder: (context, _) => Stack(
         children: [
           Row(

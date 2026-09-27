@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/page_settings/page_settings_vm.dart';
 
@@ -27,6 +28,14 @@ class PageSettingsDialog extends StatelessWidget {
                   child: Text(
                     'Appearance',
                     style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Scoped to the page view only. Auto follows the '
+                    'document appearance.',
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
                 const SizedBox(height: 8),

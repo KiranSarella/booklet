@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 
 import 'editor_controller.dart';
@@ -6,9 +7,14 @@ import 'editor_controller.dart';
 enum AppScreen { startup, editor }
 
 class App extends ChangeNotifier {
-  App(this.editorTheme) : editorController = EditorController(editorTheme);
+  App(this.editorTheme, this.documentSettingsController)
+    : editorController = EditorController(
+        editorTheme,
+        documentSettingsController,
+      );
 
   final PageSettingsController editorTheme;
+  final DocumentSettingsController documentSettingsController;
   final EditorController editorController;
   AppScreen _screen = AppScreen.startup;
 
@@ -40,6 +46,7 @@ class App extends ChangeNotifier {
   void dispose() {
     editorController.dispose();
     editorTheme.dispose();
+    documentSettingsController.dispose();
     super.dispose();
   }
 }
