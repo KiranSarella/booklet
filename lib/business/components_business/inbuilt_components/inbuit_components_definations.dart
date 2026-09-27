@@ -232,6 +232,17 @@ class EmbedComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.media;
 }
 
+class LinkComponentDef extends ComponentDef {
+  @override
+  String get key => "link";
+
+  @override
+  String get name => "Link";
+
+  @override
+  ComponentType get type => ComponentType.media;
+}
+
 class LocationComponentDef extends ComponentDef {
   @override
   String get key => "location";

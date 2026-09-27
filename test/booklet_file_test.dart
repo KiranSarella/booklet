@@ -6,6 +6,8 @@ import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/components/audio_component.dart';
 import 'package:booklet/ui/components/code_block_component.dart';
 import 'package:booklet/ui/components/math_component.dart';
+import 'package:booklet/ui/components/link_component.dart';
+import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/components/embed_component.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/image_component.dart';
@@ -284,6 +286,55 @@ void main() {
       final loadedEmbed = loadedPage.components.single.component;
       expect(loadedEmbed, isA<EmbedComponent>());
       expect(loadedEmbed.output, content);
+
+      page.dispose();
+      loadedPage.dispose();
+      await tempDir.delete(recursive: true);
+    });
+  });
+
+  group('BookletFile link persistence', () {
+    test('persists and restores URL and optional title separately', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'booklet_link_test',
+      );
+      final packagePath = '${tempDir.path}/test_booklet';
+      final component = LinkComponent(
+        id: 'link-1',
+        url: 'https://example.com/article',
+        title: 'Read the article',
+      );
+      final page = PageContent(
+        id: 'page-1',
+        title: 'Test page',
+        components: [ComponentBox(component: component)],
+      );
+
+      await BookletFile.savePage(packagePath, page);
+      final savedPageJson = jsonDecode(
+        await File('$packagePath/pages/page-1.json').readAsString(),
+      ) as Map<String, dynamic>;
+      final savedLink = savedPageJson['components'][0] as Map<String, dynamic>;
+
+      expect(savedLink['type'], 'link');
+      expect(savedLink['url'], 'https://example.com/article');
+      expect(savedLink['title'], 'Read the article');
+
+      final loadedPage = await BookletFile.loadPage(
+        packagePath,
+        'page-1',
+        EditorTheme(),
+      );
+      final loadedLink = loadedPage.components.single.component;
+      expect(loadedLink, isA<LinkComponent>());
+      expect(
+        (loadedLink.state as LinkComponentState).url,
+        'https://example.com/article',
+      );
+      expect(
+        (loadedLink.state as LinkComponentState).title,
+        'Read the article',
+      );
 
       page.dispose();
       loadedPage.dispose();

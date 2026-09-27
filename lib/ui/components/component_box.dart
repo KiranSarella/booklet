@@ -56,6 +56,8 @@ class ComponentBox {
       state.focusNode.requestFocus();
     } else if (state is EmbedComponentState) {
       state.focusNode.requestFocus();
+    } else if (state is LinkComponentState) {
+      state.urlFocusNode.requestFocus();
     }
   }
 

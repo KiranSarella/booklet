@@ -136,6 +136,58 @@ class EmbedComponentState extends ComponentState {
   }
 }
 
+class LinkComponentState extends ComponentState {
+  LinkComponentState({String? url, String? title})
+    : urlController = TextEditingController(text: url ?? ''),
+      titleController = TextEditingController(text: title ?? ''),
+      url = url ?? '',
+      title = title ?? '';
+
+  final TextEditingController urlController;
+  final TextEditingController titleController;
+  final FocusNode urlFocusNode = FocusNode();
+  final FocusNode titleFocusNode = FocusNode();
+  String url;
+  String title;
+
+  void updateUrl(String value) => url = value;
+
+  void updateTitle(String value) => title = value;
+
+  void setValues({required String url, String? title}) {
+    this.url = url;
+    this.title = title ?? '';
+    urlController.text = this.url;
+    titleController.text = this.title;
+  }
+
+  static Uri? parseWebUri(String value) {
+    final input = value.trim();
+    if (input.isEmpty) {
+      return null;
+    }
+    final candidate = input.contains('://') ? input : 'https://$input';
+    final uri = Uri.tryParse(candidate);
+    if (uri == null ||
+        !const ['http', 'https'].contains(uri.scheme.toLowerCase()) ||
+        uri.host.isEmpty) {
+      return null;
+    }
+    return uri;
+  }
+
+  @override
+  Map<String, String> get output => {'url': url, 'title': title};
+
+  @override
+  void dispose() {
+    urlController.dispose();
+    titleController.dispose();
+    urlFocusNode.dispose();
+    titleFocusNode.dispose();
+  }
+}
+
 class QuoteComponentState extends ComponentState {
   QuoteComponentState({List<dynamic>? delta})
     : quote = TextComponentState(Attribute.centerAlignment, delta: delta),

@@ -149,6 +149,11 @@ class BookletFile {
           componentState.setContent(
             (componentJson['content'] as String?) ?? '',
           );
+        } else if (componentState is LinkComponentState) {
+          componentState.setValues(
+            url: (componentJson['url'] as String?) ?? '',
+            title: componentJson['title'] as String?,
+          );
         } else if (componentState is QuoteComponentState &&
             componentJson['author'] is String) {
           final authorData = RichTextData.fromJson({
@@ -268,6 +273,15 @@ class BookletFile {
           'id': componentBox.component.id,
           'type': componentBox.component.def.key,
           'content': state.content,
+        });
+        continue;
+      }
+      if (state is LinkComponentState) {
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': componentBox.component.def.key,
+          'url': state.url,
+          'title': state.title,
         });
         continue;
       }

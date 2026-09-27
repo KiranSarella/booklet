@@ -5,6 +5,7 @@ import 'package:booklet/ui/components/code_block_component.dart';
 import 'package:booklet/ui/components/math_component.dart';
 import 'package:booklet/ui/components/audio_component.dart';
 import 'package:booklet/ui/components/embed_component.dart';
+import 'package:booklet/ui/components/link_component.dart';
 import 'package:booklet/ui/components/image_component.dart';
 import 'package:booklet/ui/components/video_component.dart';
 import 'package:booklet/business/components_business/inbuilt_components/inbuit_components_definations.dart';
@@ -53,6 +54,8 @@ class InbuiltComponents {
         return AudioComponent(id: id);
       case 'embed':
         return EmbedComponent(id: id);
+      case 'link':
+        return LinkComponent(id: id);
       case 'location':
         return LocationComponent(id: id);
       case 'caption':
@@ -85,6 +88,7 @@ class InbuiltComponents {
       VideoComponentDef(),
       AudioComponentDef(),
       EmbedComponentDef(),
+      LinkComponentDef(),
       LocationComponentDef(),
       CaptionComponentDef(),
       FootnoteComponentDef(),
