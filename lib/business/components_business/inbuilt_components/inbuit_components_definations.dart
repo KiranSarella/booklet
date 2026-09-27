@@ -1,6 +1,5 @@
 import 'package:booklet/business/components_business/component_def.dart';
 
-
 /*
 
 ## components
@@ -25,7 +24,6 @@ import 'package:booklet/business/components_business/component_def.dart';
 */
 
 class TitleComponentDef extends ComponentDef {
-
   @override
   String get key => "title";
 
@@ -34,9 +32,7 @@ class TitleComponentDef extends ComponentDef {
 
   @override
   ComponentType get type => ComponentType.text;
-  
 }
-
 
 class HeadingComponentDef extends ComponentDef {
   @override
@@ -47,9 +43,7 @@ class HeadingComponentDef extends ComponentDef {
 
   @override
   ComponentType get type => ComponentType.text;
-  
 }
-
 
 class SubheadingComponentDef extends ComponentDef {
   @override
@@ -60,9 +54,7 @@ class SubheadingComponentDef extends ComponentDef {
 
   @override
   ComponentType get type => ComponentType.text;
-  
 }
-
 
 class InlineHeadingComponentDef extends ComponentDef {
   @override
@@ -75,7 +67,6 @@ class InlineHeadingComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
-
 class SubtitleComponentDef extends ComponentDef {
   @override
   String get key => "subtitle";
@@ -86,7 +77,6 @@ class SubtitleComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.text;
 }
-
 
 class LabelComponentDef extends ComponentDef {
   @override
@@ -99,7 +89,6 @@ class LabelComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
-
 class TextComponentDef extends ComponentDef {
   @override
   String get key => "text";
@@ -110,7 +99,6 @@ class TextComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.text;
 }
-
 
 class DashedListComponentDef extends ComponentDef {
   @override
@@ -123,7 +111,6 @@ class DashedListComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
-
 class NumberedListComponentDef extends ComponentDef {
   @override
   String get key => "numbered_list";
@@ -134,7 +121,6 @@ class NumberedListComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.text;
 }
-
 
 class ChecklistComponentDef extends ComponentDef {
   @override
@@ -147,7 +133,6 @@ class ChecklistComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
-
 class FocusComponentDef extends ComponentDef {
   @override
   String get key => "focus";
@@ -159,7 +144,6 @@ class FocusComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
-
 class BlockTextComponentDef extends ComponentDef {
   @override
   String get key => "block_text";
@@ -170,7 +154,6 @@ class BlockTextComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.text;
 }
-
 
 class QuoteComponentDef extends ComponentDef {
   @override
@@ -205,6 +188,16 @@ class VideoComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.media;
 }
 
+class AudioComponentDef extends ComponentDef {
+  @override
+  String get key => "audio";
+
+  @override
+  String get name => "Audio";
+
+  @override
+  ComponentType get type => ComponentType.media;
+}
 
 class LocationComponentDef extends ComponentDef {
   @override
@@ -217,7 +210,6 @@ class LocationComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
-
 class CaptionComponentDef extends ComponentDef {
   @override
   String get key => "caption";
@@ -228,7 +220,6 @@ class CaptionComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.text;
 }
-
 
 class FootnoteComponentDef extends ComponentDef {
   @override

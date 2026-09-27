@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
 final _plainTextClipboardConfig = QuillControllerConfig(
-  clipboardConfig: QuillClipboardConfig(
-    enableExternalRichPaste: false,
-  ),
+  clipboardConfig: QuillClipboardConfig(enableExternalRichPaste: false),
 );
 
 abstract class ComponentState {
@@ -68,7 +66,12 @@ class TextComponentState extends ComponentState {
 }
 
 class ImageComponentState extends ComponentState {
-  ImageComponentState({this.mediaPath, this.imageSize, this.width, this.height});
+  ImageComponentState({
+    this.mediaPath,
+    this.imageSize,
+    this.width,
+    this.height,
+  });
 
   String? mediaPath;
   String? imageSize;
@@ -84,6 +87,18 @@ class ImageComponentState extends ComponentState {
 
 class VideoComponentState extends ComponentState {
   VideoComponentState({this.mediaPath});
+
+  String? mediaPath;
+
+  @override
+  String? get output => mediaPath;
+
+  @override
+  void dispose() {}
+}
+
+class AudioComponentState extends ComponentState {
+  AudioComponentState({this.mediaPath});
 
   String? mediaPath;
 

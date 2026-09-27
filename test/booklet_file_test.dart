@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
+import 'package:booklet/ui/components/audio_component.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/image_component.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
@@ -110,6 +111,52 @@ void main() {
       expect(mediaFiles, hasLength(1));
 
       page.dispose();
+      await tempDir.delete(recursive: true);
+    });
+  });
+
+  group('BookletFile audio persistence', () {
+    test('copies audio to media folder and restores its path', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'booklet_audio_test',
+      );
+      final packagePath = '${tempDir.path}/test_booklet';
+      final sourceFile = File('${tempDir.path}/source.mp3');
+      await sourceFile.writeAsBytes([1, 2, 3, 4]);
+
+      final audio = AudioComponent(id: 'audio-1', mediaPath: sourceFile.path);
+      final page = PageContent(
+        id: 'page-1',
+        title: 'Test page',
+        components: [ComponentBox(component: audio)],
+      );
+
+      await BookletFile.savePage(packagePath, page);
+
+      final savedPageJson = jsonDecode(
+        await File('$packagePath/pages/page-1.json').readAsString(),
+      ) as Map<String, dynamic>;
+      final savedAudio = savedPageJson['components'][0] as Map<String, dynamic>;
+
+      expect(savedAudio['type'], 'audio');
+      expect(savedAudio['mediaPath'], startsWith('media/'));
+      expect(savedAudio['mediaPath'], endsWith('.mp3'));
+      expect(
+        File('$packagePath/${savedAudio['mediaPath']}').existsSync(),
+        isTrue,
+      );
+
+      final loadedPage = await BookletFile.loadPage(
+        packagePath,
+        'page-1',
+        EditorTheme(),
+      );
+      final loadedAudio = loadedPage.components.single.component;
+      expect(loadedAudio, isA<AudioComponent>());
+      expect(loadedAudio.output, audio.state.mediaPath);
+
+      page.dispose();
+      loadedPage.dispose();
       await tempDir.delete(recursive: true);
     });
   });
