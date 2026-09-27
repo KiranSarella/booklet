@@ -1,32 +1,37 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:booklet/application/appearance_mode.dart';
 
 enum DocumentEditMode { edit, readOnly }
+
+// Document-only appearance: Gray has no equivalent in page_settings, where it
+// is simply treated as light when that feature's appearance mode is 'auto'.
+enum DocumentAppearanceMode { light, gray, dark, auto }
 
 class DocumentSettingsController extends ChangeNotifier {
   static const _editModeKey = 'document.editMode';
   static const _appearanceModeKey = 'document.appearanceMode';
 
   DocumentEditMode _editMode = DocumentEditMode.edit;
-  EditorAppearanceMode _appearanceMode = EditorAppearanceMode.auto;
+  DocumentAppearanceMode _appearanceMode = DocumentAppearanceMode.auto;
   Brightness _systemBrightness = Brightness.light;
 
   DocumentEditMode get editMode => _editMode;
   bool get isReadOnly => _editMode == DocumentEditMode.readOnly;
 
   // Primary appearance: scopes the whole application (navigation, menus, etc.), not the page view.
-  EditorAppearanceMode get appearanceMode => _appearanceMode;
+  DocumentAppearanceMode get appearanceMode => _appearanceMode;
+  bool get isGray => _appearanceMode == DocumentAppearanceMode.gray;
   ThemeMode get themeMode => switch (_appearanceMode) {
-    EditorAppearanceMode.light => ThemeMode.light,
-    EditorAppearanceMode.dark => ThemeMode.dark,
-    EditorAppearanceMode.auto => ThemeMode.system,
+    DocumentAppearanceMode.light => ThemeMode.light,
+    DocumentAppearanceMode.gray => ThemeMode.light,
+    DocumentAppearanceMode.dark => ThemeMode.dark,
+    DocumentAppearanceMode.auto => ThemeMode.system,
   };
   Brightness get effectiveBrightness =>
-      _appearanceMode == EditorAppearanceMode.auto
+      _appearanceMode == DocumentAppearanceMode.auto
       ? _systemBrightness
-      : _appearanceMode == EditorAppearanceMode.dark
+      : _appearanceMode == DocumentAppearanceMode.dark
       ? Brightness.dark
       : Brightness.light;
 
@@ -38,9 +43,9 @@ class DocumentSettingsController extends ChangeNotifier {
       orElse: () => DocumentEditMode.edit,
     );
     final savedAppearance = preferences.getString(_appearanceModeKey);
-    _appearanceMode = EditorAppearanceMode.values.firstWhere(
+    _appearanceMode = DocumentAppearanceMode.values.firstWhere(
       (mode) => mode.name == savedAppearance,
-      orElse: () => EditorAppearanceMode.auto,
+      orElse: () => DocumentAppearanceMode.auto,
     );
     notifyListeners();
   }
@@ -54,7 +59,7 @@ class DocumentSettingsController extends ChangeNotifier {
     _persist();
   }
 
-  void updateAppearanceMode(EditorAppearanceMode mode) {
+  void updateAppearanceMode(DocumentAppearanceMode mode) {
     if (_appearanceMode == mode) {
       return;
     }
@@ -68,7 +73,7 @@ class DocumentSettingsController extends ChangeNotifier {
       return;
     }
     _systemBrightness = brightness;
-    if (_appearanceMode == EditorAppearanceMode.auto) {
+    if (_appearanceMode == DocumentAppearanceMode.auto) {
       notifyListeners();
     }
   }

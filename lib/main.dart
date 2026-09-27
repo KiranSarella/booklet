@@ -11,6 +11,22 @@ import 'package:booklet/ui/page_settings/page_settings_view.dart';
 import 'package:booklet/ui/page_settings/page_settings_vm.dart';
 import 'package:booklet/ui/start_booklet.dart';
 
+// Uniformly shifts every surface tone toward gray, keeping their relative
+// hierarchy (container levels) intact so nav/menus/toolbar stay consistent.
+ColorScheme _applyGrayTint(ColorScheme scheme) {
+  Color tint(Color color) => Color.lerp(color, const Color(0xFF9E9E9E), 0.32)!;
+  return scheme.copyWith(
+    surface: tint(scheme.surface),
+    surfaceDim: tint(scheme.surfaceDim),
+    surfaceBright: tint(scheme.surfaceBright),
+    surfaceContainerLowest: tint(scheme.surfaceContainerLowest),
+    surfaceContainerLow: tint(scheme.surfaceContainerLow),
+    surfaceContainer: tint(scheme.surfaceContainer),
+    surfaceContainerHigh: tint(scheme.surfaceContainerHigh),
+    surfaceContainerHighest: tint(scheme.surfaceContainerHighest),
+  );
+}
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final documentSettingsController = DocumentSettingsController();
@@ -23,7 +39,6 @@ void main() {
     ),
   );
 }
-
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key, required this.application});
@@ -79,7 +94,8 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
       builder: (context) => PageSettingsDialog(
         viewModel: PageSettingsVM(
           pageSettingsController: widget.application.editorTheme,
-          documentSettingsController: widget.application.documentSettingsController,
+          documentSettingsController:
+              widget.application.documentSettingsController,
         ),
       ),
     );
@@ -87,76 +103,89 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final documentSettingsController =
+        widget.application.documentSettingsController;
     return AnimatedBuilder(
       animation: Listenable.merge([
         widget.application,
-        widget.application.documentSettingsController,
+        documentSettingsController,
       ]),
-      builder: (context, _) => MaterialApp(
-        navigatorKey: _navigatorKey,
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: [
-          GlobalMaterialLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          FlutterQuillLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('en')],
-        theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-        darkTheme: ThemeData(
-          colorSchemeSeed: Colors.indigo,
-          brightness: Brightness.dark,
-          useMaterial3: true,
-        ),
-        themeMode: widget.application.documentSettingsController.themeMode,
-        home: Scaffold(
-          body: SafeArea(
-            child: Actions(
-              actions: <Type, Action<Intent>>{
-                DismissIntent: CallbackAction<DismissIntent>(
-                  onInvoke: (_) {
-                    _bookletEditorKey.currentState?.dismissOptionsMenu();
-                    return null;
-                  },
-                ),
-              },
-              child: Shortcuts(
-                shortcuts: const <ShortcutActivator, Intent>{
-                  SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+      builder: (context, _) {
+        final baseLightScheme = ColorScheme.fromSeed(seedColor: Colors.indigo);
+        final lightScheme = documentSettingsController.isGray
+            ? _applyGrayTint(baseLightScheme)
+            : baseLightScheme;
+
+        return MaterialApp(
+          navigatorKey: _navigatorKey,
+          debugShowCheckedModeBanner: false,
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en')],
+          theme: ThemeData(
+            colorScheme: lightScheme,
+            scaffoldBackgroundColor: lightScheme.surface,
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            colorSchemeSeed: Colors.indigo,
+            brightness: Brightness.dark,
+            useMaterial3: true,
+          ),
+          themeMode: documentSettingsController.themeMode,
+          home: Scaffold(
+            body: SafeArea(
+              child: Actions(
+                actions: <Type, Action<Intent>>{
+                  DismissIntent: CallbackAction<DismissIntent>(
+                    onInvoke: (_) {
+                      _bookletEditorKey.currentState?.dismissOptionsMenu();
+                      return null;
+                    },
+                  ),
                 },
-                child: Stack(
-                  children: [
-                    Center(
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: double.infinity,
-                        child: BaseView(
-                          key: _bookletEditorKey,
-                          controller: widget.application.editorController,
+                child: Shortcuts(
+                  shortcuts: const <ShortcutActivator, Intent>{
+                    SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+                  },
+                  child: Stack(
+                    children: [
+                      Center(
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: double.infinity,
+                          child: BaseView(
+                            key: _bookletEditorKey,
+                            controller: widget.application.editorController,
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      top: 12,
-                      right: 102,
-                      child: DocumentToolbar(
-                        key: _documentToolbarKey,
-                        controller: widget.application.editorController,
-                        onEditTheme: _showThemeEditor,
+                      Positioned(
+                        top: 12,
+                        right: 102,
+                        child: DocumentToolbar(
+                          key: _documentToolbarKey,
+                          controller: widget.application.editorController,
+                          onEditTheme: _showThemeEditor,
+                        ),
                       ),
-                    ),
-                    if (widget.application.screen == AppScreen.startup)
-                      StartBooklet(
-                        onCreateNew: widget.application.createBooklet,
-                        onOpenExisting: _openBookletFromStartup,
-                      ),
-                  ],
+                      if (widget.application.screen == AppScreen.startup)
+                        StartBooklet(
+                          onCreateNew: widget.application.createBooklet,
+                          onOpenExisting: _openBookletFromStartup,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

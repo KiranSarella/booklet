@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/ui/document_settings/document_settings_vm.dart';
 
@@ -54,20 +53,25 @@ class DocumentSettingsDialog extends StatelessWidget {
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
-                child: SegmentedButton<EditorAppearanceMode>(
+                child: SegmentedButton<DocumentAppearanceMode>(
                   segments: const [
                     ButtonSegment(
-                      value: EditorAppearanceMode.light,
+                      value: DocumentAppearanceMode.light,
                       label: Text('Light'),
                       icon: Icon(Icons.light_mode_outlined),
                     ),
                     ButtonSegment(
-                      value: EditorAppearanceMode.dark,
+                      value: DocumentAppearanceMode.gray,
+                      label: Text('Gray'),
+                      icon: Icon(Icons.brightness_6_outlined),
+                    ),
+                    ButtonSegment(
+                      value: DocumentAppearanceMode.dark,
                       label: Text('Dark'),
                       icon: Icon(Icons.dark_mode_outlined),
                     ),
                     ButtonSegment(
-                      value: EditorAppearanceMode.auto,
+                      value: DocumentAppearanceMode.auto,
                       label: Text('Auto'),
                       icon: Icon(Icons.brightness_auto_outlined),
                     ),

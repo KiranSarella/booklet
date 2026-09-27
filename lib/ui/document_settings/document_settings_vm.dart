@@ -1,4 +1,3 @@
-import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 
 class DocumentSettingsVM {
@@ -7,11 +6,11 @@ class DocumentSettingsVM {
   final DocumentSettingsController settingsController;
 
   DocumentEditMode get editMode => settingsController.editMode;
-  EditorAppearanceMode get appearanceMode => settingsController.appearanceMode;
+  DocumentAppearanceMode get appearanceMode => settingsController.appearanceMode;
 
   void updateEditMode(DocumentEditMode mode) =>
       settingsController.updateEditMode(mode);
 
-  void updateAppearanceMode(EditorAppearanceMode mode) =>
+  void updateAppearanceMode(DocumentAppearanceMode mode) =>
       settingsController.updateAppearanceMode(mode);
 }
