@@ -2,6 +2,7 @@ import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/components/code_block_component.dart';
+import 'package:booklet/ui/components/math_component.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:flutter/material.dart';
 
@@ -50,6 +51,8 @@ class ComponentBox {
     if (state is TextComponentState) {
       state.focusNode.requestFocus();
     } else if (state is CodeBlockComponentState) {
+      state.focusNode.requestFocus();
+    } else if (state is MathComponentState) {
       state.focusNode.requestFocus();
     }
   }

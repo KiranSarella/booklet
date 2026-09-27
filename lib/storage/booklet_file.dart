@@ -5,6 +5,7 @@ import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/rich_text_codec.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/ui/components/code_block_component.dart';
+import 'package:booklet/ui/components/math_component.dart';
 import 'package:booklet/ui/editor_themes/editor_themes.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 import 'package:file_selector/file_selector.dart';
@@ -141,6 +142,9 @@ class BookletFile {
           componentState.setLanguage(
             (componentJson['language'] as String?) ?? 'plaintext',
           );
+        } else if (componentState is MathComponentState) {
+          componentState.controller.text =
+              (componentJson['formula'] as String?) ?? '';
         } else if (componentState is QuoteComponentState &&
             componentJson['author'] is String) {
           final authorData = RichTextData.fromJson({
@@ -244,6 +248,14 @@ class BookletFile {
           'type': componentBox.component.def.key,
           'code': state.controller.text,
           'language': state.languageId,
+        });
+        continue;
+      }
+      if (state is MathComponentState) {
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': componentBox.component.def.key,
+          'formula': state.controller.text,
         });
         continue;
       }

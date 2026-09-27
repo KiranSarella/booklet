@@ -166,6 +166,17 @@ class CodeBlockComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
+class MathComponentDef extends ComponentDef {
+  @override
+  String get key => "math";
+
+  @override
+  String get name => "Math Block";
+
+  @override
+  ComponentType get type => ComponentType.text;
+}
+
 class QuoteComponentDef extends ComponentDef {
   @override
   String get key => "quote";

@@ -5,6 +5,7 @@ import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/components/audio_component.dart';
 import 'package:booklet/ui/components/code_block_component.dart';
+import 'package:booklet/ui/components/math_component.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/image_component.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
@@ -205,6 +206,44 @@ void main() {
         (loadedCodeBlock.state as CodeBlockComponentState).languageId,
         'javascript',
       );
+
+      page.dispose();
+      loadedPage.dispose();
+      await tempDir.delete(recursive: true);
+    });
+  });
+
+  group('BookletFile math persistence', () {
+    test('persists and restores the TeX formula', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'booklet_math_test',
+      );
+      final packagePath = '${tempDir.path}/test_booklet';
+      const formula = r'\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}';
+      final component = MathComponent(id: 'math-1', formula: formula);
+      final page = PageContent(
+        id: 'page-1',
+        title: 'Test page',
+        components: [ComponentBox(component: component)],
+      );
+
+      await BookletFile.savePage(packagePath, page);
+
+      final savedPageJson = jsonDecode(
+        await File('$packagePath/pages/page-1.json').readAsString(),
+      ) as Map<String, dynamic>;
+      final savedMath = savedPageJson['components'][0] as Map<String, dynamic>;
+      expect(savedMath['type'], 'math');
+      expect(savedMath['formula'], formula);
+
+      final loadedPage = await BookletFile.loadPage(
+        packagePath,
+        'page-1',
+        EditorTheme(),
+      );
+      final loadedMath = loadedPage.components.single.component;
+      expect(loadedMath, isA<MathComponent>());
+      expect(loadedMath.output, formula);
 
       page.dispose();
       loadedPage.dispose();

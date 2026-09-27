@@ -2,6 +2,7 @@ import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_types.dart';
 import 'package:booklet/ui/components/inbuilt_component_objects.dart';
 import 'package:booklet/ui/components/code_block_component.dart';
+import 'package:booklet/ui/components/math_component.dart';
 import 'package:booklet/ui/components/audio_component.dart';
 import 'package:booklet/ui/components/image_component.dart';
 import 'package:booklet/ui/components/video_component.dart';
@@ -39,6 +40,8 @@ class InbuiltComponents {
         return BlockTextComponent(id: id);
       case 'code_block':
         return CodeBlockComponent(id: id);
+      case 'math':
+        return MathComponent(id: id);
       case 'quote':
         return QuoteComponent(id: id);
       case 'image':
@@ -73,6 +76,7 @@ class InbuiltComponents {
       FocusComponentDef(),
       BlockTextComponentDef(),
       CodeBlockComponentDef(),
+      MathComponentDef(),
       QuoteComponentDef(),
       ImageComponentDef(),
       VideoComponentDef(),
