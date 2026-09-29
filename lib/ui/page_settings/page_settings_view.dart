@@ -23,19 +23,81 @@ class PageSettingsDialog extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Font size'),
+                  // subtitle: Text('${viewModel.baseFontSize.toInt()} px'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Decrease font size',
+                        onPressed: viewModel.decreaseFontSize,
+                        icon: const Icon(Icons.remove),
+                      ),
+                      IconButton(
+                        tooltip: 'Increase font size',
+                        onPressed: viewModel.increaseFontSize,
+                        icon: const Icon(Icons.add),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Appearance',
+                    'Page width',
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<PageWidth>(
+                    segments: [
+                      const ButtonSegment(
+                        value: PageWidth.normal,
+                        label: Text('Normal'),
+                        icon: Icon(Icons.crop_portrait_outlined),
+                      ),
+                      const ButtonSegment(
+                        value: PageWidth.wide,
+                        label: Text('Wide'),
+                        icon: Icon(Icons.crop_landscape_outlined),
+                      ),
+                      ButtonSegment(
+                        value: PageWidth.twoColumns,
+                        label: const Text('Columns'),
+                        icon: const Icon(Icons.view_column_outlined),
+                        enabled: viewModel.isTwoColumnsAvailable,
+                      ),
+                    ],
+                    selected: {viewModel.pageWidth},
+                    onSelectionChanged: (selection) {
+                      viewModel.updatePageWidth(selection.first);
+                    },
+                  ),
+                ),
+                if (!viewModel.isTwoColumnsAvailable)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Two columns is available only in read-only mode.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 16),
+
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Scoped to the page view only. Auto follows the '
-                    'document appearance.',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    'Page Theme',
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -65,99 +127,28 @@ class PageSettingsDialog extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Page width',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<PageWidth>(
-                    segments: [
-                      const ButtonSegment(
-                        value: PageWidth.normal,
-                        label: Text('Normal'),
-                        icon: Icon(Icons.crop_portrait_outlined),
-                      ),
-                      const ButtonSegment(
-                        value: PageWidth.wide,
-                        label: Text('Wide'),
-                        icon: Icon(Icons.crop_landscape_outlined),
-                      ),
-                      ButtonSegment(
-                        value: PageWidth.twoColumns,
-                        label: const Text('Two columns'),
-                        icon: const Icon(Icons.view_column_outlined),
-                        enabled: viewModel.isTwoColumnsAvailable,
-                      ),
-                    ],
-                    selected: {viewModel.pageWidth},
-                    onSelectionChanged: (selection) {
-                      viewModel.updatePageWidth(selection.first);
-                    },
-                  ),
-                ),
-                if (!viewModel.isTwoColumnsAvailable)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Two columns is available only in read-only mode.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  ),
+
+
                 const SizedBox(height: 12),
-                _ThemeColorRow(
-                  label: 'Title',
-                  color: viewModel.titleColor,
-                  onChanged: viewModel.updateTitleColor,
-                ),
-                _ThemeColorRow(
-                  label: 'Heading',
-                  color: viewModel.headingColor,
-                  onChanged: viewModel.updateHeadingColor,
-                ),
-                _ThemeColorRow(
-                  label: 'Subheading',
-                  color: viewModel.subheadingColor,
-                  onChanged: viewModel.updateSubheadingColor,
-                ),
-                _ThemeColorRow(
-                  label: 'Text',
-                  color: viewModel.textColor,
-                  onChanged: viewModel.updateTextColor,
-                ),
+
                 _ThemeColorRow(
                   label: 'Page background',
                   color: viewModel.pageBackgroundColor,
                   onChanged: viewModel.updatePageBackgroundColor,
                 ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Base font size'),
-                  subtitle: Text('${viewModel.baseFontSize.toInt()} px'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: 'Decrease font size',
-                        onPressed: viewModel.decreaseFontSize,
-                        icon: const Icon(Icons.remove),
-                      ),
-                      IconButton(
-                        tooltip: 'Increase font size',
-                        onPressed: viewModel.increaseFontSize,
-                        icon: const Icon(Icons.add),
-                      ),
-                    ],
-                  ),
+                
+                _ThemeColorRow(
+                  label: 'Text',
+                  color: viewModel.textColor,
+                  onChanged: viewModel.updateTextColor,
                 ),
+                
+                _ThemeColorRow(
+                  label: 'Headings',
+                  color: viewModel.headingColor,
+                  onChanged: viewModel.updateHeadingColor,
+                ),
+                
               ],
             ),
           ),
@@ -189,7 +180,7 @@ class _ThemeColorRow extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(label),
-      subtitle: Text(_colorValue(color)),
+      // subtitle: Text(_colorValue(color)),
       trailing: InkWell(
         onTap: () => _showColorPicker(context),
         borderRadius: BorderRadius.circular(20),

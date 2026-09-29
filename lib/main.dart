@@ -11,10 +11,9 @@ import 'package:booklet/ui/page_settings/page_settings_view.dart';
 import 'package:booklet/ui/page_settings/page_settings_vm.dart';
 import 'package:booklet/ui/start_booklet.dart';
 
-// Uniformly shifts every surface tone toward gray, keeping their relative
-// hierarchy (container levels) intact so nav/menus/toolbar stay consistent.
+// Keeps gray appearance dark enough for the dark scheme's white foregrounds.
 ColorScheme _applyGrayTint(ColorScheme scheme) {
-  Color tint(Color color) => Color.lerp(color, const Color(0xFF9E9E9E), 0.32)!;
+  Color tint(Color color) => Color.lerp(color, const Color.fromARGB(255, 103, 102, 102), 0.45)!;
   return scheme.copyWith(
     surface: tint(scheme.surface),
     surfaceDim: tint(scheme.surfaceDim),
@@ -112,8 +111,12 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
       ]),
       builder: (context, _) {
         final baseLightScheme = ColorScheme.fromSeed(seedColor: Colors.indigo);
-        final lightScheme = documentSettingsController.isGray
-            ? _applyGrayTint(baseLightScheme)
+        final baseGrayScheme = ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.dark,
+        );
+        final colorScheme = documentSettingsController.isGray
+            ? _applyGrayTint(baseGrayScheme)
             : baseLightScheme;
 
         return MaterialApp(
@@ -127,8 +130,8 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
           ],
           supportedLocales: const [Locale('en')],
           theme: ThemeData(
-            colorScheme: lightScheme,
-            scaffoldBackgroundColor: lightScheme.surface,
+            colorScheme: colorScheme,
+            scaffoldBackgroundColor: colorScheme.surface,
             useMaterial3: true,
           ),
           darkTheme: ThemeData(

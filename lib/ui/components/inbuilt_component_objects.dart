@@ -30,7 +30,7 @@ class TitleComponent with TextComponentStateOwner implements Component {
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(290),
       fontWeight: FontWeight.w800,
-      color: theme.titleColor,
+      color: theme.headingColor,
       height: 1.4,
     );
 
@@ -119,7 +119,7 @@ class SubheadingComponent with TextComponentStateOwner implements Component {
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(157),
       fontWeight: FontWeight.w700,
-      color: theme.subheadingColor,
+      color: theme.headingColor,
     );
 
     return AutoHeightRichText2(
@@ -163,7 +163,7 @@ class InlineHeadingComponent with TextComponentStateOwner implements Component {
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(117),
       fontWeight: FontWeight.w600,
-      color: theme.subheadingColor,
+      color: theme.headingColor,
     );
 
     return AutoHeightRichText2(
@@ -596,7 +596,7 @@ class QuoteComponent implements Component {
       fontSize: fontSizePercent(160),
       // fontFamily: 'Menlo',
       letterSpacing: 2,
-      color: theme.subheadingColor,
+      color: theme.headingColor,
       height: 1.2,
     );
 
