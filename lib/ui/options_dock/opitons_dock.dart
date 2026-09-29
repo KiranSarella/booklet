@@ -9,6 +9,7 @@ class OptionsDock extends StatefulWidget {
     required this.onComponentDeleted,
     required this.hasSelection,
     required this.canTransformSelection,
+    required this.isReadOnly,
   });
 
   final ValueChanged<String> onComponentSelected;
@@ -16,6 +17,7 @@ class OptionsDock extends StatefulWidget {
   final VoidCallback onComponentDeleted;
   final bool hasSelection;
   final bool canTransformSelection;
+  final bool isReadOnly;
 
   @override
   State<OptionsDock> createState() => OptionsDockState();
@@ -67,50 +69,70 @@ class OptionsDockState extends State<OptionsDock> {
         Positioned(
           top: 12,
           right: 12,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _DockButton(
-                icon: Icons.add,
-                color: Colors.blue,
-                tooltip: 'Add component',
-                onPressed: () => _toggleMenu('add'),
-              ),
-              const SizedBox(height: 20),
-              _DockButton(
-                icon: Icons.swap_horiz,
-                color: Colors.amber.shade700,
-                tooltip: 'Transform component',
-                onPressed: widget.canTransformSelection
-                    ? () => _toggleMenu('transform')
-                    : null,
-                enabled: widget.canTransformSelection,
-              ),
-              const SizedBox(height: 80),
-              _DockButton(
-                icon: Icons.delete_outline,
-                color: Colors.red,
-                tooltip: 'Delete component',
-                onPressed: widget.hasSelection
-                    ? () {
-                        widget.onComponentDeleted();
-                        dismissMenu();
-                      }
-                    : null,
-                enabled: widget.hasSelection,
-              ),
-              const SizedBox(height: 80),
-              _DockButton(
-                icon: Icons.more_horiz,
-                color: Colors.black87,
-                tooltip: 'More options',
-                onPressed: dismissMenu,
-                height: 36,
-              ),
-            ],
-          ),
+          child: widget.isReadOnly ? const _ReadOnlyIndicator() : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _DockButton(
+                      icon: Icons.add,
+                      color: Colors.blue,
+                      tooltip: 'Add component',
+                      onPressed: () => _toggleMenu('add'),
+                    ),
+                    const SizedBox(height: 20),
+                    _DockButton(
+                      icon: Icons.swap_horiz,
+                      color: Colors.amber.shade700,
+                      tooltip: 'Transform component',
+                      onPressed: widget.canTransformSelection
+                          ? () => _toggleMenu('transform')
+                          : null,
+                      enabled: widget.canTransformSelection,
+                    ),
+                    const SizedBox(height: 80),
+                    _DockButton(
+                      icon: Icons.delete_outline,
+                      color: Colors.red,
+                      tooltip: 'Delete component',
+                      onPressed: widget.hasSelection
+                          ? () {
+                              widget.onComponentDeleted();
+                              dismissMenu();
+                            }
+                          : null,
+                      enabled: widget.hasSelection,
+                    ),
+                    const SizedBox(height: 80),
+                    _DockButton(
+                      icon: Icons.more_horiz,
+                      color: Colors.black87,
+                      tooltip: 'More options',
+                      onPressed: dismissMenu,
+                      height: 36,
+                    ),
+                  ],
+                ),
         ),
       ],
+    );
+  }
+}
+
+class _ReadOnlyIndicator extends StatelessWidget {
+  const _ReadOnlyIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Read-only',
+      child: Material(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+        child: const SizedBox(
+          width: 52,
+          height: 44,
+          child: Icon(Icons.lock_outline, size: 20),
+        ),
+      ),
     );
   }
 }

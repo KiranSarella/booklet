@@ -209,7 +209,9 @@ class _ImageComponentViewState extends State<ImageComponentView> {
   @override
   Widget build(BuildContext context) {
     final path = widget.state.mediaPath;
+    final isReadOnly = widget.theme.documentSettingsController.isReadOnly;
     return DropTarget(
+      enable: !isReadOnly,
       onDragEntered: (_) => setState(() => _isDragging = true),
       onDragExited: (_) => setState(() => _isDragging = false),
       onDragDone: (detail) async {
@@ -231,7 +233,7 @@ class _ImageComponentViewState extends State<ImageComponentView> {
               child: path == null || path.isEmpty
                   ? _EmptyImageState(
                       isDragging: _isDragging,
-                      onChooseImage: _chooseImage,
+                      onChooseImage: isReadOnly ? null : _chooseImage,
                     )
                   : Center(
                       child: ConstrainedBox(
@@ -249,6 +251,7 @@ class _ImageComponentViewState extends State<ImageComponentView> {
             if (widget.isSelected && path != null && path.isNotEmpty)
               _ImageToolbar(
                 selectedSize: _size,
+                showSizeOptions: !isReadOnly,
                 onSizeChanged: (size) {
                   setState(() {
                     _size = size;
@@ -267,11 +270,13 @@ class _ImageComponentViewState extends State<ImageComponentView> {
 class _ImageToolbar extends StatelessWidget {
   const _ImageToolbar({
     required this.selectedSize,
+    required this.showSizeOptions,
     required this.onSizeChanged,
     required this.onExpand,
   });
 
   final _ImageSize selectedSize;
+  final bool showSizeOptions;
   final ValueChanged<_ImageSize> onSizeChanged;
   final VoidCallback onExpand;
 
@@ -285,13 +290,15 @@ class _ImageToolbar extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (final size in _ImageSize.values)
-              _SizeButton(
-                label: size.label,
-                selected: selectedSize == size,
-                onPressed: () => onSizeChanged(size),
-              ),
-            const SizedBox(width: 4),
+            if (showSizeOptions) ...[
+              for (final size in _ImageSize.values)
+                _SizeButton(
+                  label: size.label,
+                  selected: selectedSize == size,
+                  onPressed: () => onSizeChanged(size),
+                ),
+              const SizedBox(width: 4),
+            ],
             IconButton(
               onPressed: onExpand,
               tooltip: 'Expand image',
@@ -337,7 +344,7 @@ class _EmptyImageState extends StatelessWidget {
   const _EmptyImageState({required this.isDragging, required this.onChooseImage});
 
   final bool isDragging;
-  final VoidCallback onChooseImage;
+  final VoidCallback? onChooseImage;
 
   @override
   Widget build(BuildContext context) {

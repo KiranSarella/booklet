@@ -32,6 +32,8 @@ class BaseVM {
   final NavigationPanelVM navigation = NavigationPanelVM();
   final Map<String, PageContent> _pagesById = {};
   ComponentBox? _selectedComponent;
+  final Set<ComponentBox> _selectedComponents = {};
+  int? _anchorIndex;
   String? _documentPath;
 
   PageContent? get selectedPage => navigation.selectedPageId == null
@@ -41,6 +43,7 @@ class BaseVM {
   List<ComponentBox> get components => selectedPage?.components ?? [];
   Iterable<PageContent> get loadedPages => _pagesById.values;
   ComponentBox? get selectedComponent => _selectedComponent;
+  Set<ComponentBox> get selectedComponents => _selectedComponents;
   bool get canTransformSelectedComponent =>
       _selectedComponent?.component.def.type == ComponentType.text;
   String? get selectedPageId => navigation.selectedPageId;
@@ -52,6 +55,8 @@ class BaseVM {
   }) {
     navigation.replaceGroups(groups, selectedPageId: selectedPageId);
     _selectedComponent = null;
+    _selectedComponents.clear();
+    _anchorIndex = null;
   }
 
   void setSelectedPage(PageContent page) {
@@ -65,7 +70,10 @@ class BaseVM {
       ..[page.id] = page;
     navigation.selectPage(page.id);
     _selectedComponent = null;
+    _selectedComponents.clear();
+    _anchorIndex = null;
   }
+
 
   void setDocumentPath(String? path) {
     _documentPath = path;
@@ -86,6 +94,8 @@ class BaseVM {
   void selectPage(String pageId) {
     navigation.selectPage(pageId);
     _selectedComponent = null;
+    _selectedComponents.clear();
+    _anchorIndex = null;
   }
 
   void selectNode(NavigationNode node) {
@@ -153,20 +163,72 @@ class BaseVM {
   // MARK: - Components
 
   void selectComponent(ComponentBox component) {
-    if (components.contains(component)) {
-      for (final item in components) {
-        item.isSelected = false;
-      }
-      component.isSelected = true;
-      _selectedComponent = component;
+    final index = components.indexOf(component);
+    if (index == -1) {
+      return;
     }
+    for (final item in components) {
+      if (item != component) {
+        item.isSelected = false;
+        item.clearFocus();
+      }
+    }
+    component.isSelected = true;
+    _selectedComponent = component;
+    _selectedComponents
+      ..clear()
+      ..add(component);
+    _anchorIndex = index;
+  }
+
+  void selectComponentRange(ComponentBox component) {
+    final targetIndex = components.indexOf(component);
+    if (targetIndex == -1) {
+      return;
+    }
+    final anchor = _anchorIndex ?? targetIndex;
+    final lo = anchor < targetIndex ? anchor : targetIndex;
+    final hi = anchor < targetIndex ? targetIndex : anchor;
+    final range = components.sublist(lo, hi + 1);
+    for (final item in components) {
+      final inRange = range.contains(item);
+      item.isSelected = inRange;
+      if (item != component) {
+        item.clearFocus();
+      }
+    }
+    _selectedComponents
+      ..clear()
+      ..addAll(range);
+    _selectedComponent = component;
+    _anchorIndex = anchor;
+  }
+
+  void extendSelectionWithArrowKey(bool moveDown) {
+    final current = _selectedComponent;
+    if (current == null) {
+      return;
+    }
+    final currentIndex = components.indexOf(current);
+    if (currentIndex == -1) {
+      return;
+    }
+    _anchorIndex ??= currentIndex;
+    final nextIndex = moveDown ? currentIndex + 1 : currentIndex - 1;
+    if (nextIndex < 0 || nextIndex >= components.length) {
+      return;
+    }
+    selectComponentRange(components[nextIndex]);
   }
 
   void clearSelectedComponent() {
     for (final component in components) {
       component.isSelected = false;
+      component.clearFocus();
     }
     _selectedComponent = null;
+    _selectedComponents.clear();
+    _anchorIndex = null;
   }
 
   ComponentBox createComponentBelow(int index) {
@@ -174,6 +236,9 @@ class BaseVM {
   }
 
   ComponentBox createComponentBelowType(int index, String type) {
+    if (theme.documentSettingsController.isReadOnly) {
+      throw StateError('Cannot add components while read-only');
+    }
     final page = selectedPage;
     if (page == null) {
       throw StateError('No page is selected');
@@ -188,6 +253,9 @@ class BaseVM {
 
 
   void transformSelectedComponent(String type) {
+    if (theme.documentSettingsController.isReadOnly) {
+      return;
+    }
     final selected = _selectedComponent;
     if (selected == null || !canTransformSelectedComponent) {
       return;
@@ -210,16 +278,25 @@ class BaseVM {
 
 
   void deleteSelectedComponent() {
-    final page = selectedPage;
-    final selected = _selectedComponent;
-    if (page == null || selected == null) {
+    if (theme.documentSettingsController.isReadOnly) {
       return;
     }
-    if (page.components.remove(selected)) {
-      selected.isSelected = false;
-      selected.dispose();
-      _selectedComponent = null;
+    final page = selectedPage;
+    if (page == null) {
+      return;
     }
+    final toDelete = _selectedComponents.isNotEmpty
+        ? List<ComponentBox>.from(_selectedComponents)
+        : (_selectedComponent == null ? <ComponentBox>[] : [_selectedComponent!]);
+    for (final component in toDelete) {
+      if (page.components.remove(component)) {
+        component.isSelected = false;
+        component.dispose();
+      }
+    }
+    _selectedComponent = null;
+    _selectedComponents.clear();
+    _anchorIndex = null;
   }
 
 

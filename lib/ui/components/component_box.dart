@@ -5,6 +5,8 @@ import 'package:booklet/ui/components/code_block_component.dart';
 import 'package:booklet/ui/components/math_component.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 class ComponentBox {
   ComponentBox({required this.component, List<dynamic>? delta}) {
@@ -18,30 +20,95 @@ class ComponentBox {
 
   set isSelected(bool value) => component.state.isSelected = value;
 
+  bool get isFocused => component.state.isFocused;
+
+  // Only simple rich-text based components support the select-then-edit
+  // two-tap flow; other components keep single-tap-to-select behavior.
+  bool get _supportsTapToEdit => component.state is TextComponentState;
+
   Widget buildUI({
     required PageSettingsController theme,
     required VoidCallback onSelect,
+    required VoidCallback onSelectRange,
     required VoidCallback onCreateBelow,
   }) {
+    final isReadOnly = theme.documentSettingsController.isReadOnly;
+    _applyReadOnly(isReadOnly);
+    final focused = isFocused && !isReadOnly;
+    final selected = isSelected;
+
+    Widget child = component.buildUI(
+      theme: theme,
+      componentState: component.state,
+      isSelected: selected,
+      onSelect: onSelect,
+      onCreateBelow: onCreateBelow,
+    );
+
+    if (_supportsTapToEdit) {
+      // Read-only text stays interactive so it can be selected/copied; in
+      // edit mode a single tap only selects, requiring a second tap to edit.
+      child = AbsorbPointer(absorbing: !isReadOnly && !focused, child: child);
+    }
+
     return GestureDetector(
-      onTap: onSelect,
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _handleTap(
+        onSelect: onSelect,
+        onSelectRange: onSelectRange,
+        isReadOnly: isReadOnly,
+      ),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? Colors.indigo : Colors.transparent,
-            width: isSelected ? 1.8 : 0,
+            color: focused
+                ? Colors.grey.shade400
+                : (selected ? Colors.indigo : Colors.transparent),
+            width: (focused || selected) ? 1.8 : 0,
           ),
         ),
-        child: component.buildUI(
-          theme: theme,
-          componentState: component.state,
-          isSelected: isSelected,
-          onSelect: onSelect,
-          onCreateBelow: onCreateBelow,
-        ),
+        child: child,
       ),
     );
+  }
+
+  void _handleTap({
+    required VoidCallback onSelect,
+    required VoidCallback onSelectRange,
+    required bool isReadOnly,
+  }) {
+    if (HardwareKeyboard.instance.isShiftPressed) {
+      onSelectRange();
+      return;
+    }
+    if (isReadOnly) {
+      onSelect();
+      return;
+    }
+    if (_supportsTapToEdit) {
+      if (!isSelected) {
+        onSelect();
+        return;
+      }
+      if (!isFocused) {
+        requestFocus();
+        return;
+      }
+      return;
+    }
+    onSelect();
+  }
+
+  // Blocks mutation while still allowing selection/copy of the rendered text.
+  void _applyReadOnly(bool isReadOnly) {
+    final state = component.state;
+    if (state is TextComponentState) {
+      state.controller.readOnly = isReadOnly;
+    } else if (state is QuoteComponentState) {
+      state.quote.controller.readOnly = isReadOnly;
+      state.author.controller.readOnly = isReadOnly;
+    }
   }
 
   bool get isTextComponent => component.def.type == ComponentType.text;
@@ -59,6 +126,37 @@ class ComponentBox {
     } else if (state is LinkComponentState) {
       state.urlFocusNode.requestFocus();
     }
+  }
+
+  void clearFocus() {
+    final state = component.state;
+    state.isFocused = false;
+    if (state is TextComponentState) {
+      state.focusNode.unfocus();
+      _collapseSelection(state);
+    } else if (state is QuoteComponentState) {
+      _collapseSelection(state.quote);
+      _collapseSelection(state.author);
+    } else if (state is CodeBlockComponentState) {
+      state.focusNode.unfocus();
+    } else if (state is MathComponentState) {
+      state.focusNode.unfocus();
+    } else if (state is EmbedComponentState) {
+      state.focusNode.unfocus();
+    } else if (state is LinkComponentState) {
+      state.urlFocusNode.unfocus();
+    }
+  }
+
+  void _collapseSelection(TextComponentState state) {
+    final selection = state.controller.selection;
+    if (!selection.isValid || selection.isCollapsed) {
+      return;
+    }
+    state.controller.updateSelection(
+      TextSelection.collapsed(offset: selection.extentOffset),
+      ChangeSource.local,
+    );
   }
 
   void dispose() {

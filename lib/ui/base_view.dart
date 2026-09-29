@@ -1,5 +1,6 @@
 import 'package:booklet/ui/page_view/page_view.dart';
 import 'package:flutter/material.dart' hide PageView;
+import 'package:flutter/services.dart';
 import 'package:booklet/application/editor_controller.dart';
 import 'package:booklet/ui/base_vm.dart';
 import 'package:booklet/ui/components/component_box.dart';
@@ -19,6 +20,7 @@ class BaseView extends StatefulWidget {
 class BaseViewState extends State<BaseView> {
   final ScrollController _scrollController = ScrollController();
   final _optionsDockKey = GlobalKey<OptionsDockState>();
+  final FocusNode _pageFocusNode = FocusNode(debugLabel: 'page-shortcuts');
   double _navigationWidth = NavigationPanelView.defaultWidth;
   bool _isNavigationVisible = true;
 
@@ -30,7 +32,39 @@ class BaseViewState extends State<BaseView> {
   }
 
   void selectComponent(ComponentBox component) {
+    // Don't steal focus back to the page when this selection is the result
+    // of the component's own text field gaining focus (entering edit mode).
+    final claimPageFocus = !component.isFocused;
     setState(() => _viewModel.selectComponent(component));
+    if (claimPageFocus) {
+      _pageFocusNode.requestFocus();
+    }
+  }
+
+  void selectComponentRange(ComponentBox component) {
+    final claimPageFocus = !component.isFocused;
+    setState(() => _viewModel.selectComponentRange(component));
+    if (claimPageFocus) {
+      _pageFocusNode.requestFocus();
+    }
+  }
+
+  KeyEventResult _handlePageKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (!HardwareKeyboard.instance.isShiftPressed) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      setState(() => _viewModel.extendSelectionWithArrowKey(true));
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      setState(() => _viewModel.extendSelectionWithArrowKey(false));
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   void selectPage(NavigationNode node) {
@@ -132,6 +166,7 @@ May this day of your birth be auspicious!
   @override
   void dispose() {
     _scrollController.dispose();
+    _pageFocusNode.dispose();
     super.dispose();
   }
 
@@ -171,17 +206,22 @@ May this day of your birth be auspicious!
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: clearSelectionAndFocus,
-                  child: ColoredBox(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    child: SingleChildScrollView(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(90),
-                      child: PageView(
-                        editorTheme: widget.controller.editorTheme,
-                        page: widget.controller.selectedPage,
-                        onSelectComponent: selectComponent,
-                        onCreateEntryBelow: _createEntryBelow,
-                        onTapEmptySpace: clearSelectionAndFocus,
+                  child: Focus(
+                    focusNode: _pageFocusNode,
+                    onKeyEvent: _handlePageKeyEvent,
+                    child: ColoredBox(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(90),
+                        child: PageView(
+                          editorTheme: widget.controller.editorTheme,
+                          page: widget.controller.selectedPage,
+                          onSelectComponent: selectComponent,
+                          onSelectComponentRange: selectComponentRange,
+                          onCreateEntryBelow: _createEntryBelow,
+                          onTapEmptySpace: clearSelectionAndFocus,
+                        ),
                       ),
                     ),
                   ),
@@ -205,6 +245,7 @@ May this day of your birth be auspicious!
               onComponentDeleted: deleteSelectedComponent,
               hasSelection: _viewModel.selectedComponent != null,
               canTransformSelection: _viewModel.canTransformSelectedComponent,
+              isReadOnly: widget.controller.documentSettingsController.isReadOnly,
             ),
           ),
         ],

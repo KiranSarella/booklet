@@ -9,6 +9,7 @@ class PageView extends StatelessWidget {
     required this.editorTheme,
     required this.page,
     required this.onSelectComponent,
+    required this.onSelectComponentRange,
     required this.onCreateEntryBelow,
     required this.onTapEmptySpace,
   });
@@ -16,6 +17,7 @@ class PageView extends StatelessWidget {
   final PageSettingsController editorTheme;
   final PageContent? page;
   final ValueChanged<ComponentBox> onSelectComponent;
+  final ValueChanged<ComponentBox> onSelectComponentRange;
   final ValueChanged<int> onCreateEntryBelow;
   final VoidCallback onTapEmptySpace;
 
@@ -62,6 +64,8 @@ class PageView extends StatelessWidget {
                         theme: editorTheme,
                         onSelect: () =>
                             onSelectComponent(page!.components[index]),
+                        onSelectRange: () =>
+                            onSelectComponentRange(page!.components[index]),
                         onCreateBelow: () => onCreateEntryBelow(index),
                       ),
                     ),
