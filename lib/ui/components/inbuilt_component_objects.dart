@@ -28,7 +28,7 @@ class TitleComponent with TextComponentStateOwner implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
-      fontSize: fontSizePercent(290),
+      fontSize: fontSizePercent(310),
       fontWeight: FontWeight.w800,
       color: theme.headingColor,
       height: 1.4,
@@ -46,7 +46,8 @@ class TitleComponent with TextComponentStateOwner implements Component {
     );
   }
 
-  Attribute<dynamic> get alignment => Attribute.leftAlignment;
+  @override
+  Attribute<dynamic> get alignment => Attribute.centerAlignment;
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -161,7 +162,7 @@ class InlineHeadingComponent with TextComponentStateOwner implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
-      fontSize: fontSizePercent(117),
+      fontSize: fontSizePercent(100),
       fontWeight: FontWeight.w600,
       color: theme.headingColor,
     );
@@ -225,6 +226,7 @@ class SubtitleComponent with TextComponentStateOwner implements Component {
     );
   }
 
+  @override
   Attribute<dynamic> get alignment => Attribute.centerAlignment;
 
   EdgeInsets get editorPadding =>
@@ -269,7 +271,9 @@ class LabelComponent with TextComponentStateOwner implements Component {
     );
   }
 
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
+
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -314,7 +318,8 @@ class TextComponent with TextComponentStateOwner implements Component {
     );
   }
 
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -359,7 +364,9 @@ class DashedListComponent with TextComponentStateOwner implements Component {
     );
   }
 
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
+
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -403,8 +410,10 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
       placeholder: def.name,
     );
   }
+  
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -449,7 +458,8 @@ class ChecklistComponent with TextComponentStateOwner implements Component {
     );
   }
 
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -501,7 +511,8 @@ class FocusComponent with TextComponentStateOwner implements Component {
     );
   }
 
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -547,7 +558,9 @@ class BlockTextComponent with TextComponentStateOwner implements Component {
     );
   }
 
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
+
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12);
@@ -649,6 +662,7 @@ class QuoteComponent implements Component {
     );
   }
 
+  @override
   Attribute<dynamic> get alignment => Attribute.centerAlignment;
 
   EdgeInsets get editorPadding =>
@@ -693,7 +707,8 @@ class LocationComponent with TextComponentStateOwner implements Component {
     );
   }
 
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -737,7 +752,8 @@ class CaptionComponent with TextComponentStateOwner implements Component {
     );
   }
 
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -781,7 +797,8 @@ class FootnoteComponent with TextComponentStateOwner implements Component {
     );
   }
 
-  Attribute<dynamic> get alignment => Attribute.centerAlignment;
+  @override
+  Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);

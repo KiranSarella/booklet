@@ -16,19 +16,34 @@ abstract class ComponentState {
   void dispose();
 }
 
+
 mixin TextComponentStateOwner {
+  Attribute<dynamic> get alignment;
+
   List<dynamic>? _delta;
   TextComponentState? _state;
 
   TextComponentState get state =>
-      _state ??= TextComponentState(Attribute.leftAlignment, delta: _delta);
+      _state ??= TextComponentState(alignment, delta: _delta);
 
-  void initialize({List<dynamic>? delta}) {
-    _delta = delta;
-    if (delta != null && _state != null) {
-      _state!.controller.document = Document.fromJson(delta);
-    }
-  }
+  // void initialize({List<dynamic>? delta}) {
+  //   _delta = delta;
+  //   if (delta != null && _state != null) {
+  //     _state!.controller.document = Document.fromJson(delta);
+  //   }
+  // }
+
+void initialize({List<dynamic>? delta}) {
+  _delta = delta;
+  if (delta == null) return;
+
+  final textState =
+      _state ??= TextComponentState(alignment, delta: delta);
+  final controller = textState.controller;
+
+  controller.document = Document.fromJson(delta);
+  controller.formatText(0, controller.document.length, alignment);
+}
 
   Object get output => state.output;
 
@@ -36,6 +51,28 @@ mixin TextComponentStateOwner {
 
   void dispose() => state.dispose();
 }
+
+
+// mixin TextComponentStateOwner {
+//   List<dynamic>? _delta;
+//   TextComponentState? _state;
+
+//   TextComponentState get state =>
+//       _state ??= TextComponentState(Attribute.leftAlignment, delta: _delta);
+
+//   void initialize({List<dynamic>? delta}) {
+//     _delta = delta;
+//     if (delta != null && _state != null) {
+//       _state!.controller.document = Document.fromJson(delta);
+//     }
+//   }
+
+//   Object get output => state.output;
+
+//   List<dynamic> get textDelta => state.textDelta;
+
+//   void dispose() => state.dispose();
+// }
 
 class TextComponentState extends ComponentState {
   TextComponentState(Attribute<dynamic> alignment, {List<dynamic>? delta})
@@ -46,7 +83,14 @@ class TextComponentState extends ComponentState {
               document: Document.fromJson(delta),
               selection: const TextSelection.collapsed(offset: 0),
             ) {
-    controller.formatSelection(alignment);
+    // controller.formatSelection(alignment);
+     if (delta == null) {
+        controller.formatText(
+          0,
+          controller.document.length,
+          alignment,
+        );
+      }
   }
 
   final QuillController controller;
