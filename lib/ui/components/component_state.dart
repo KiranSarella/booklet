@@ -196,6 +196,17 @@ class QuoteComponentState extends ComponentState {
   final TextComponentState quote;
   final TextComponentState author;
 
+  // Relay focus to/from the quote and author fields so the component-level
+  // focus state (used for the select-then-edit flow) reflects either field.
+  @override
+  bool get isFocused => quote.isFocused || author.isFocused;
+
+  @override
+  set isFocused(bool value) {
+    quote.isFocused = value;
+    author.isFocused = value;
+  }
+
   @override
   Map<String, String> get output => {
     'quote': quote.output,

@@ -22,9 +22,15 @@ class ComponentBox {
 
   bool get isFocused => component.state.isFocused;
 
-  // Only simple rich-text based components support the select-then-edit
-  // two-tap flow; other components keep single-tap-to-select behavior.
-  bool get _supportsTapToEdit => component.state is TextComponentState;
+  // Any component with an editable focus target gets the select-then-edit
+  // two-tap flow; pure media pickers (image/video/audio) stay single-tap.
+  bool get _supportsTapToEdit =>
+      component.state is TextComponentState ||
+      component.state is QuoteComponentState ||
+      component.state is CodeBlockComponentState ||
+      component.state is MathComponentState ||
+      component.state is EmbedComponentState ||
+      component.state is LinkComponentState;
 
   Widget buildUI({
     required PageSettingsController theme,
@@ -117,6 +123,8 @@ class ComponentBox {
     final state = component.state;
     if (state is TextComponentState) {
       state.focusNode.requestFocus();
+    } else if (state is QuoteComponentState) {
+      state.quote.focusNode.requestFocus();
     } else if (state is CodeBlockComponentState) {
       state.focusNode.requestFocus();
     } else if (state is MathComponentState) {
@@ -135,6 +143,8 @@ class ComponentBox {
       state.focusNode.unfocus();
       _collapseSelection(state);
     } else if (state is QuoteComponentState) {
+      state.quote.focusNode.unfocus();
+      state.author.focusNode.unfocus();
       _collapseSelection(state.quote);
       _collapseSelection(state.author);
     } else if (state is CodeBlockComponentState) {

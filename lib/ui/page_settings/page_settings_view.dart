@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/page_settings/page_settings_vm.dart';
+import 'package:booklet/ui/_helpers/color_picker_dialog.dart';
 
 class PageSettingsDialog extends StatelessWidget {
   const PageSettingsDialog({super.key, required this.viewModel});
@@ -192,68 +193,12 @@ class _ThemeColorRow extends StatelessWidget {
   Future<void> _showColorPicker(BuildContext context) async {
     final selectedColor = await showDialog<Color>(
       context: context,
-      builder: (context) => _ColorPickerDialog(initialColor: color),
+      builder: (context) => ColorPickerDialog(initialColor: color),
     );
     if (selectedColor != null) {
       onChanged(selectedColor);
     }
   }
 
-  String _colorValue(Color color) {
-    return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
-  }
-}
 
-class _ColorPickerDialog extends StatelessWidget {
-  const _ColorPickerDialog({required this.initialColor});
-
-  final Color initialColor;
-
-  static const _colors = [
-    Colors.black,
-    Colors.white,
-    Colors.red,
-    Colors.pink,
-    Colors.orange,
-    Colors.amber,
-    Colors.yellow,
-    Colors.lime,
-    Colors.green,
-    Colors.teal,
-    Colors.cyan,
-    Colors.lightBlue,
-    Colors.blue,
-    Colors.indigo,
-    Colors.purple,
-    Colors.deepPurple,
-    Color(0xFF263238),
-    Color(0xFF455A64),
-    Color(0xFF795548),
-    Color(0xFF607D8B),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Choose color'),
-      content: Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          for (final color in _colors)
-            InkWell(
-              onTap: () => Navigator.of(context).pop(color),
-              borderRadius: BorderRadius.circular(20),
-              child: CircleAvatar(
-                radius: 17,
-                backgroundColor: color,
-                child: color.toARGB32() == initialColor.toARGB32()
-                    ? const Icon(Icons.check, color: Colors.white, size: 18)
-                    : null,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
