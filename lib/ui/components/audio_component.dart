@@ -318,11 +318,11 @@ class _AudioComponentViewState extends State<AudioComponentView> {
                 },
               ),
             ),
-            IconButton(
-              tooltip: 'Choose another audio file',
-              onPressed: _chooseAudio,
-              icon: const Icon(Icons.folder_open),
-            ),
+            // IconButton(
+            //   tooltip: 'Choose another audio file',
+            //   onPressed: _chooseAudio,
+            //   icon: const Icon(Icons.folder_open),
+            // ),
           ],
         );
       },
