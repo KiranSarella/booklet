@@ -8,6 +8,8 @@ import 'package:video_player/video_player.dart';
 
 enum _AssetLayout { list, icons }
 
+enum _AssetAction { rename, delete, preview }
+
 class AssetManagerView extends StatefulWidget {
   const AssetManagerView({super.key, required this.controller});
 
@@ -56,13 +58,69 @@ class _AssetManagerViewState extends State<AssetManagerView> {
     }
   }
 
+  Future<void> _renameSelectedAsset() async {
+    final asset = widget.controller.selectedAsset;
+    if (asset == null) return;
+    final extension = asset.extension;
+    final baseName = extension.isEmpty
+        ? asset.name
+        : asset.name.substring(0, asset.name.length - extension.length - 1);
+    final newBaseName = await showDialog<String>(
+      context: context,
+      builder: (context) =>
+          _RenameAssetDialog(baseName: baseName, extension: extension),
+    );
+    if (newBaseName == null || newBaseName.trim().isEmpty) return;
+    try {
+      widget.controller.renameSelectedAsset(newBaseName);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not rename asset: $error')));
+    }
+  }
+
+  Future<void> _deleteSelectedAsset() async {
+    try {
+      await widget.controller.deleteSelectedAsset();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not delete asset: $error')));
+    }
+  }
+
+  void _runAssetAction(_AssetAction action) {
+    final asset = widget.controller.selectedAsset;
+    if (asset == null) return;
+    switch (action) {
+      case _AssetAction.rename:
+        _renameSelectedAsset();
+      case _AssetAction.delete:
+        _deleteSelectedAsset();
+      case _AssetAction.preview:
+        _openAsset(asset);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, _) {
         final folder = widget.controller.folder;
-        final assets = widget.controller.assets;
+        final selectedAsset = widget.controller.selectedAsset;
+        final assets = widget.controller.assets.toList()
+          ..sort((left, right) {
+            final byLowercaseName = left.name.toLowerCase().compareTo(
+              right.name.toLowerCase(),
+            );
+            return byLowercaseName != 0
+                ? byLowercaseName
+                : left.name.compareTo(right.name);
+          });
         final colors = Theme.of(context).colorScheme;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -110,6 +168,37 @@ class _AssetManagerViewState extends State<AssetManagerView> {
                         : const Icon(Icons.add),
                     label: const Text('Add asset'),
                   ),
+                  PopupMenuButton<_AssetAction>(
+                    enabled: selectedAsset != null,
+                    tooltip: 'More asset options',
+                    onSelected: _runAssetAction,
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: _AssetAction.rename,
+                        child: ListTile(
+                          leading: Icon(Icons.edit_outlined),
+                          title: Text('Rename'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: _AssetAction.delete,
+                        child: ListTile(
+                          leading: Icon(Icons.delete_outline),
+                          title: Text('Delete'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: _AssetAction.preview,
+                        child: ListTile(
+                          leading: Icon(Icons.open_in_full),
+                          title: Text('Preview'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -129,7 +218,10 @@ class _AssetManagerViewState extends State<AssetManagerView> {
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, index) => _AssetListTile(
                         asset: assets[index],
-                        onTap: () => _openAsset(assets[index]),
+                        isSelected: selectedAsset?.id == assets[index].id,
+                        onTap: () =>
+                            widget.controller.selectAsset(assets[index]),
+                        onDoubleTap: () => _openAsset(assets[index]),
                       ),
                     )
                   : GridView.builder(
@@ -144,7 +236,10 @@ class _AssetManagerViewState extends State<AssetManagerView> {
                       itemCount: assets.length,
                       itemBuilder: (context, index) => _AssetIconTile(
                         asset: assets[index],
-                        onTap: () => _openAsset(assets[index]),
+                        isSelected: selectedAsset?.id == assets[index].id,
+                        onTap: () =>
+                            widget.controller.selectAsset(assets[index]),
+                        onDoubleTap: () => _openAsset(assets[index]),
                       ),
                     ),
             ),
@@ -155,36 +250,137 @@ class _AssetManagerViewState extends State<AssetManagerView> {
   }
 }
 
-class _AssetListTile extends StatelessWidget {
-  const _AssetListTile({required this.asset, required this.onTap});
+class _RenameAssetDialog extends StatefulWidget {
+  const _RenameAssetDialog({required this.baseName, required this.extension});
 
-  final BookletAsset asset;
-  final VoidCallback onTap;
+  final String baseName;
+  final String extension;
+
+  @override
+  State<_RenameAssetDialog> createState() => _RenameAssetDialogState();
+}
+
+class _RenameAssetDialogState extends State<_RenameAssetDialog> {
+  late final TextEditingController _textController = TextEditingController(
+    text: widget.baseName,
+  );
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: _AssetIcon(asset: asset, size: 24),
-      title: Text(asset.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(asset.extension.isEmpty ? 'File' : asset.extension),
-      onTap: onTap,
+    return AlertDialog(
+      title: const Text('Rename asset'),
+      content: TextField(
+        autofocus: true,
+        controller: _textController,
+        decoration: InputDecoration(
+          labelText: 'File name',
+          suffixText: widget.extension.isEmpty ? null : '.${widget.extension}',
+        ),
+        onSubmitted: (value) => Navigator.of(context).pop(value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_textController.text),
+          child: const Text('Rename'),
+        ),
+      ],
+    );
+  }
+}
+
+class _AssetListTile extends StatelessWidget {
+  const _AssetListTile({
+    required this.asset,
+    required this.isSelected,
+    required this.onTap,
+    required this.onDoubleTap,
+  });
+
+  final BookletAsset asset;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback onDoubleTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: isSelected ? colors.secondaryContainer : null,
+      child: InkWell(
+        onTap: onTap,
+        onDoubleTap: onDoubleTap,
+        child: SizedBox(
+          height: 60,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                _AssetIcon(asset: asset, size: 24),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        asset.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        asset.extension.isEmpty ? 'File' : asset.extension,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _AssetIconTile extends StatelessWidget {
-  const _AssetIconTile({required this.asset, required this.onTap});
+  const _AssetIconTile({
+    required this.asset,
+    required this.isSelected,
+    required this.onTap,
+    required this.onDoubleTap,
+  });
 
   final BookletAsset asset;
+  final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback onDoubleTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
+      onDoubleTap: onDoubleTap,
       borderRadius: BorderRadius.circular(6),
-      child: Padding(
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected ? colors.secondaryContainer : null,
+          border: Border.all(
+            color: isSelected ? colors.primary : Colors.transparent,
+          ),
+          borderRadius: BorderRadius.circular(6),
+        ),
         padding: const EdgeInsets.all(8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
