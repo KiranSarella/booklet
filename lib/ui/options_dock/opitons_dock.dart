@@ -99,7 +99,7 @@ class OptionsDockState extends State<OptionsDock> {
                       : null,
                   enabled: widget.canTransformSelection,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 80),
                 _DockButton(
                   icon: Icons.copy_outlined,
                   color: Colors.teal,
@@ -125,7 +125,7 @@ class OptionsDockState extends State<OptionsDock> {
                       : null,
                   enabled: widget.canPaste,
                 ),
-                const SizedBox(height: 80),
+                const SizedBox(height: 20),
                 _DockButton(
                   icon: Icons.delete_outline,
                   color: Colors.red,
@@ -139,13 +139,13 @@ class OptionsDockState extends State<OptionsDock> {
                   enabled: widget.hasSelection,
                 ),
                 const SizedBox(height: 80),
-                _DockButton(
-                  icon: Icons.more_horiz,
-                  color: Colors.black87,
-                  tooltip: 'More options',
-                  onPressed: dismissMenu,
-                  height: 36,
-                ),
+                // _DockButton(
+                //   icon: Icons.more_horiz,
+                //   color: Colors.black87,
+                //   tooltip: 'More options',
+                //   onPressed: dismissMenu,
+                //   height: 36,
+                // ),
               ],
               const SizedBox(height: 20),
               _DockButton(
