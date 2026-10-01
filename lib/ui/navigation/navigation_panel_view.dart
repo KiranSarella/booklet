@@ -14,9 +14,8 @@ class NavigationPanelView extends StatefulWidget {
     required this.onCreateGroup,
     required this.onAddPageBelow,
     required this.onAddChildPage,
-    required this.onAddPageAbove,
-    required this.onRenamePage,
-    required this.onDeletePage,
+    required this.onRenameNode,
+    required this.onDeleteNode,
     required this.onChanged,
   });
 
@@ -30,9 +29,8 @@ class NavigationPanelView extends StatefulWidget {
   final VoidCallback onCreateGroup;
   final VoidCallback onAddPageBelow;
   final VoidCallback onAddChildPage;
-  final VoidCallback onAddPageAbove;
-  final ValueChanged<String> onRenamePage;
-  final VoidCallback onDeletePage;
+  final ValueChanged<String> onRenameNode;
+  final VoidCallback onDeleteNode;
   final VoidCallback onChanged;
 
   @override
@@ -50,7 +48,7 @@ class _NavigationPanelViewState extends State<NavigationPanelView> {
   }
 
   void _finishEditing(String title) {
-    widget.onRenamePage(title);
+    widget.onRenameNode(title);
     setState(() => _editingNode = null);
   }
 
@@ -72,15 +70,18 @@ class _NavigationPanelViewState extends State<NavigationPanelView> {
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                   ),
                 ),
-                NavigationMenu(
+                NavigationAddMenu(
                   onCreateGroup: widget.onCreateGroup,
                   onAddPageBelow: widget.onAddPageBelow,
                   onAddChildPage: widget.onAddChildPage,
-                  onAddPageAbove: widget.onAddPageAbove,
+                  onChanged: widget.onChanged,
+                ),
+                NavigationMoreMenu(
+                  hasSelection: widget.controller.selectedNode != null,
                   onRename: _startEditing,
                   onDelete: () {
                     _editingNode = null;
-                    widget.onDeletePage();
+                    widget.onDeleteNode();
                   },
                   onChanged: widget.onChanged,
                 ),

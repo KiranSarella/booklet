@@ -1,52 +1,40 @@
 import 'package:flutter/material.dart';
 
-class NavigationMenu extends StatelessWidget {
-  const NavigationMenu({
+class NavigationAddMenu extends StatelessWidget {
+  const NavigationAddMenu({
     super.key,
     required this.onCreateGroup,
     required this.onAddPageBelow,
     required this.onAddChildPage,
-    required this.onAddPageAbove,
-    required this.onRename,
-    required this.onDelete,
     required this.onChanged,
   });
 
   final VoidCallback onCreateGroup;
   final VoidCallback onAddPageBelow;
   final VoidCallback onAddChildPage;
-  final VoidCallback onAddPageAbove;
-  final VoidCallback onRename;
-  final VoidCallback onDelete;
   final VoidCallback onChanged;
 
-  void _runAction(NavigationAction action) {
+  void _runAction(NavigationAddAction action) {
     switch (action) {
-      case NavigationAction.createGroup:
+      case NavigationAddAction.createGroup:
         onCreateGroup();
-      case NavigationAction.addBelow:
+      case NavigationAddAction.addBelow:
         onAddPageBelow();
-      case NavigationAction.addChild:
+      case NavigationAddAction.addChild:
         onAddChildPage();
-      case NavigationAction.addAbove:
-        onAddPageAbove();
-      case NavigationAction.rename:
-        onRename();
-      case NavigationAction.delete:
-        onDelete();
     }
     onChanged();
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<NavigationAction>(
-      tooltip: 'Navigation actions',
+    return PopupMenuButton<NavigationAddAction>(
+      tooltip: 'Add to navigation',
       icon: const Icon(Icons.add, size: 20),
       onSelected: _runAction,
       itemBuilder: (context) => const [
         PopupMenuItem(
-          value: NavigationAction.createGroup,
+          value: NavigationAddAction.createGroup,
           child: ListTile(
             leading: Icon(Icons.view_list_outlined),
             title: Text('Create group'),
@@ -54,7 +42,7 @@ class NavigationMenu extends StatelessWidget {
           ),
         ),
         PopupMenuItem(
-          value: NavigationAction.addBelow,
+          value: NavigationAddAction.addBelow,
           child: ListTile(
             leading: Icon(Icons.note_add_outlined),
             title: Text('Add page below'),
@@ -62,34 +50,10 @@ class NavigationMenu extends StatelessWidget {
           ),
         ),
         PopupMenuItem(
-          value: NavigationAction.addChild,
+          value: NavigationAddAction.addChild,
           child: ListTile(
             leading: Icon(Icons.account_tree_outlined),
             title: Text('Add child page'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem(
-          value: NavigationAction.addAbove,
-          child: ListTile(
-            leading: Icon(Icons.note_add_outlined),
-            title: Text('Add page above'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem(
-          value: NavigationAction.rename,
-          child: ListTile(
-            leading: Icon(Icons.edit_outlined),
-            title: Text('Rename item'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem(
-          value: NavigationAction.delete,
-          child: ListTile(
-            leading: Icon(Icons.delete_outline),
-            title: Text('Delete page'),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -98,11 +62,59 @@ class NavigationMenu extends StatelessWidget {
   }
 }
 
-enum NavigationAction {
-  createGroup,
-  addBelow,
-  addChild,
-  addAbove,
-  rename,
-  delete,
+class NavigationMoreMenu extends StatelessWidget {
+  const NavigationMoreMenu({
+    super.key,
+    required this.hasSelection,
+    required this.onRename,
+    required this.onDelete,
+    required this.onChanged,
+  });
+
+  final bool hasSelection;
+  final VoidCallback onRename;
+  final VoidCallback onDelete;
+  final VoidCallback onChanged;
+
+  void _runAction(NavigationMoreAction action) {
+    switch (action) {
+      case NavigationMoreAction.rename:
+        onRename();
+      case NavigationMoreAction.delete:
+        onDelete();
+    }
+    onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<NavigationMoreAction>(
+      enabled: hasSelection,
+      tooltip: 'More navigation options',
+      icon: const Icon(Icons.more_vert, size: 20),
+      onSelected: _runAction,
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: NavigationMoreAction.rename,
+          child: ListTile(
+            leading: Icon(Icons.edit_outlined),
+            title: Text('Rename'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: NavigationMoreAction.delete,
+          child: ListTile(
+            leading: Icon(Icons.delete_outline),
+            title: Text('Delete'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
+    );
+  }
 }
+
+enum NavigationAddAction { createGroup, addBelow, addChild }
+
+enum NavigationMoreAction { rename, delete }

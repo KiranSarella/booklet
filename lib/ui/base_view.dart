@@ -193,11 +193,9 @@ May this day of your birth be auspicious!
                       setState(_viewModel.addPageBelowSelected),
                   onAddChildPage: () =>
                       setState(_viewModel.addChildPageSelected),
-                  onAddPageAbove: () =>
-                      setState(_viewModel.addPageAboveSelected),
-                  onRenamePage: (title) =>
-                      setState(() => _viewModel.renameSelectedPage(title)),
-                  onDeletePage: () => setState(_viewModel.deleteSelectedPage),
+                  onRenameNode: (title) =>
+                      setState(() => _viewModel.renameSelectedNode(title)),
+                  onDeleteNode: () => setState(_viewModel.deleteSelectedNode),
                   onChanged: () => setState(() {}),
                 ),
                 _NavigationResizeHandle(onDragUpdate: _resizeNavigation),

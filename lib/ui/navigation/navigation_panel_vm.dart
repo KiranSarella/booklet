@@ -51,20 +51,70 @@ class NavigationPanelVM {
     return node;
   }
 
-  NavigationNode? deletePage(String pageId) {
-    final page = _findNode((node) => node.pageId == pageId);
-    if (page == null || page.isGroup) {
+  NavigationNode? deleteNode(NavigationNode node) {
+    if (_findNode((candidate) => candidate == node) == null) {
       return null;
     }
 
-    final siblings = _siblingsOf(page);
-    final index = siblings.indexOf(page);
+    final siblings = _siblingsOf(node);
+    final index = siblings.indexOf(node);
+    final removedPageIds = <String>{};
+    _collectPageIds(node, removedPageIds);
     siblings.removeAt(index);
-    selectedNode = siblings.isEmpty
-        ? null
-        : siblings[index.clamp(0, siblings.length - 1)];
-    selectedPageId = selectedNode?.pageId;
-    return page;
+    if (selectedNode == node || removedPageIds.contains(selectedPageId)) {
+      final selectedPage = selectedPageId == null
+          ? null
+          : _findNode((candidate) => candidate.pageId == selectedPageId);
+      selectedNode =
+          selectedPage ??
+          _pageNear(siblings, index) ??
+          _findNode((candidate) => candidate.isPage);
+      selectedPageId = selectedNode?.pageId;
+    }
+    return node;
+  }
+
+  void _collectPageIds(NavigationNode node, Set<String> pageIds) {
+    final pageId = node.pageId;
+    if (pageId != null) {
+      pageIds.add(pageId);
+    }
+    for (final child in node.children) {
+      _collectPageIds(child, pageIds);
+    }
+  }
+
+  NavigationNode? _pageNear(List<NavigationNode> siblings, int index) {
+    for (
+      var siblingIndex = index;
+      siblingIndex < siblings.length;
+      siblingIndex++
+    ) {
+      final page = _firstPageIn(siblings[siblingIndex]);
+      if (page != null) {
+        return page;
+      }
+    }
+    for (var siblingIndex = index - 1; siblingIndex >= 0; siblingIndex--) {
+      final page = _firstPageIn(siblings[siblingIndex]);
+      if (page != null) {
+        return page;
+      }
+    }
+    return null;
+  }
+
+  NavigationNode? _firstPageIn(NavigationNode node) {
+    if (node.isPage) {
+      return node;
+    }
+    for (final child in node.children) {
+      final page = _firstPageIn(child);
+      if (page != null) {
+        return page;
+      }
+    }
+    return null;
   }
 
   NavigationNode addPage({

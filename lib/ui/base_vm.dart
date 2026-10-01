@@ -117,11 +117,7 @@ class BaseVM {
     _addPage(PagePlacement.child);
   }
 
-  void addPageAboveSelected() {
-    _addPage(PagePlacement.above);
-  }
-
-  void renameSelectedPage(String title) {
+  void renameSelectedNode(String title) {
     final selectedNode = navigation.selectedNode;
     if (selectedNode == null) {
       return;
@@ -133,18 +129,41 @@ class BaseVM {
     }
   }
 
-  void deleteSelectedPage() {
+  void deleteSelectedNode() {
     final selectedNode = navigation.selectedNode;
-    final pageId = selectedNode?.pageId;
-    if (selectedNode == null || selectedNode.isGroup || pageId == null) {
+    if (selectedNode == null) {
       return;
     }
-    final page = navigation.deletePage(pageId);
-    if (page == null) {
+    final selectedPageId = navigation.selectedPageId;
+    final selectedPageWasDeleted = _containsPage(selectedNode, selectedPageId);
+    final removedNode = navigation.deleteNode(selectedNode);
+    if (removedNode == null) {
       return;
     }
-    clearSelectedComponent();
-    _pagesById.remove(pageId)?.dispose();
+    _disposePages(removedNode);
+    if (selectedPageWasDeleted) {
+      clearSelectedComponent();
+    }
+  }
+
+  bool _containsPage(NavigationNode node, String? pageId) {
+    if (pageId == null) {
+      return false;
+    }
+    if (node.pageId == pageId) {
+      return true;
+    }
+    return node.children.any((child) => _containsPage(child, pageId));
+  }
+
+  void _disposePages(NavigationNode node) {
+    final pageId = node.pageId;
+    if (pageId != null) {
+      _pagesById.remove(pageId)?.dispose();
+    }
+    for (final child in node.children) {
+      _disposePages(child);
+    }
   }
 
   void _addPage(PagePlacement placement) {
