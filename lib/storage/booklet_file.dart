@@ -134,6 +134,307 @@ class BookletFile {
     }
   }
 
+  static Future<Map<String, dynamic>> exportNavigationSubtree({
+    required String? packagePath,
+    required NavigationNode node,
+    required Iterable<PageContent> loadedPages,
+    required PageSettingsController theme,
+  }) async {
+    final temporaryPackage = await Directory.systemTemp.createTemp(
+      'booklet_navigation_copy',
+    );
+    final loadedPagesById = {for (final page in loadedPages) page.id: page};
+    final pages = <String, dynamic>{};
+    final resources = <String, String>{};
+
+    try {
+      for (final pageNode in _pageNodes(node)) {
+        final pageId = pageNode.pageId!;
+        final loadedPage = loadedPagesById[pageId];
+        if (loadedPage != null) {
+          await _savePagePreservingMediaPaths(
+            temporaryPackage.path,
+            loadedPage,
+          );
+        } else if (packagePath != null) {
+          final page = await loadPage(packagePath, pageId, theme);
+          try {
+            await _savePagePreservingMediaPaths(temporaryPackage.path, page);
+          } finally {
+            page.dispose();
+          }
+        } else {
+          await _ensurePackageDirectories(temporaryPackage.path);
+          await File('${temporaryPackage.path}/$_pagesDirectory/$pageId.json')
+              .writeAsString(
+                jsonEncode({
+                  'id': pageId,
+                  'title': pageNode.title,
+                  'components': [],
+                }),
+              );
+        }
+
+        final pageFile = File(
+          '${temporaryPackage.path}/$_pagesDirectory/$pageId.json',
+        );
+        pages[pageId] = jsonDecode(await pageFile.readAsString());
+      }
+
+      final mediaDirectory = Directory(
+        '${temporaryPackage.path}/$_mediaDirectory',
+      );
+      if (await mediaDirectory.exists()) {
+        await for (final entity in mediaDirectory.list(recursive: true)) {
+          if (entity is File) {
+            final relativePath = entity.path
+                .substring(temporaryPackage.path.length + 1)
+                .replaceAll('\\', '/');
+            resources[relativePath] = base64Encode(await entity.readAsBytes());
+          }
+        }
+      }
+
+      final assetFiles = <String, String>{};
+      for (final folder in _assetFolderNodes(node)) {
+        for (final asset in folder.assets) {
+          final sourcePath = File(asset.path).isAbsolute || packagePath == null
+              ? asset.path
+              : '$packagePath/${asset.path}';
+          final sourceFile = File(sourcePath);
+          if (await sourceFile.exists()) {
+            assetFiles['${folder.folderId}/${asset.id}'] = base64Encode(
+              await sourceFile.readAsBytes(),
+            );
+          }
+        }
+      }
+
+      return {
+        'node': node.toJson(),
+        'pages': pages,
+        'resources': resources,
+        'assetFiles': assetFiles,
+      };
+    } finally {
+      await temporaryPackage.delete(recursive: true);
+    }
+  }
+
+  static Future<String> importNavigationSubtree({
+    required String packagePath,
+    required NavigationNode sourceNode,
+    required NavigationNode copiedNode,
+    required Map<String, dynamic> bundle,
+    required bool useAbsoluteAssetPaths,
+  }) async {
+    await _ensurePackageDirectories(packagePath);
+    final pages = Map<String, dynamic>.from(
+      bundle['pages'] as Map? ?? const {},
+    );
+    final resources = Map<String, dynamic>.from(
+      bundle['resources'] as Map? ?? const {},
+    );
+    final assetFiles = Map<String, dynamic>.from(
+      bundle['assetFiles'] as Map? ?? const {},
+    );
+    final pageIds = <String, String>{};
+    _pairNavigationNodes(
+      sourceNode,
+      copiedNode,
+      pageIds,
+      assetFiles,
+      packagePath,
+      useAbsoluteAssetPaths,
+    );
+
+    for (final entry in pageIds.entries) {
+      final rawPage = pages[entry.key];
+      if (rawPage is! Map) {
+        continue;
+      }
+      final page = Map<String, dynamic>.from(rawPage);
+      page['id'] = entry.value;
+      final copiedPageNode = _findPageNode(copiedNode, entry.value);
+      if (copiedPageNode != null) {
+        page['title'] = copiedPageNode.title;
+      }
+      final components = page['components'];
+      if (components is List) {
+        for (final rawComponent in components.whereType<Map>()) {
+          final component = Map<String, dynamic>.from(rawComponent);
+          component['id'] = const Uuid().v4();
+          final mediaPath = component['mediaPath'];
+          final encodedMedia = mediaPath is String
+              ? resources[mediaPath]
+              : null;
+          if (mediaPath is String && encodedMedia is String) {
+            final extension = _mediaExtension(mediaPath) ?? 'bin';
+            final targetRelativePath =
+                '$_mediaDirectory/${const Uuid().v4()}.$extension';
+            final targetFile = File('$packagePath/$targetRelativePath');
+            await targetFile.parent.create(recursive: true);
+            await targetFile.writeAsBytes(base64Decode(encodedMedia));
+            component['mediaPath'] = targetRelativePath;
+          }
+          components[components.indexOf(rawComponent)] = component;
+        }
+      }
+      await File('$packagePath/$_pagesDirectory/${entry.value}.json')
+          .writeAsString(const JsonEncoder.withIndent('  ').convert(page));
+    }
+    return packagePath;
+  }
+
+  static Future<void> copyStagedNavigationPages(
+    String targetPackagePath,
+    String stagedPackagePath,
+    NavigationNode subtree,
+  ) async {
+    for (final pageNode in _pageNodes(subtree)) {
+      final sourceFile = File(
+        '$stagedPackagePath/$_pagesDirectory/${pageNode.pageId}.json',
+      );
+      if (await sourceFile.exists()) {
+        await sourceFile.copy(
+          '$targetPackagePath/$_pagesDirectory/${pageNode.pageId}.json',
+        );
+      }
+    }
+    final sourceMedia = Directory('$stagedPackagePath/$_mediaDirectory');
+    if (await sourceMedia.exists()) {
+      await for (final entity in sourceMedia.list(recursive: true)) {
+        if (entity is File) {
+          final relativePath = entity.path.substring(
+            stagedPackagePath.length + 1,
+          );
+          final targetFile = File('$targetPackagePath/$relativePath');
+          await targetFile.parent.create(recursive: true);
+          await entity.copy(targetFile.path);
+        }
+      }
+    }
+  }
+
+  static Future<void> _savePagePreservingMediaPaths(
+    String packagePath,
+    PageContent page,
+  ) async {
+    final originalPaths = <Object, String?>{};
+    for (final box in page.components) {
+      final state = box.component.state;
+      if (state is ImageComponentState ||
+          state is VideoComponentState ||
+          state is AudioComponentState) {
+        originalPaths[state] = _mediaPathOf(state);
+      }
+    }
+    try {
+      await savePage(packagePath, page);
+    } finally {
+      for (final box in page.components) {
+        final state = box.component.state;
+        if (state is ImageComponentState ||
+            state is VideoComponentState ||
+            state is AudioComponentState) {
+          _setMediaPath(state, originalPaths[state]);
+        }
+      }
+    }
+  }
+
+  static String? _mediaPathOf(Object state) => switch (state) {
+    ImageComponentState value => value.mediaPath,
+    VideoComponentState value => value.mediaPath,
+    AudioComponentState value => value.mediaPath,
+    _ => null,
+  };
+
+  static void _setMediaPath(Object state, String? path) {
+    if (state is ImageComponentState) {
+      state.mediaPath = path;
+    } else if (state is VideoComponentState) {
+      state.mediaPath = path;
+    } else if (state is AudioComponentState) {
+      state.mediaPath = path;
+    }
+  }
+
+  static Iterable<NavigationNode> _pageNodes(NavigationNode node) sync* {
+    if (node.isPage) {
+      yield node;
+    }
+    for (final child in node.children) {
+      yield* _pageNodes(child);
+    }
+  }
+
+  static Iterable<NavigationNode> _assetFolderNodes(NavigationNode node) sync* {
+    if (node.isAssetsFolder) {
+      yield node;
+    }
+    for (final child in node.children) {
+      yield* _assetFolderNodes(child);
+    }
+  }
+
+  static void _pairNavigationNodes(
+    NavigationNode source,
+    NavigationNode copied,
+    Map<String, String> pageIds,
+    Map<String, dynamic> assetFiles,
+    String packagePath,
+    bool useAbsoluteAssetPaths,
+  ) {
+    if (source.pageId != null && copied.pageId != null) {
+      pageIds[source.pageId!] = copied.pageId!;
+    }
+    if (source.isAssetsFolder && copied.isAssetsFolder) {
+      for (var index = 0; index < copied.assets.length; index++) {
+        final asset = copied.assets[index];
+        final sourceAsset = source.assets[index];
+        final key = '${source.folderId}/${sourceAsset.id}';
+        final encodedAsset = assetFiles[key];
+        if (encodedAsset is String) {
+          final relativePath =
+              'assets/${copied.folderId}/${asset.id}${_assetExtension(asset.name)}';
+          final targetPath = '$packagePath/$relativePath';
+          final targetFile = File(targetPath);
+          targetFile.parent.createSync(recursive: true);
+          targetFile.writeAsBytesSync(base64Decode(encodedAsset));
+          copied.assets[index] = BookletAsset(
+            id: asset.id,
+            name: asset.name,
+            path: useAbsoluteAssetPaths ? targetPath : relativePath,
+          );
+        }
+      }
+    }
+    for (var index = 0; index < source.children.length; index++) {
+      _pairNavigationNodes(
+        source.children[index],
+        copied.children[index],
+        pageIds,
+        assetFiles,
+        packagePath,
+        useAbsoluteAssetPaths,
+      );
+    }
+  }
+
+  static NavigationNode? _findPageNode(NavigationNode node, String pageId) {
+    if (node.pageId == pageId) {
+      return node;
+    }
+    for (final child in node.children) {
+      final result = _findPageNode(child, pageId);
+      if (result != null) {
+        return result;
+      }
+    }
+    return null;
+  }
+
   static Future<PageContent> loadPage(
     String packagePath,
     String pageId,

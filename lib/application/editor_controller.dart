@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:booklet/application/asset_manager_controller.dart';
 import 'package:booklet/application/component_clipboard_controller.dart';
+import 'package:booklet/application/navigation_clipboard_controller.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/base_vm.dart';
@@ -24,6 +26,10 @@ class EditorController extends ChangeNotifier {
   // components survive page switches and opening a different booklet.
   final ComponentClipboardController clipboardController =
       ComponentClipboardController();
+  final NavigationClipboardController navigationClipboardController =
+      NavigationClipboardController();
+  final Map<String, String> _navigationPageSources = {};
+  final Map<String, NavigationNode> _stagedNavigationSubtrees = {};
   bool isLoadingPage = false;
   String? _documentPath;
   int _selectionRequest = 0;
@@ -53,6 +59,116 @@ class EditorController extends ChangeNotifier {
       notifyListeners();
     }
     return pasted;
+  }
+
+  Future<void> copySelectedNavigationNode() async {
+    final node = viewModel.navigation.selectedNode;
+    if (node == null) {
+      return;
+    }
+    final bundle = await BookletFile.exportNavigationSubtree(
+      packagePath: _documentPath,
+      node: node,
+      loadedPages: viewModel.loadedPages,
+      theme: editorTheme,
+    );
+    await navigationClipboardController.copy(bundle);
+  }
+
+  Future<void> duplicateSelectedNavigationNode() async {
+    if (documentSettingsController.isReadOnly) {
+      return;
+    }
+    final source = viewModel.navigation.selectedNode;
+    if (source == null) {
+      return;
+    }
+    final bundle = await BookletFile.exportNavigationSubtree(
+      packagePath: _documentPath,
+      node: source,
+      loadedPages: viewModel.loadedPages,
+      theme: editorTheme,
+    );
+    final sourceNode = NavigationNode.fromJson(
+      Map<String, dynamic>.from(bundle['node'] as Map),
+    );
+    final duplicate = viewModel.navigation.duplicateNode(source);
+    if (duplicate == null) {
+      return;
+    }
+    await _importNavigationNode(bundle, sourceNode, duplicate);
+    await _activateCopiedNode(duplicate);
+  }
+
+  Future<void> pasteSelectedNavigationNode() async {
+    if (documentSettingsController.isReadOnly) {
+      return;
+    }
+    final bundle = await navigationClipboardController.paste();
+    final rawNode = bundle?['node'];
+    if (bundle == null || rawNode is! Map) {
+      return;
+    }
+    final sourceNode = NavigationNode.fromJson(
+      Map<String, dynamic>.from(rawNode),
+    );
+    final copiedNode = viewModel.navigation.pasteNode(sourceNode);
+    if (copiedNode == null) {
+      return;
+    }
+    await _importNavigationNode(bundle, sourceNode, copiedNode);
+    await _activateCopiedNode(copiedNode);
+  }
+
+  Future<void> _importNavigationNode(
+    Map<String, dynamic> bundle,
+    NavigationNode sourceNode,
+    NavigationNode copiedNode,
+  ) async {
+    final packagePath = _documentPath;
+    if (packagePath != null) {
+      await BookletFile.importNavigationSubtree(
+        packagePath: packagePath,
+        sourceNode: sourceNode,
+        copiedNode: copiedNode,
+        bundle: bundle,
+        useAbsoluteAssetPaths: false,
+      );
+    } else {
+      final stagedPackage = await Directory.systemTemp.createTemp(
+        'booklet_navigation_paste',
+      );
+      await BookletFile.importNavigationSubtree(
+        packagePath: stagedPackage.path,
+        sourceNode: sourceNode,
+        copiedNode: copiedNode,
+        bundle: bundle,
+        useAbsoluteAssetPaths: true,
+      );
+      _stagedNavigationSubtrees[stagedPackage.path] = copiedNode;
+      for (final pageNode in _pageNodes(copiedNode)) {
+        _navigationPageSources[pageNode.pageId!] = stagedPackage.path;
+      }
+    }
+  }
+
+  Future<void> _activateCopiedNode(NavigationNode node) async {
+    if (node.isPage && node.pageId != null) {
+      await selectPage(node.pageId!);
+    } else if (node.isAssetsFolder) {
+      selectNode(node);
+    } else {
+      notifyListeners();
+    }
+  }
+
+  Iterable<NavigationNode> _pageNodes(NavigationNode node) sync* {
+    if (node.isPage) {
+      yield node;
+    }
+    for (final child in node.children) {
+      yield* _pageNodes(child);
+    }
   }
 
   bool get hasOpenedBooklet => _documentPath != null;
@@ -114,14 +230,15 @@ class EditorController extends ChangeNotifier {
     viewModel.selectPage(pageId);
     notifyListeners();
 
-    if (_documentPath == null) {
+    final pagePackagePath = _navigationPageSources[pageId] ?? _documentPath;
+    if (pagePackagePath == null) {
       isLoadingPage = false;
       notifyListeners();
       return;
     }
 
     final page = await BookletFile.loadPage(
-      _documentPath!,
+      pagePackagePath,
       pageId,
       editorTheme,
     );
@@ -130,7 +247,11 @@ class EditorController extends ChangeNotifier {
       return;
     }
 
-    viewModel.setSelectedPage(page);
+    viewModel.setSelectedPage(
+      page,
+      preserveLoadedPages:
+          _documentPath == null && _navigationPageSources.containsKey(pageId),
+    );
     isLoadingPage = false;
     notifyListeners();
   }
@@ -183,6 +304,9 @@ class EditorController extends ChangeNotifier {
     }
 
     _documentPath = path;
+    for (final entry in _stagedNavigationSubtrees.entries) {
+      await BookletFile.copyStagedNavigationPages(path, entry.key, entry.value);
+    }
     await _saveLoadedPages();
     await BookletFile.saveManifest(
       packagePath: path,
@@ -191,6 +315,11 @@ class EditorController extends ChangeNotifier {
       selectedAssetFolderId: viewModel.navigation.selectedAssetFolderId,
       sourcePackagePath: previousPath,
     );
+    for (final stagedPath in _stagedNavigationSubtrees.keys) {
+      await Directory(stagedPath).delete(recursive: true);
+    }
+    _stagedNavigationSubtrees.clear();
+    _navigationPageSources.clear();
     assetManagerController.selectFolder(
       viewModel.navigation.selectedNode,
       path,

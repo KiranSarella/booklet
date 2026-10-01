@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/components/audio_component.dart';
@@ -14,12 +15,107 @@ import 'package:booklet/ui/components/image_component.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/application/document_settings_controller.dart';
+import 'package:booklet/ui/navigation/navigation_node.dart';
+import 'package:booklet/ui/navigation/navigation_panel_vm.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   SharedPreferences.setMockInitialValues({});
+
+  test(
+    'copies nested navigation pages and resources between booklets',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'booklet_navigation_copy_test',
+      );
+      final sourcePath = '${tempDir.path}/source';
+      final targetPath = '${tempDir.path}/target';
+      final imageFile = File('${tempDir.path}/source-image.png');
+      await imageFile.writeAsBytes([137, 80, 78, 71, 13, 10, 26, 10]);
+      final assetFile = File(
+        '$sourcePath/assets/folder-original/asset-original.pdf',
+      );
+      await assetFile.parent.create(recursive: true);
+      await assetFile.writeAsBytes([1, 2, 3, 4]);
+
+      final page = PageContent(
+        id: 'page-original',
+        title: 'Copied page',
+        components: [
+          ComponentBox(
+            component: ImageComponent(
+              id: 'image-original',
+              mediaPath: imageFile.path,
+            ),
+          ),
+        ],
+      );
+      await BookletFile.savePage(sourcePath, page);
+      final sourceGroup = NavigationNode.group(title: 'Copied group');
+      final sourcePage = NavigationNode.page(
+        title: page.title,
+        pageId: page.id,
+      );
+      final sourceFolder = NavigationNode.assetsFolder(
+        title: 'References',
+        folderId: 'folder-original',
+      );
+      sourceFolder.assets.add(
+        const BookletAsset(
+          id: 'asset-original',
+          name: 'paper.pdf',
+          path: 'assets/folder-original/asset-original.pdf',
+        ),
+      );
+      sourcePage.children.add(sourceFolder);
+      sourceGroup.children.add(sourcePage);
+
+      final bundle = await BookletFile.exportNavigationSubtree(
+        packagePath: sourcePath,
+        node: sourceGroup,
+        loadedPages: [page],
+        theme: PageSettingsController(DocumentSettingsController()),
+      );
+      final bundledNode = NavigationNode.fromJson(
+        Map<String, dynamic>.from(bundle['node'] as Map),
+      );
+      final navigation = NavigationPanelVM()..addGroup(title: 'Existing');
+      final copiedGroup = navigation.pasteNode(bundledNode)!;
+
+      await BookletFile.importNavigationSubtree(
+        packagePath: targetPath,
+        sourceNode: bundledNode,
+        copiedNode: copiedGroup,
+        bundle: bundle,
+        useAbsoluteAssetPaths: false,
+      );
+
+      final copiedPage = copiedGroup.children.single;
+      final copiedFolder = copiedPage.children.single;
+      expect(copiedPage.pageId, isNot(page.id));
+      expect(copiedFolder.folderId, isNot(sourceFolder.folderId));
+      expect(copiedFolder.assets.single.id, isNot('asset-original'));
+      expect(
+        File('$targetPath/${copiedFolder.assets.single.path}')
+            .readAsBytesSync(),
+        [1, 2, 3, 4],
+      );
+
+      final loadedCopy = await BookletFile.loadPage(
+        targetPath,
+        copiedPage.pageId!,
+        PageSettingsController(DocumentSettingsController()),
+      );
+      final copiedImage = loadedCopy.components.single.component;
+      expect(File(copiedImage.output as String).existsSync(), isTrue);
+
+      page.dispose();
+      loadedCopy.dispose();
+      await tempDir.delete(recursive: true);
+    },
+  );
 
   group('BookletFile component persistence', () {
     test('persists and restores the same text component ID', () async {

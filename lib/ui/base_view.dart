@@ -2,7 +2,9 @@ import 'package:booklet/ui/assets/asset_manager_view.dart';
 import 'package:booklet/ui/page_view/page_view.dart';
 import 'package:flutter/material.dart' hide PageView;
 import 'package:flutter/services.dart';
+
 import 'dart:async';
+
 import 'package:booklet/application/editor_controller.dart';
 import 'package:booklet/ui/base_vm.dart';
 import 'package:booklet/ui/components/component_box.dart';
@@ -173,7 +175,7 @@ class BaseViewState extends State<BaseView> {
     });
   }
 
-/*
+  /*
 
 May this day of your birth be auspicious!
 
@@ -237,6 +239,15 @@ May this day of your birth be auspicious!
                       setState(() => _viewModel.renameSelectedNode(title)),
                   onDeleteNode: () =>
                       setState(widget.controller.deleteSelectedNode),
+                  onDuplicateNode: () => unawaited(
+                    widget.controller.duplicateSelectedNavigationNode(),
+                  ),
+                  onCopyNode: () =>
+                      unawaited(widget.controller.copySelectedNavigationNode()),
+                  onPasteNode: () => unawaited(
+                    widget.controller.pasteSelectedNavigationNode(),
+                  ),
+                  canPasteNode: widget.controller.canPasteComponents,
                   onChanged: () => setState(() {}),
                 ),
                 _NavigationResizeHandle(onDragUpdate: _resizeNavigation),
@@ -293,7 +304,8 @@ May this day of your birth be auspicious!
                 hasSelection: _viewModel.selectedComponent != null,
                 canTransformSelection: _viewModel.canTransformSelectedComponent,
                 canPaste: widget.controller.canPasteComponents,
-                isReadOnly: widget.controller.documentSettingsController.isReadOnly,
+                isReadOnly:
+                    widget.controller.documentSettingsController.isReadOnly,
               ),
             ),
         ],

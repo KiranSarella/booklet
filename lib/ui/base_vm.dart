@@ -65,21 +65,21 @@ class BaseVM {
     _anchorIndex = null;
   }
 
-  void setSelectedPage(PageContent page) {
-    for (final loadedPage in _pagesById.values) {
-      if (loadedPage.id != page.id) {
-        loadedPage.dispose();
+  void setSelectedPage(PageContent page, {bool preserveLoadedPages = false}) {
+    if (!preserveLoadedPages) {
+      for (final loadedPage in _pagesById.values) {
+        if (loadedPage.id != page.id) {
+          loadedPage.dispose();
+        }
       }
+      _pagesById.clear();
     }
-    _pagesById
-      ..clear()
-      ..[page.id] = page;
+    _pagesById[page.id] = page;
     navigation.selectPage(page.id);
     _selectedComponent = null;
     _selectedComponents.clear();
     _anchorIndex = null;
   }
-
 
   void setDocumentPath(String? path) {
     _documentPath = path;
@@ -91,8 +91,7 @@ class BaseVM {
       id: id,
       title: title,
       components: [
-        for (final component in components)
-          ComponentBox(component: component)
+        for (final component in components) ComponentBox(component: component),
       ],
     );
   }
@@ -282,7 +281,6 @@ class BaseVM {
     return component;
   }
 
-
   void transformSelectedComponent(String type) {
     if (theme.documentSettingsController.isReadOnly) {
       return;
@@ -306,7 +304,6 @@ class BaseVM {
     selected.component = newComponent;
     oldComponent.dispose();
   }
-
 
   // MARK: - Copy / paste
 
@@ -361,7 +358,9 @@ class BaseVM {
     }
     final toDelete = _selectedComponents.isNotEmpty
         ? List<ComponentBox>.from(_selectedComponents)
-        : (_selectedComponent == null ? <ComponentBox>[] : [_selectedComponent!]);
+        : (_selectedComponent == null
+              ? <ComponentBox>[]
+              : [_selectedComponent!]);
     for (final component in toDelete) {
       if (page.components.remove(component)) {
         component.isSelected = false;
@@ -372,7 +371,6 @@ class BaseVM {
     _selectedComponents.clear();
     _anchorIndex = null;
   }
-
 
   void dispose() {
     for (final page in _pagesById.values) {

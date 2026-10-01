@@ -1,5 +1,8 @@
 import 'navigation_node.dart';
 
+import 'package:booklet/business/booklet_asset.dart';
+import 'package:uuid/uuid.dart';
+
 class NavigationPanelVM {
   final List<NavigationNode> groups = [];
   NavigationNode? selectedNode;
@@ -11,9 +14,22 @@ class NavigationPanelVM {
     String? selectedPageId,
     String? selectedAssetFolderId,
   }) {
+    final normalizedNodes = <NavigationNode>[];
+    NavigationNode? looseItemsGroup;
+    for (final node in nodes) {
+      if (node.isGroup) {
+        normalizedNodes.add(node);
+      } else {
+        looseItemsGroup ??= NavigationNode.group(title: 'New group');
+        if (!normalizedNodes.contains(looseItemsGroup)) {
+          normalizedNodes.add(looseItemsGroup);
+        }
+        looseItemsGroup.children.add(node);
+      }
+    }
     groups
       ..clear()
-      ..addAll(nodes);
+      ..addAll(normalizedNodes);
     this.selectedPageId = selectedPageId;
     selectedNode = selectedAssetFolderId == null
         ? (selectedPageId == null
@@ -114,6 +130,85 @@ class NavigationPanelVM {
       selectedAssetFolderId = selectedNode?.folderId;
     }
     return node;
+  }
+
+  NavigationNode? duplicateNode(NavigationNode node) {
+    final siblings = _siblingsContaining(node);
+    if (siblings == null) {
+      return null;
+    }
+
+    final duplicate = _copyNode(node);
+    siblings.insert(siblings.indexOf(node) + 1, duplicate);
+    selectedNode = duplicate;
+    if (duplicate.isPage) {
+      selectedPageId = duplicate.pageId;
+    }
+    selectedAssetFolderId = duplicate.folderId;
+    return duplicate;
+  }
+
+  NavigationNode? pasteNode(NavigationNode node) {
+    final duplicate = _copyNode(node);
+    final selected = selectedNode;
+    if (duplicate.isGroup) {
+      if (selected == null) {
+        groups.add(duplicate);
+      } else {
+        final siblings = _siblingsOf(selected);
+        siblings.insert(siblings.indexOf(selected) + 1, duplicate);
+      }
+    } else if (selected?.isGroup == true) {
+      selected!.children.add(duplicate);
+      selected.isExpanded = true;
+    } else if (selected == null) {
+      final group = groups.isEmpty ? addGroup() : groups.first;
+      group.children.add(duplicate);
+      group.isExpanded = true;
+    } else {
+      final siblings = _siblingsOf(selected);
+      siblings.insert(siblings.indexOf(selected) + 1, duplicate);
+    }
+    selectedNode = duplicate;
+    selectedPageId = duplicate.isPage ? duplicate.pageId : selectedPageId;
+    selectedAssetFolderId = duplicate.folderId;
+    return duplicate;
+  }
+
+  NavigationNode _copyNode(NavigationNode source) {
+    final copy = source.isGroup
+        ? NavigationNode.group(title: source.title)
+        : source.isPage
+        ? NavigationNode.page(title: source.title, pageId: const Uuid().v4())
+        : NavigationNode.assetsFolder(
+            title: source.title,
+            folderId: const Uuid().v4(),
+          );
+    copy.isExpanded = source.isExpanded;
+    copy.assets.addAll(
+      source.assets.map(
+        (asset) => BookletAsset(
+          id: const Uuid().v4(),
+          name: asset.name,
+          path: asset.path,
+        ),
+      ),
+    );
+    copy.children.addAll(source.children.map(_copyNode));
+    return copy;
+  }
+
+  List<NavigationNode>? _siblingsContaining(NavigationNode target) {
+    if (groups.contains(target)) {
+      return groups;
+    }
+    for (final group in groups) {
+      final siblings = _findParentChildren(group, target);
+      if (siblings != null) {
+        return siblings;
+      }
+    }
+    return null;
   }
 
   void _collectSelectionIds(NavigationNode node, Set<String> selectionIds) {

@@ -17,6 +17,10 @@ class NavigationPanelView extends StatefulWidget {
     required this.onAddAssetsFolder,
     required this.onRenameNode,
     required this.onDeleteNode,
+    required this.onDuplicateNode,
+    required this.onCopyNode,
+    required this.onPasteNode,
+    required this.canPasteNode,
     required this.onChanged,
   });
 
@@ -33,6 +37,10 @@ class NavigationPanelView extends StatefulWidget {
   final VoidCallback onAddAssetsFolder;
   final ValueChanged<String> onRenameNode;
   final VoidCallback onDeleteNode;
+  final VoidCallback onDuplicateNode;
+  final VoidCallback onCopyNode;
+  final VoidCallback onPasteNode;
+  final bool canPasteNode;
   final VoidCallback onChanged;
 
   @override
@@ -83,6 +91,10 @@ class _NavigationPanelViewState extends State<NavigationPanelView> {
                 ),
                 NavigationMoreMenu(
                   hasSelection: widget.controller.selectedNode != null,
+                  canPaste: widget.canPasteNode,
+                  onDuplicate: widget.onDuplicateNode,
+                  onCopy: widget.onCopyNode,
+                  onPaste: widget.onPasteNode,
                   onRename: _startEditing,
                   onDelete: () {
                     _editingNode = null;
