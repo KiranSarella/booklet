@@ -87,7 +87,7 @@ class DocumentToolbarState extends State<DocumentToolbar> {
         ),
         const SizedBox(width: 8),
         _ActionButton(
-          tooltip: 'Edit theme',
+          tooltip: 'Page settings',
           icon: Icons.palette_outlined,
           onPressed: widget.onEditTheme,
         ),

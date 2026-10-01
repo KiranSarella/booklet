@@ -248,6 +248,19 @@ May this day of your birth be auspicious!
                     widget.controller.pasteSelectedNavigationNode(),
                   ),
                   canPasteNode: widget.controller.canPasteComponents,
+                  canMoveNode: (source, target, {required into}) => _viewModel
+                      .navigation
+                      .canMoveNode(source, target, into: into),
+                  onMoveNode: (source, target, before, into) {
+                    setState(
+                      () => _viewModel.navigation.moveNode(
+                        source,
+                        target,
+                        before: before,
+                        into: into,
+                      ),
+                    );
+                  },
                   onChanged: () => setState(() {}),
                 ),
                 _NavigationResizeHandle(onDragUpdate: _resizeNavigation),

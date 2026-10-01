@@ -148,6 +148,66 @@ class NavigationPanelVM {
     return duplicate;
   }
 
+  bool canMoveNode(
+    NavigationNode source,
+    NavigationNode target, {
+    required bool into,
+  }) {
+    if (identical(source, target) ||
+        _siblingsContaining(source) == null ||
+        _siblingsContaining(target) == null) {
+      return false;
+    }
+    if (source.isGroup) {
+      return target.isGroup && !into && !_containsNode(source, target);
+    }
+    if (!source.isPage) {
+      return false;
+    }
+    if (target.isGroup) {
+      return into;
+    }
+    if (!target.isPage) {
+      return false;
+    }
+    return !into || !_containsNode(source, target);
+  }
+
+  bool moveNode(
+    NavigationNode source,
+    NavigationNode target, {
+    bool before = false,
+    bool into = false,
+  }) {
+    if (!canMoveNode(source, target, into: into)) {
+      return false;
+    }
+
+    final sourceSiblings = _siblingsOf(source);
+    final destination = into
+        ? target.children
+        : target.isGroup
+        ? groups
+        : _siblingsOf(target);
+    if (into && destination.contains(source)) {
+      return false;
+    }
+
+    sourceSiblings.remove(source);
+    if (into) {
+      if (target.isGroup && before) {
+        destination.insert(0, source);
+      } else {
+        destination.add(source);
+      }
+      target.isExpanded = true;
+    } else {
+      final targetIndex = destination.indexOf(target);
+      destination.insert(targetIndex + (before ? 0 : 1), source);
+    }
+    return true;
+  }
+
   NavigationNode? pasteNode(NavigationNode node) {
     final duplicate = _copyNode(node);
     final selected = selectedNode;
@@ -223,6 +283,13 @@ class NavigationPanelVM {
     for (final child in node.children) {
       _collectSelectionIds(child, selectionIds);
     }
+  }
+
+  bool _containsNode(NavigationNode root, NavigationNode candidate) {
+    if (identical(root, candidate)) {
+      return true;
+    }
+    return root.children.any((child) => _containsNode(child, candidate));
   }
 
   NavigationNode? _selectableNear(List<NavigationNode> siblings, int index) {
