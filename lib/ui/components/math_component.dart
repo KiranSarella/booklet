@@ -8,7 +8,9 @@ import 'package:flutter_math_fork/flutter_math.dart';
 
 class MathComponentState extends ComponentState {
   MathComponentState({String? formula})
-    : controller = TextEditingController(text: formula ?? '');
+    : controller = TextEditingController(text: formula ?? '') {
+    controller.addListener(notifyListeners);
+  }
 
   final TextEditingController controller;
   final FocusNode focusNode = FocusNode();
@@ -26,8 +28,10 @@ class MathComponentState extends ComponentState {
 
   @override
   void dispose() {
+    controller.removeListener(notifyListeners);
     controller.dispose();
     focusNode.dispose();
+    super.dispose();
   }
 }
 

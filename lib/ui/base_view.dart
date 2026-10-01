@@ -260,14 +260,14 @@ May this day of your birth be auspicious!
                       .navigation
                       .canMoveNode(source, target, into: into),
                   onMoveNode: (source, target, before, into) {
-                    setState(
-                      () => _viewModel.navigation.moveNode(
-                        source,
-                        target,
-                        before: before,
-                        into: into,
-                      ),
+                    final moved = _viewModel.navigation.moveNode(
+                      source,
+                      target,
+                      before: before,
+                      into: into,
                     );
+                    if (moved) widget.controller.markDocumentChanged();
+                    setState(() {});
                   },
                   onChanged: () => setState(() {}),
                 ),

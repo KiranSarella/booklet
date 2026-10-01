@@ -5,7 +5,7 @@ final _plainTextClipboardConfig = QuillControllerConfig(
   clipboardConfig: QuillClipboardConfig(enableExternalRichPaste: false),
 );
 
-abstract class ComponentState {
+abstract class ComponentState extends ChangeNotifier {
   bool isSelected = false;
   bool isFocused = false;
 
@@ -13,9 +13,7 @@ abstract class ComponentState {
 
   List<dynamic>? get textDelta => null;
 
-  void dispose();
 }
-
 
 mixin TextComponentStateOwner {
   Attribute<dynamic> get alignment;
@@ -33,17 +31,16 @@ mixin TextComponentStateOwner {
   //   }
   // }
 
-void initialize({List<dynamic>? delta}) {
-  _delta = delta;
-  if (delta == null) return;
+  void initialize({List<dynamic>? delta}) {
+    _delta = delta;
+    if (delta == null) return;
 
-  final textState =
-      _state ??= TextComponentState(alignment, delta: delta);
-  final controller = textState.controller;
+    final textState = _state ??= TextComponentState(alignment, delta: delta);
+    final controller = textState.controller;
 
-  controller.document = Document.fromJson(delta);
-  controller.formatText(0, controller.document.length, alignment);
-}
+    controller.document = Document.fromJson(delta);
+    controller.formatText(0, controller.document.length, alignment);
+  }
 
   Object get output => state.output;
 
@@ -51,7 +48,6 @@ void initialize({List<dynamic>? delta}) {
 
   void dispose() => state.dispose();
 }
-
 
 // mixin TextComponentStateOwner {
 //   List<dynamic>? _delta;
@@ -83,14 +79,11 @@ class TextComponentState extends ComponentState {
               document: Document.fromJson(delta),
               selection: const TextSelection.collapsed(offset: 0),
             ) {
+    controller.addListener(notifyListeners);
     // controller.formatSelection(alignment);
-     if (delta == null) {
-        controller.formatText(
-          0,
-          controller.document.length,
-          alignment,
-        );
-      }
+    if (delta == null) {
+      controller.formatText(0, controller.document.length, alignment);
+    }
   }
 
   final QuillController controller;
@@ -104,63 +97,115 @@ class TextComponentState extends ComponentState {
 
   @override
   void dispose() {
+    controller.removeListener(notifyListeners);
     controller.dispose();
     focusNode.dispose();
+    super.dispose();
   }
 }
 
 class ImageComponentState extends ComponentState {
   ImageComponentState({
-    this.mediaPath,
-    this.imageSize,
-    this.width,
-    this.height,
-  });
+    String? mediaPath,
+    String? imageSize,
+    int? width,
+    int? height,
+  }) : _mediaPath = mediaPath,
+       _imageSize = imageSize,
+       _width = width,
+       _height = height;
 
-  String? mediaPath;
-  String? imageSize;
-  int? width;
-  int? height;
+  String? _mediaPath;
+  String? _imageSize;
+  int? _width;
+  int? _height;
+
+  String? get mediaPath => _mediaPath;
+  set mediaPath(String? value) {
+    if (_mediaPath != value) {
+      _mediaPath = value;
+      notifyListeners();
+    }
+  }
+
+  String? get imageSize => _imageSize;
+  set imageSize(String? value) {
+    if (_imageSize != value) {
+      _imageSize = value;
+      notifyListeners();
+    }
+  }
+
+  int? get width => _width;
+  set width(int? value) {
+    if (_width != value) {
+      _width = value;
+      notifyListeners();
+    }
+  }
+
+  int? get height => _height;
+  set height(int? value) {
+    if (_height != value) {
+      _height = value;
+      notifyListeners();
+    }
+  }
 
   @override
   String? get output => mediaPath;
 
-  @override
-  void dispose() {}
 }
 
 class VideoComponentState extends ComponentState {
-  VideoComponentState({this.mediaPath});
+  VideoComponentState({String? mediaPath}) : _mediaPath = mediaPath;
 
-  String? mediaPath;
+  String? _mediaPath;
+  String? get mediaPath => _mediaPath;
+  set mediaPath(String? value) {
+    if (_mediaPath != value) {
+      _mediaPath = value;
+      notifyListeners();
+    }
+  }
 
   @override
   String? get output => mediaPath;
 
-  @override
-  void dispose() {}
 }
 
 class AudioComponentState extends ComponentState {
-  AudioComponentState({this.mediaPath});
+  AudioComponentState({String? mediaPath}) : _mediaPath = mediaPath;
 
-  String? mediaPath;
+  String? _mediaPath;
+  String? get mediaPath => _mediaPath;
+  set mediaPath(String? value) {
+    if (_mediaPath != value) {
+      _mediaPath = value;
+      notifyListeners();
+    }
+  }
 
   @override
   String? get output => mediaPath;
 
-  @override
-  void dispose() {}
 }
 
 class EmbedComponentState extends ComponentState {
   EmbedComponentState({String? content})
     : contentController = TextEditingController(text: content ?? ''),
-      content = content ?? '';
+      content = content ?? '' {
+    contentController.addListener(_onContentChanged);
+  }
 
   final TextEditingController contentController;
   final FocusNode focusNode = FocusNode();
   String content;
+
+  void _onContentChanged() {
+    content = contentController.text;
+    notifyListeners();
+  }
 
   void setContent(String value) {
     content = value;
@@ -175,8 +220,10 @@ class EmbedComponentState extends ComponentState {
 
   @override
   void dispose() {
+    contentController.removeListener(_onContentChanged);
     contentController.dispose();
     focusNode.dispose();
+    super.dispose();
   }
 }
 
@@ -185,7 +232,10 @@ class LinkComponentState extends ComponentState {
     : urlController = TextEditingController(text: url ?? ''),
       titleController = TextEditingController(text: title ?? ''),
       url = url ?? '',
-      title = title ?? '';
+      title = title ?? '' {
+    urlController.addListener(_onUrlChanged);
+    titleController.addListener(_onTitleChanged);
+  }
 
   final TextEditingController urlController;
   final TextEditingController titleController;
@@ -194,9 +244,25 @@ class LinkComponentState extends ComponentState {
   String url;
   String title;
 
-  void updateUrl(String value) => url = value;
+  void _onUrlChanged() {
+    url = urlController.text;
+    notifyListeners();
+  }
 
-  void updateTitle(String value) => title = value;
+  void _onTitleChanged() {
+    title = titleController.text;
+    notifyListeners();
+  }
+
+  void updateUrl(String value) {
+    url = value;
+    notifyListeners();
+  }
+
+  void updateTitle(String value) {
+    title = value;
+    notifyListeners();
+  }
 
   void setValues({required String url, String? title}) {
     this.url = url;
@@ -225,17 +291,23 @@ class LinkComponentState extends ComponentState {
 
   @override
   void dispose() {
+    urlController.removeListener(_onUrlChanged);
+    titleController.removeListener(_onTitleChanged);
     urlController.dispose();
     titleController.dispose();
     urlFocusNode.dispose();
     titleFocusNode.dispose();
+    super.dispose();
   }
 }
 
 class QuoteComponentState extends ComponentState {
   QuoteComponentState({List<dynamic>? delta})
     : quote = TextComponentState(Attribute.centerAlignment, delta: delta),
-      author = TextComponentState(Attribute.centerAlignment);
+      author = TextComponentState(Attribute.centerAlignment) {
+    quote.addListener(notifyListeners);
+    author.addListener(notifyListeners);
+  }
 
   final TextComponentState quote;
   final TextComponentState author;
@@ -283,7 +355,10 @@ class QuoteComponentState extends ComponentState {
 
   @override
   void dispose() {
+    quote.removeListener(notifyListeners);
+    author.removeListener(notifyListeners);
     quote.dispose();
     author.dispose();
+    super.dispose();
   }
 }

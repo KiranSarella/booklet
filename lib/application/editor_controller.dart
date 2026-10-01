@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -11,12 +12,21 @@ import 'package:booklet/ui/base_vm.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/components/component_box.dart';
+import 'package:booklet/ui/components/component_snapshot.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 
 class EditorController extends ChangeNotifier {
-  EditorController(this.editorTheme, this.documentSettingsController)
-    : viewModel = BaseVM(editorTheme),
-      assetManagerController = AssetManagerController();
+  EditorController(
+    this.editorTheme,
+    this.documentSettingsController, {
+    this.autoSaveDelay = const Duration(milliseconds: 750),
+  }) : viewModel = BaseVM(editorTheme),
+       assetManagerController = AssetManagerController() {
+    viewModel.setDocumentChangedCallback(_scheduleAutoSave);
+    assetManagerController.onDocumentChanged = markDocumentChanged;
+  }
+
+  final Duration autoSaveDelay;
 
   final PageSettingsController editorTheme;
   final DocumentSettingsController documentSettingsController;
@@ -30,13 +40,80 @@ class EditorController extends ChangeNotifier {
       NavigationClipboardController();
   final Map<String, String> _navigationPageSources = {};
   final Map<String, NavigationNode> _stagedNavigationSubtrees = {};
+  Timer? _autoSaveTimer;
+  Future<void>? _saveInProgress;
+  String? _lastSavedSignature;
+  String? _autoSaveError;
+  bool _isAutoSaving = false;
   bool isLoadingPage = false;
   String? _documentPath;
   int _selectionRequest = 0;
 
   String? get documentPath => _documentPath;
+  String? get autoSaveError => _autoSaveError;
+  bool get isAutoSaving => _isAutoSaving;
 
   bool get canPasteComponents => !documentSettingsController.isReadOnly;
+
+  void markDocumentChanged() {
+    if (documentSettingsController.isReadOnly) return;
+    _autoSaveError = null;
+    _scheduleAutoSave();
+  }
+
+  void _scheduleAutoSave() {
+    if (documentSettingsController.isReadOnly || _documentPath == null) {
+      return;
+    }
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(autoSaveDelay, () {
+      unawaited(flushAutoSave());
+    });
+  }
+
+  Future<void> flushAutoSave() async {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = null;
+    final path = _documentPath;
+    if (path == null || documentSettingsController.isReadOnly) return;
+
+    final signature = _documentSignature();
+    if (signature == _lastSavedSignature) return;
+
+    _isAutoSaving = true;
+    notifyListeners();
+    try {
+      await _persistToPath(path, sourcePackagePath: path);
+      _lastSavedSignature = signature;
+      _autoSaveError = null;
+    } catch (error) {
+      _autoSaveError = error.toString();
+    } finally {
+      _isAutoSaving = false;
+      notifyListeners();
+    }
+
+    if (_documentSignature() != _lastSavedSignature) {
+      _scheduleAutoSave();
+    }
+  }
+
+  String _documentSignature() => jsonEncode({
+    'navigation': viewModel.navigation.groups
+        .map((node) => node.toJson())
+        .toList(),
+    'pages': [
+      for (final page in viewModel.loadedPages)
+        {
+          'id': page.id,
+          'title': page.title,
+          'components': [
+            for (final component in page.components)
+              ComponentSnapshot.capture(component).toJson(),
+          ],
+        },
+    ],
+  });
 
   Future<void> copySelectedComponents() async {
     final snapshots = viewModel.captureSelectedComponents();
@@ -97,6 +174,7 @@ class EditorController extends ChangeNotifier {
       return;
     }
     await _importNavigationNode(bundle, sourceNode, duplicate);
+    markDocumentChanged();
     await _activateCopiedNode(duplicate);
   }
 
@@ -117,6 +195,7 @@ class EditorController extends ChangeNotifier {
       return;
     }
     await _importNavigationNode(bundle, sourceNode, copiedNode);
+    markDocumentChanged();
     await _activateCopiedNode(copiedNode);
   }
 
@@ -175,7 +254,9 @@ class EditorController extends ChangeNotifier {
   PageContent? get selectedPage => viewModel.selectedPage;
 
   void createBooklet() {
+    _autoSaveTimer?.cancel();
     _documentPath = null;
+    _lastSavedSignature = null;
     notifyListeners();
   }
 
@@ -184,17 +265,21 @@ class EditorController extends ChangeNotifier {
     if (manifest == null) {
       return false;
     }
+    await flushAutoSave();
     await _applyManifest(manifest);
     return true;
   }
 
   Future<bool> openBookletAtPath(String packagePath) async {
+    await flushAutoSave();
     final manifest = await BookletFile.loadManifestAtPath(packagePath);
     await _applyManifest(manifest);
     return true;
   }
 
   Future<void> _applyManifest(BookletManifest manifest) async {
+    _autoSaveTimer?.cancel();
+    _lastSavedSignature = null;
     _documentPath = manifest.path;
     viewModel.replaceNavigation(
       manifest.groups,
@@ -214,6 +299,7 @@ class EditorController extends ChangeNotifier {
     if (pageId != null) {
       await selectPage(pageId, saveCurrentPage: false);
     }
+    _lastSavedSignature = _documentSignature();
   }
 
   Future<void> selectPage(String pageId, {bool saveCurrentPage = true}) async {
@@ -304,28 +390,59 @@ class EditorController extends ChangeNotifier {
     }
 
     _documentPath = path;
-    for (final entry in _stagedNavigationSubtrees.entries) {
-      await BookletFile.copyStagedNavigationPages(path, entry.key, entry.value);
-    }
-    await _saveLoadedPages();
-    await BookletFile.saveManifest(
-      packagePath: path,
-      groups: viewModel.navigation.groups,
-      selectedPageId: viewModel.selectedPageId,
-      selectedAssetFolderId: viewModel.navigation.selectedAssetFolderId,
-      sourcePackagePath: previousPath,
-    );
-    for (final stagedPath in _stagedNavigationSubtrees.keys) {
-      await Directory(stagedPath).delete(recursive: true);
-    }
-    _stagedNavigationSubtrees.clear();
-    _navigationPageSources.clear();
+    _autoSaveTimer?.cancel();
+    await _persistToPath(path, sourcePackagePath: previousPath);
+    _lastSavedSignature = _documentSignature();
+    _autoSaveError = null;
     assetManagerController.selectFolder(
       viewModel.navigation.selectedNode,
       path,
     );
     notifyListeners();
     return true;
+  }
+
+  Future<void> _persistToPath(
+    String path, {
+    required String? sourcePackagePath,
+  }) async {
+    final activeSave = _saveInProgress;
+    if (activeSave != null) {
+      await activeSave;
+      return _persistToPath(path, sourcePackagePath: sourcePackagePath);
+    }
+
+    final completion = Completer<void>();
+    _saveInProgress = completion.future;
+    try {
+      for (final entry in _stagedNavigationSubtrees.entries) {
+        await BookletFile.copyStagedNavigationPages(
+          path,
+          entry.key,
+          entry.value,
+        );
+      }
+      await _saveLoadedPages();
+      await BookletFile.saveManifest(
+        packagePath: path,
+        groups: viewModel.navigation.groups,
+        selectedPageId: viewModel.selectedPageId,
+        selectedAssetFolderId: viewModel.navigation.selectedAssetFolderId,
+        sourcePackagePath: sourcePackagePath,
+      );
+      for (final stagedPath in _stagedNavigationSubtrees.keys) {
+        await Directory(stagedPath).delete(recursive: true);
+      }
+      _stagedNavigationSubtrees.clear();
+      _navigationPageSources.clear();
+      assetManagerController.selectFolder(
+        viewModel.navigation.selectedNode,
+        path,
+      );
+    } finally {
+      completion.complete();
+      _saveInProgress = null;
+    }
   }
 
   Future<void> _saveLoadedPages() async {
@@ -353,6 +470,7 @@ class EditorController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     assetManagerController.dispose();
     viewModel.dispose();
     super.dispose();

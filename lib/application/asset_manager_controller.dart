@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AssetManagerController extends ChangeNotifier {
+  VoidCallback? onDocumentChanged;
   NavigationNode? _folder;
   String? _packagePath;
   String? _selectedAssetId;
@@ -58,6 +59,7 @@ class AssetManagerController extends ChangeNotifier {
       path: asset.path,
     );
     notifyListeners();
+    onDocumentChanged?.call();
   }
 
   Future<void> deleteSelectedAsset() async {
@@ -68,6 +70,7 @@ class AssetManagerController extends ChangeNotifier {
     folder.assets.removeWhere((candidate) => candidate.id == asset.id);
     _selectedAssetId = null;
     notifyListeners();
+    onDocumentChanged?.call();
     final managedAssetPrefix = 'assets/${folder.folderId}/';
     if (_packagePath != null && asset.path.startsWith(managedAssetPrefix)) {
       final file = File(path);
@@ -95,6 +98,7 @@ class AssetManagerController extends ChangeNotifier {
           files: files,
         );
         folder.assets.addAll(imported);
+        onDocumentChanged?.call();
       }
     } finally {
       _isAddingAssets = false;

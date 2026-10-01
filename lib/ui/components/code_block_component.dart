@@ -42,7 +42,9 @@ class CodeBlockComponentState extends ComponentState {
       controller = CodeController(
         text: code ?? '',
         language: allLanguages[_normalizeLanguage(language)],
-      );
+      ) {
+    controller.addListener(notifyListeners);
+  }
 
   final CodeController controller;
   final FocusNode focusNode = FocusNode();
@@ -51,6 +53,7 @@ class CodeBlockComponentState extends ComponentState {
   void setLanguage(String language) {
     languageId = _normalizeLanguage(language);
     controller.language = allLanguages[languageId];
+    notifyListeners();
   }
 
   @override
@@ -66,8 +69,10 @@ class CodeBlockComponentState extends ComponentState {
 
   @override
   void dispose() {
+    controller.removeListener(notifyListeners);
     controller.dispose();
     focusNode.dispose();
+    super.dispose();
   }
 }
 

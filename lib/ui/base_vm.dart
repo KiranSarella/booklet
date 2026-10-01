@@ -4,7 +4,9 @@ import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_snapshot.dart';
+import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/application/page_settings_controller.dart';
+import 'package:flutter/foundation.dart' show VoidCallback;
 import 'package:booklet/ui/navigation/navigation_panel_vm.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 import 'package:uuid/uuid.dart';
@@ -26,12 +28,15 @@ class BaseVM {
       referencePageId: null,
     );
     _pagesById[starterPage.id] = starterPage;
+    _watchPage(starterPage);
     navigation.selectPage(starterPage.id);
   }
 
   final PageSettingsController theme;
   final NavigationPanelVM navigation = NavigationPanelVM();
   final Map<String, PageContent> _pagesById = {};
+  final Map<ComponentState, VoidCallback> _componentListeners = {};
+  VoidCallback? onDocumentChanged;
   ComponentBox? _selectedComponent;
   final Set<ComponentBox> _selectedComponents = {};
   int? _anchorIndex;
@@ -55,6 +60,11 @@ class BaseVM {
     String? selectedPageId,
     String? selectedAssetFolderId,
   }) {
+    _unwatchAllComponents();
+    for (final page in _pagesById.values) {
+      page.dispose();
+    }
+    _pagesById.clear();
     navigation.replaceGroups(
       groups,
       selectedPageId: selectedPageId,
@@ -67,6 +77,7 @@ class BaseVM {
 
   void setSelectedPage(PageContent page, {bool preserveLoadedPages = false}) {
     if (!preserveLoadedPages) {
+      _unwatchAllComponents();
       for (final loadedPage in _pagesById.values) {
         if (loadedPage.id != page.id) {
           loadedPage.dispose();
@@ -75,10 +86,19 @@ class BaseVM {
       _pagesById.clear();
     }
     _pagesById[page.id] = page;
+    _watchPage(page);
     navigation.selectPage(page.id);
     _selectedComponent = null;
     _selectedComponents.clear();
     _anchorIndex = null;
+  }
+
+  void setDocumentChangedCallback(VoidCallback callback) {
+    onDocumentChanged = callback;
+    _unwatchAllComponents();
+    for (final page in _pagesById.values) {
+      _watchPage(page);
+    }
   }
 
   void setDocumentPath(String? path) {
@@ -112,11 +132,14 @@ class BaseVM {
 
   void addGroup() {
     navigation.addGroup();
+    _documentChanged();
   }
 
   NavigationNode addAssetsFolder() {
     clearSelectedComponent();
-    return navigation.addAssetsFolder(folderId: const Uuid().v4());
+    final folder = navigation.addAssetsFolder(folderId: const Uuid().v4());
+    _documentChanged();
+    return folder;
   }
 
   void addPageBelowSelected() {
@@ -132,11 +155,14 @@ class BaseVM {
     if (selectedNode == null) {
       return;
     }
-    final node = navigation.renameNode(selectedNode, title.trim());
+    final nextTitle = title.trim();
+    if (selectedNode.title == nextTitle) return;
+    final node = navigation.renameNode(selectedNode, nextTitle);
     final pageId = node?.pageId;
     if (pageId != null) {
       _pagesById[pageId]?.title = node!.title;
     }
+    _documentChanged();
   }
 
   NavigationNode? deleteSelectedNode() {
@@ -154,6 +180,7 @@ class BaseVM {
     if (selectedPageWasDeleted) {
       clearSelectedComponent();
     }
+    _documentChanged();
     return removedNode;
   }
 
@@ -170,7 +197,13 @@ class BaseVM {
   void _disposePages(NavigationNode node) {
     final pageId = node.pageId;
     if (pageId != null) {
-      _pagesById.remove(pageId)?.dispose();
+      final page = _pagesById.remove(pageId);
+      if (page != null) {
+        for (final component in page.components) {
+          _unwatchComponent(component.component.state);
+        }
+        page.dispose();
+      }
     }
     for (final child in node.children) {
       _disposePages(child);
@@ -188,6 +221,8 @@ class BaseVM {
       placement: placement,
     );
     _pagesById[page.id] = page;
+    _watchPage(page);
+    _documentChanged();
   }
 
   // MARK: - Components
@@ -277,7 +312,9 @@ class BaseVM {
       component: InbuiltComponents.prepareCompoent(const Uuid().v4(), type),
     );
     page.components.insert(index + 1, component);
+    _watchComponent(component);
     selectComponent(component);
+    _documentChanged();
     return component;
   }
 
@@ -302,7 +339,10 @@ class BaseVM {
     newComponent.initialize(delta: oldComponent.textDelta);
     newComponent.state.isSelected = oldComponent.state.isSelected;
     selected.component = newComponent;
+    _unwatchComponent(oldComponent.state);
+    _watchComponent(selected);
     oldComponent.dispose();
+    _documentChanged();
   }
 
   // MARK: - Copy / paste
@@ -338,6 +378,7 @@ class BaseVM {
       insertIndex++;
       final box = snapshot.instantiate();
       page.components.insert(insertIndex, box);
+      _watchComponent(box);
       pasted.add(box);
     }
 
@@ -345,6 +386,7 @@ class BaseVM {
     if (pasted.length > 1) {
       selectComponentRange(pasted.last);
     }
+    _documentChanged();
     return pasted;
   }
 
@@ -363,6 +405,7 @@ class BaseVM {
               : [_selectedComponent!]);
     for (final component in toDelete) {
       if (page.components.remove(component)) {
+        _unwatchComponent(component.component.state);
         component.isSelected = false;
         component.dispose();
       }
@@ -370,11 +413,43 @@ class BaseVM {
     _selectedComponent = null;
     _selectedComponents.clear();
     _anchorIndex = null;
+    _documentChanged();
   }
 
   void dispose() {
+    _unwatchAllComponents();
     for (final page in _pagesById.values) {
       page.dispose();
     }
   }
+
+  void _watchPage(PageContent page) {
+    for (final component in page.components) {
+      _watchComponent(component);
+    }
+  }
+
+  void _watchComponent(ComponentBox component) {
+    final state = component.component.state;
+    if (_componentListeners.containsKey(state)) return;
+    final listener = _documentChanged;
+    _componentListeners[state] = listener;
+    state.addListener(listener);
+  }
+
+  void _unwatchComponent(ComponentState state) {
+    final listener = _componentListeners.remove(state);
+    if (listener != null) {
+      state.removeListener(listener);
+    }
+  }
+
+  void _unwatchAllComponents() {
+    for (final entry in _componentListeners.entries) {
+      entry.key.removeListener(entry.value);
+    }
+    _componentListeners.clear();
+  }
+
+  void _documentChanged() => onDocumentChanged?.call();
 }
