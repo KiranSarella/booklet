@@ -9,6 +9,7 @@ class OptionsDock extends StatefulWidget {
     required this.onComponentDeleted,
     required this.onComponentsCopied,
     required this.onComponentsPasted,
+    required this.onPageSettings,
     required this.hasSelection,
     required this.canTransformSelection,
     required this.canPaste,
@@ -20,6 +21,7 @@ class OptionsDock extends StatefulWidget {
   final VoidCallback onComponentDeleted;
   final VoidCallback onComponentsCopied;
   final VoidCallback onComponentsPasted;
+  final VoidCallback onPageSettings;
   final bool hasSelection;
   final bool canTransformSelection;
   final bool canPaste;
@@ -75,74 +77,88 @@ class OptionsDockState extends State<OptionsDock> {
         Positioned(
           top: 12,
           right: 12,
-          child: widget.isReadOnly ? const _ReadOnlyIndicator() : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _DockButton(
-                      icon: Icons.add,
-                      color: Colors.blue,
-                      tooltip: 'Add component',
-                      onPressed: () => _toggleMenu('add'),
-                    ),
-                    const SizedBox(height: 20),
-                    _DockButton(
-                      icon: Icons.swap_horiz,
-                      color: Colors.amber.shade700,
-                      tooltip: 'Transform component',
-                      onPressed: widget.canTransformSelection
-                          ? () => _toggleMenu('transform')
-                          : null,
-                      enabled: widget.canTransformSelection,
-                    ),
-                    const SizedBox(height: 20),
-                    _DockButton(
-                      icon: Icons.copy_outlined,
-                      color: Colors.teal,
-                      tooltip: 'Copy component(s)',
-                      onPressed: widget.hasSelection
-                          ? () {
-                              widget.onComponentsCopied();
-                              dismissMenu();
-                            }
-                          : null,
-                      enabled: widget.hasSelection,
-                    ),
-                    const SizedBox(height: 20),
-                    _DockButton(
-                      icon: Icons.content_paste,
-                      color: Colors.teal,
-                      tooltip: 'Paste component(s)',
-                      onPressed: widget.canPaste
-                          ? () {
-                              widget.onComponentsPasted();
-                              dismissMenu();
-                            }
-                          : null,
-                      enabled: widget.canPaste,
-                    ),
-                    const SizedBox(height: 80),
-                    _DockButton(
-                      icon: Icons.delete_outline,
-                      color: Colors.red,
-                      tooltip: 'Delete component',
-                      onPressed: widget.hasSelection
-                          ? () {
-                              widget.onComponentDeleted();
-                              dismissMenu();
-                            }
-                          : null,
-                      enabled: widget.hasSelection,
-                    ),
-                    const SizedBox(height: 80),
-                    _DockButton(
-                      icon: Icons.more_horiz,
-                      color: Colors.black87,
-                      tooltip: 'More options',
-                      onPressed: dismissMenu,
-                      height: 36,
-                    ),
-                  ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.isReadOnly)
+                const _ReadOnlyIndicator()
+              else ...[
+                _DockButton(
+                  icon: Icons.add,
+                  color: Colors.blue,
+                  tooltip: 'Add component',
+                  onPressed: () => _toggleMenu('add'),
                 ),
+                const SizedBox(height: 20),
+                _DockButton(
+                  icon: Icons.swap_horiz,
+                  color: Colors.amber.shade700,
+                  tooltip: 'Transform component',
+                  onPressed: widget.canTransformSelection
+                      ? () => _toggleMenu('transform')
+                      : null,
+                  enabled: widget.canTransformSelection,
+                ),
+                const SizedBox(height: 20),
+                _DockButton(
+                  icon: Icons.copy_outlined,
+                  color: Colors.teal,
+                  tooltip: 'Copy component(s)',
+                  onPressed: widget.hasSelection
+                      ? () {
+                          widget.onComponentsCopied();
+                          dismissMenu();
+                        }
+                      : null,
+                  enabled: widget.hasSelection,
+                ),
+                const SizedBox(height: 20),
+                _DockButton(
+                  icon: Icons.content_paste,
+                  color: Colors.teal,
+                  tooltip: 'Paste component(s)',
+                  onPressed: widget.canPaste
+                      ? () {
+                          widget.onComponentsPasted();
+                          dismissMenu();
+                        }
+                      : null,
+                  enabled: widget.canPaste,
+                ),
+                const SizedBox(height: 80),
+                _DockButton(
+                  icon: Icons.delete_outline,
+                  color: Colors.red,
+                  tooltip: 'Delete component',
+                  onPressed: widget.hasSelection
+                      ? () {
+                          widget.onComponentDeleted();
+                          dismissMenu();
+                        }
+                      : null,
+                  enabled: widget.hasSelection,
+                ),
+                const SizedBox(height: 80),
+                _DockButton(
+                  icon: Icons.more_horiz,
+                  color: Colors.black87,
+                  tooltip: 'More options',
+                  onPressed: dismissMenu,
+                  height: 36,
+                ),
+              ],
+              const SizedBox(height: 20),
+              _DockButton(
+                icon: Icons.palette_outlined,
+                color: Colors.indigo,
+                tooltip: 'Page settings',
+                onPressed: () {
+                  widget.onPageSettings();
+                  dismissMenu();
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );

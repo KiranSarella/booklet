@@ -13,9 +13,16 @@ import 'package:booklet/ui/navigation/navigation_node.dart';
 import 'package:booklet/ui/options_dock/opitons_dock.dart';
 
 class BaseView extends StatefulWidget {
-  const BaseView({super.key, required this.controller});
+  const BaseView({
+    super.key,
+    required this.controller,
+    required this.onShowDocumentSettings,
+    required this.onShowPageSettings,
+  });
 
   final EditorController controller;
+  final VoidCallback onShowDocumentSettings;
+  final VoidCallback onShowPageSettings;
 
   @override
   State<BaseView> createState() => BaseViewState();
@@ -248,6 +255,7 @@ May this day of your birth be auspicious!
                     widget.controller.pasteSelectedNavigationNode(),
                   ),
                   canPasteNode: widget.controller.canPasteComponents,
+                  onShowDocumentSettings: widget.onShowDocumentSettings,
                   canMoveNode: (source, target, {required into}) => _viewModel
                       .navigation
                       .canMoveNode(source, target, into: into),
@@ -314,6 +322,7 @@ May this day of your birth be auspicious!
                 onComponentDeleted: deleteSelectedComponent,
                 onComponentsCopied: copySelectedComponents,
                 onComponentsPasted: pasteComponents,
+                onPageSettings: widget.onShowPageSettings,
                 hasSelection: _viewModel.selectedComponent != null,
                 canTransformSelection: _viewModel.canTransformSelectedComponent,
                 canPaste: widget.controller.canPasteComponents,

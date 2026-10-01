@@ -10,6 +10,8 @@ import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/application/window_manager_service.dart';
 import 'package:booklet/ui/base_view.dart';
+import 'package:booklet/ui/document_settings/document_settings_view.dart';
+import 'package:booklet/ui/document_settings/document_settings_vm.dart';
 import 'package:booklet/ui/document_toolbar.dart';
 import 'package:booklet/ui/page_settings/page_settings_view.dart';
 import 'package:booklet/ui/page_settings/page_settings_vm.dart';
@@ -17,7 +19,8 @@ import 'package:booklet/ui/start_booklet.dart';
 
 // Keeps gray appearance dark enough for the dark scheme's white foregrounds.
 ColorScheme _applyGrayTint(ColorScheme scheme) {
-  Color tint(Color color) => Color.lerp(color, const Color.fromARGB(255, 103, 102, 102), 0.45)!;
+  Color tint(Color color) =>
+      Color.lerp(color, const Color.fromARGB(255, 103, 102, 102), 0.45)!;
   return scheme.copyWith(
     surface: tint(scheme.surface),
     surfaceDim: tint(scheme.surfaceDim),
@@ -66,7 +69,6 @@ class MainApp extends StatefulWidget {
 class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _bookletEditorKey = GlobalKey<BaseViewState>();
-  final _documentToolbarKey = GlobalKey<DocumentToolbarState>();
   final _windowManagerService = WindowManagerService();
 
   @override
@@ -119,6 +121,22 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
           pageSettingsController: widget.application.editorTheme,
           documentSettingsController:
               widget.application.documentSettingsController,
+        ),
+      ),
+    );
+  }
+
+  void _showDocumentSettings() {
+    final navigatorContext = _navigatorKey.currentContext;
+    if (navigatorContext == null) {
+      return;
+    }
+
+    showDialog<void>(
+      context: navigatorContext,
+      builder: (context) => DocumentSettingsDialog(
+        viewModel: DocumentSettingsVM(
+          settingsController: widget.application.documentSettingsController,
         ),
       ),
     );
@@ -188,6 +206,8 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                           child: BaseView(
                             key: _bookletEditorKey,
                             controller: widget.application.editorController,
+                            onShowDocumentSettings: _showDocumentSettings,
+                            onShowPageSettings: _showThemeEditor,
                           ),
                         ),
                       ),
@@ -195,9 +215,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                         top: 12,
                         left: 602,
                         child: DocumentToolbar(
-                          key: _documentToolbarKey,
                           controller: widget.application.editorController,
-                          onEditTheme: _showThemeEditor,
                           onOpenInNewWindow: _openInNewWindow,
                         ),
                       ),

@@ -30,6 +30,7 @@ class NavigationPanelView extends StatefulWidget {
     required this.onCopyNode,
     required this.onPasteNode,
     required this.canPasteNode,
+    required this.onShowDocumentSettings,
     required this.canMoveNode,
     required this.onMoveNode,
     required this.onChanged,
@@ -52,6 +53,7 @@ class NavigationPanelView extends StatefulWidget {
   final VoidCallback onCopyNode;
   final VoidCallback onPasteNode;
   final bool canPasteNode;
+  final VoidCallback onShowDocumentSettings;
   final bool Function(
     NavigationNode source,
     NavigationNode target, {
@@ -119,6 +121,12 @@ class _NavigationPanelViewState extends State<NavigationPanelView> {
                     widget.onDeleteNode();
                   },
                   onChanged: widget.onChanged,
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'Document settings',
+                  icon: const Icon(Icons.settings_outlined, size: 20),
+                  onPressed: widget.onShowDocumentSettings,
                 ),
               ],
             ),
