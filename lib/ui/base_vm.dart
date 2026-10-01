@@ -52,8 +52,13 @@ class BaseVM {
   void replaceNavigation(
     List<NavigationNode> groups, {
     String? selectedPageId,
+    String? selectedAssetFolderId,
   }) {
-    navigation.replaceGroups(groups, selectedPageId: selectedPageId);
+    navigation.replaceGroups(
+      groups,
+      selectedPageId: selectedPageId,
+      selectedAssetFolderId: selectedAssetFolderId,
+    );
     _selectedComponent = null;
     _selectedComponents.clear();
     _anchorIndex = null;
@@ -100,13 +105,18 @@ class BaseVM {
 
   void selectNode(NavigationNode node) {
     navigation.selectNode(node);
-    if (node.isPage) {
+    if (node.isPage || node.isAssetsFolder) {
       clearSelectedComponent();
     }
   }
 
   void addGroup() {
     navigation.addGroup();
+  }
+
+  NavigationNode addAssetsFolder() {
+    clearSelectedComponent();
+    return navigation.addAssetsFolder(folderId: const Uuid().v4());
   }
 
   void addPageBelowSelected() {
@@ -129,21 +139,22 @@ class BaseVM {
     }
   }
 
-  void deleteSelectedNode() {
+  NavigationNode? deleteSelectedNode() {
     final selectedNode = navigation.selectedNode;
     if (selectedNode == null) {
-      return;
+      return null;
     }
     final selectedPageId = navigation.selectedPageId;
     final selectedPageWasDeleted = _containsPage(selectedNode, selectedPageId);
     final removedNode = navigation.deleteNode(selectedNode);
     if (removedNode == null) {
-      return;
+      return null;
     }
     _disposePages(removedNode);
     if (selectedPageWasDeleted) {
       clearSelectedComponent();
     }
+    return removedNode;
   }
 
   bool _containsPage(NavigationNode node, String? pageId) {

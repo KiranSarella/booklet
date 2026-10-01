@@ -1,3 +1,4 @@
+import 'package:booklet/ui/assets/asset_manager_view.dart';
 import 'package:booklet/ui/page_view/page_view.dart';
 import 'package:flutter/material.dart' hide PageView;
 import 'package:flutter/services.dart';
@@ -193,37 +194,45 @@ May this day of your birth be auspicious!
                       setState(_viewModel.addPageBelowSelected),
                   onAddChildPage: () =>
                       setState(_viewModel.addChildPageSelected),
+                  onAddAssetsFolder: () =>
+                      setState(widget.controller.addAssetsFolder),
                   onRenameNode: (title) =>
                       setState(() => _viewModel.renameSelectedNode(title)),
-                  onDeleteNode: () => setState(_viewModel.deleteSelectedNode),
+                  onDeleteNode: () =>
+                      setState(widget.controller.deleteSelectedNode),
                   onChanged: () => setState(() {}),
                 ),
                 _NavigationResizeHandle(onDragUpdate: _resizeNavigation),
               ],
               Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: clearSelectionAndFocus,
-                  child: Focus(
-                    focusNode: _pageFocusNode,
-                    onKeyEvent: _handlePageKeyEvent,
-                    child: ColoredBox(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      child: SingleChildScrollView(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(90),
-                        child: PageView(
-                          editorTheme: widget.controller.editorTheme,
-                          page: widget.controller.selectedPage,
-                          onSelectComponent: selectComponent,
-                          onSelectComponentRange: selectComponentRange,
-                          onCreateEntryBelow: _createEntryBelow,
-                          onTapEmptySpace: clearSelectionAndFocus,
+                child:
+                    _viewModel.navigation.selectedNode?.isAssetsFolder == true
+                    ? AssetManagerView(
+                        controller: widget.controller.assetManagerController,
+                      )
+                    : GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: clearSelectionAndFocus,
+                        child: Focus(
+                          focusNode: _pageFocusNode,
+                          onKeyEvent: _handlePageKeyEvent,
+                          child: ColoredBox(
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                            child: SingleChildScrollView(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.all(90),
+                              child: PageView(
+                                editorTheme: widget.controller.editorTheme,
+                                page: widget.controller.selectedPage,
+                                onSelectComponent: selectComponent,
+                                onSelectComponentRange: selectComponentRange,
+                                onCreateEntryBelow: _createEntryBelow,
+                                onTapEmptySpace: clearSelectionAndFocus,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
               ),
             ],
           ),
@@ -235,17 +244,18 @@ May this day of your birth be auspicious!
               onPressed: _toggleNavigation,
             ),
           ),
-          Positioned.fill(
-            child: OptionsDock(
-              key: _optionsDockKey,
-              onComponentSelected: addComponentBelowSelected,
-              onComponentTransformed: transformSelectedComponent,
-              onComponentDeleted: deleteSelectedComponent,
-              hasSelection: _viewModel.selectedComponent != null,
-              canTransformSelection: _viewModel.canTransformSelectedComponent,
-              isReadOnly: widget.controller.documentSettingsController.isReadOnly,
+          if (_viewModel.navigation.selectedNode?.isAssetsFolder != true)
+            Positioned.fill(
+              child: OptionsDock(
+                key: _optionsDockKey,
+                onComponentSelected: addComponentBelowSelected,
+                onComponentTransformed: transformSelectedComponent,
+                onComponentDeleted: deleteSelectedComponent,
+                hasSelection: _viewModel.selectedComponent != null,
+                canTransformSelection: _viewModel.canTransformSelectedComponent,
+                isReadOnly: widget.controller.documentSettingsController.isReadOnly,
+              ),
             ),
-          ),
         ],
       ),
     );

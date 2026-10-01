@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:booklet/application/asset_manager_controller.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/base_vm.dart';
@@ -8,11 +11,13 @@ import 'package:booklet/ui/navigation/navigation_node.dart';
 
 class EditorController extends ChangeNotifier {
   EditorController(this.editorTheme, this.documentSettingsController)
-    : viewModel = BaseVM(editorTheme);
+    : viewModel = BaseVM(editorTheme),
+      assetManagerController = AssetManagerController();
 
   final PageSettingsController editorTheme;
   final DocumentSettingsController documentSettingsController;
   final BaseVM viewModel;
+  final AssetManagerController assetManagerController;
   bool isLoadingPage = false;
   String? _documentPath;
   int _selectionRequest = 0;
@@ -36,10 +41,18 @@ class EditorController extends ChangeNotifier {
     viewModel.replaceNavigation(
       manifest.groups,
       selectedPageId: manifest.selectedPageId,
+      selectedAssetFolderId: manifest.selectedAssetFolderId,
+    );
+    assetManagerController.selectFolder(
+      viewModel.navigation.selectedNode,
+      _documentPath,
     );
     notifyListeners();
 
-    final pageId = manifest.selectedPageId ?? _firstPageId(manifest.groups);
+    final selectedFolderId = viewModel.navigation.selectedAssetFolderId;
+    final pageId = selectedFolderId == null
+        ? manifest.selectedPageId ?? _firstPageId(manifest.groups)
+        : null;
     if (pageId != null) {
       await selectPage(pageId, saveCurrentPage: false);
     }
@@ -83,10 +96,36 @@ class EditorController extends ChangeNotifier {
 
   void selectNode(NavigationNode node) {
     if (node.isPage && node.pageId != null) {
+      assetManagerController.selectFolder(null, _documentPath);
       selectPage(node.pageId!);
       return;
     }
+    ++_selectionRequest;
+    isLoadingPage = false;
     viewModel.selectNode(node);
+    assetManagerController.selectFolder(
+      node.isAssetsFolder ? node : null,
+      _documentPath,
+    );
+    notifyListeners();
+  }
+
+  void addAssetsFolder() {
+    final folder = viewModel.addAssetsFolder();
+    assetManagerController.selectFolder(folder, _documentPath);
+    notifyListeners();
+  }
+
+  void deleteSelectedNode() {
+    final removedNode = viewModel.deleteSelectedNode();
+    if (removedNode == null) {
+      return;
+    }
+    assetManagerController.selectFolder(
+      viewModel.navigation.selectedNode,
+      _documentPath,
+    );
+    unawaited(BookletFile.deleteAssetsForNode(_documentPath, removedNode));
     notifyListeners();
   }
 
@@ -95,6 +134,7 @@ class EditorController extends ChangeNotifier {
   Future<bool> saveBookletAs() => _save(saveAs: true);
 
   Future<bool> _save({required bool saveAs}) async {
+    final previousPath = _documentPath;
     var path = saveAs ? null : _documentPath;
     path ??= await BookletFile.chooseSavePath();
     if (path == null) {
@@ -107,6 +147,12 @@ class EditorController extends ChangeNotifier {
       packagePath: path,
       groups: viewModel.navigation.groups,
       selectedPageId: viewModel.selectedPageId,
+      selectedAssetFolderId: viewModel.navigation.selectedAssetFolderId,
+      sourcePackagePath: previousPath,
+    );
+    assetManagerController.selectFolder(
+      viewModel.navigation.selectedNode,
+      path,
     );
     notifyListeners();
     return true;
@@ -137,6 +183,7 @@ class EditorController extends ChangeNotifier {
 
   @override
   void dispose() {
+    assetManagerController.dispose();
     viewModel.dispose();
     super.dispose();
   }

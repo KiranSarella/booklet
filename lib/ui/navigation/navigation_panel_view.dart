@@ -14,6 +14,7 @@ class NavigationPanelView extends StatefulWidget {
     required this.onCreateGroup,
     required this.onAddPageBelow,
     required this.onAddChildPage,
+    required this.onAddAssetsFolder,
     required this.onRenameNode,
     required this.onDeleteNode,
     required this.onChanged,
@@ -29,6 +30,7 @@ class NavigationPanelView extends StatefulWidget {
   final VoidCallback onCreateGroup;
   final VoidCallback onAddPageBelow;
   final VoidCallback onAddChildPage;
+  final VoidCallback onAddAssetsFolder;
   final ValueChanged<String> onRenameNode;
   final VoidCallback onDeleteNode;
   final VoidCallback onChanged;
@@ -74,6 +76,9 @@ class _NavigationPanelViewState extends State<NavigationPanelView> {
                   onCreateGroup: widget.onCreateGroup,
                   onAddPageBelow: widget.onAddPageBelow,
                   onAddChildPage: widget.onAddChildPage,
+                  onAddAssetsFolder: widget.onAddAssetsFolder,
+                  canAddChildPage:
+                      widget.controller.selectedNode?.isAssetsFolder != true,
                   onChanged: widget.onChanged,
                 ),
                 NavigationMoreMenu(

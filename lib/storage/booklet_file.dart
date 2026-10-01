@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:booklet/business/page_content.dart';
+import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/storage/rich_text_codec.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/ui/components/code_block_component.dart';
@@ -19,11 +20,13 @@ class BookletManifest {
     required this.path,
     required this.groups,
     required this.selectedPageId,
+    required this.selectedAssetFolderId,
   });
 
   final String path;
   final List<NavigationNode> groups;
   final String? selectedPageId;
+  final String? selectedAssetFolderId;
 }
 
 class BookletFile {
@@ -72,7 +75,59 @@ class BookletFile {
           )
           .toList(),
       selectedPageId: json['selectedPageId'] as String?,
+      selectedAssetFolderId: json['selectedAssetFolderId'] as String?,
     );
+  }
+
+  static Future<List<XFile>> chooseAssets() => openFiles();
+
+  static Future<List<BookletAsset>> importAssets({
+    required String? packagePath,
+    required String folderId,
+    required List<XFile> files,
+  }) async {
+    final assets = <BookletAsset>[];
+    final assetDirectory = packagePath == null
+        ? null
+        : Directory('$packagePath/assets/$folderId');
+    await assetDirectory?.create(recursive: true);
+
+    for (final file in files) {
+      final id = const Uuid().v4();
+      final asset = BookletAsset(
+        id: id,
+        name: file.name,
+        path: assetDirectory == null
+            ? file.path
+            : 'assets/$folderId/$id${_assetExtension(file.name)}',
+      );
+      if (assetDirectory != null) {
+        await file.saveTo(
+          '${assetDirectory.path}/$id${_assetExtension(file.name)}',
+        );
+      }
+      assets.add(asset);
+    }
+    return assets;
+  }
+
+  static Future<void> deleteAssetsForNode(
+    String? packagePath,
+    NavigationNode node,
+  ) async {
+    if (packagePath == null) {
+      return;
+    }
+    final folderId = node.folderId;
+    if (folderId != null) {
+      final directory = Directory('$packagePath/assets/$folderId');
+      if (await directory.exists()) {
+        await directory.delete(recursive: true);
+      }
+    }
+    for (final child in node.children) {
+      await deleteAssetsForNode(packagePath, child);
+    }
   }
 
   static Future<PageContent> loadPage(
@@ -179,11 +234,19 @@ class BookletFile {
     required String packagePath,
     required List<NavigationNode> groups,
     required String? selectedPageId,
+    String? selectedAssetFolderId,
+    String? sourcePackagePath,
   }) async {
     await _ensurePackageDirectories(packagePath);
+    await _persistNavigationAssets(
+      packagePath,
+      groups,
+      sourcePackagePath: sourcePackagePath,
+    );
     final json = const JsonEncoder.withIndent('  ').convert({
       'version': 1,
       'selectedPageId': selectedPageId,
+      'selectedAssetFolderId': selectedAssetFolderId,
       'navigation': groups.map((group) => group.toJson()).toList(),
     });
     await File('$packagePath/$_manifestName').writeAsString(json);
@@ -299,6 +362,53 @@ class BookletFile {
 
   static String _normalizePackagePath(String path) =>
       path.endsWith('.$_extension') ? path : '$path.$_extension';
+
+  static Future<void> _persistNavigationAssets(
+    String packagePath,
+    List<NavigationNode> nodes, {
+    String? sourcePackagePath,
+  }) async {
+    for (final node in nodes) {
+      if (node.isAssetsFolder) {
+        final folderId = node.folderId ?? '';
+        final assetDirectory = Directory('$packagePath/assets/$folderId');
+        await assetDirectory.create(recursive: true);
+        for (var index = 0; index < node.assets.length; index++) {
+          final asset = node.assets[index];
+          final targetPath =
+              '${assetDirectory.path}/${asset.id}${_assetExtension(asset.name)}';
+          final targetFile = File(targetPath);
+          final storedPath = asset.path;
+          final isAbsolute = File(storedPath).isAbsolute;
+          final sourcePath = isAbsolute
+              ? storedPath
+              : '${sourcePackagePath ?? packagePath}/$storedPath';
+          final sourceFile = File(sourcePath);
+          if (await sourceFile.exists() &&
+              sourceFile.absolute.path != targetFile.absolute.path) {
+            await sourceFile.copy(targetPath);
+          }
+          if (await targetFile.exists()) {
+            node.assets[index] = BookletAsset(
+              id: asset.id,
+              name: asset.name,
+              path: _toPackageMediaPath(packagePath, targetPath),
+            );
+          }
+        }
+      }
+      await _persistNavigationAssets(
+        packagePath,
+        node.children,
+        sourcePackagePath: sourcePackagePath,
+      );
+    }
+  }
+
+  static String _assetExtension(String name) {
+    final dotIndex = name.lastIndexOf('.');
+    return dotIndex < 0 ? '' : name.substring(dotIndex);
+  }
 
   static Future<Map<String, dynamic>> _persistImageAsset(
     String packagePath,
@@ -507,6 +617,7 @@ class BookletFile {
     await Directory(packagePath).create(recursive: true);
     await Directory('$packagePath/$_pagesDirectory').create(recursive: true);
     await Directory('$packagePath/$_mediaDirectory').create(recursive: true);
+    await Directory('$packagePath/assets').create(recursive: true);
     await Directory('$packagePath/custom_components').create(recursive: true);
     await Directory('$packagePath/metadata').create(recursive: true);
   }

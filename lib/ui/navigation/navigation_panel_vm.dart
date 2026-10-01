@@ -4,15 +4,23 @@ class NavigationPanelVM {
   final List<NavigationNode> groups = [];
   NavigationNode? selectedNode;
   String? selectedPageId;
+  String? selectedAssetFolderId;
 
-  void replaceGroups(List<NavigationNode> nodes, {String? selectedPageId}) {
+  void replaceGroups(
+    List<NavigationNode> nodes, {
+    String? selectedPageId,
+    String? selectedAssetFolderId,
+  }) {
     groups
       ..clear()
       ..addAll(nodes);
     this.selectedPageId = selectedPageId;
-    selectedNode = selectedPageId == null
-        ? null
-        : _findNode((node) => node.pageId == selectedPageId);
+    selectedNode = selectedAssetFolderId == null
+        ? (selectedPageId == null
+              ? null
+              : _findNode((node) => node.pageId == selectedPageId))
+        : _findNode((node) => node.folderId == selectedAssetFolderId);
+    this.selectedAssetFolderId = selectedNode?.folderId;
   }
 
   NavigationNode addGroup({String title = 'New group'}) {
@@ -36,6 +44,33 @@ class NavigationPanelVM {
     if (node.isPage) {
       selectedPageId = node.pageId;
     }
+    selectedAssetFolderId = node.isAssetsFolder ? node.folderId : null;
+  }
+
+  NavigationNode addAssetsFolder({
+    required String folderId,
+    String title = 'Assets',
+  }) {
+    final folder = NavigationNode.assetsFolder(
+      title: title,
+      folderId: folderId,
+    );
+    final reference = selectedNode ?? _selectedNode();
+    if (reference == null || reference.isGroup) {
+      final group = reference?.isGroup == true
+          ? reference!
+          : (groups.isEmpty ? addGroup() : groups.first);
+      group.children.add(folder);
+    } else if (reference.isPage) {
+      reference.children.add(folder);
+      reference.isExpanded = true;
+    } else {
+      final siblings = _siblingsOf(reference);
+      final index = siblings.indexOf(reference);
+      siblings.insert(index + 1, folder);
+    }
+    selectNode(folder);
+    return folder;
   }
 
   NavigationNode? renamePage(String pageId, String title) {
@@ -58,60 +93,71 @@ class NavigationPanelVM {
 
     final siblings = _siblingsOf(node);
     final index = siblings.indexOf(node);
-    final removedPageIds = <String>{};
-    _collectPageIds(node, removedPageIds);
+    final removedSelectionIds = <String>{};
+    _collectSelectionIds(node, removedSelectionIds);
     siblings.removeAt(index);
-    if (selectedNode == node || removedPageIds.contains(selectedPageId)) {
-      final selectedPage = selectedPageId == null
+    if (selectedNode == node ||
+        removedSelectionIds.contains(selectedPageId) ||
+        removedSelectionIds.contains(selectedAssetFolderId)) {
+      final selectedExistingNode = selectedPageId == null
           ? null
           : _findNode((candidate) => candidate.pageId == selectedPageId);
       selectedNode =
-          selectedPage ??
-          _pageNear(siblings, index) ??
-          _findNode((candidate) => candidate.isPage);
-      selectedPageId = selectedNode?.pageId;
+          selectedExistingNode ??
+          _selectableNear(siblings, index) ??
+          _findNode(
+            (candidate) => candidate.isPage || candidate.isAssetsFolder,
+          );
+      selectedPageId = selectedNode?.isPage == true
+          ? selectedNode?.pageId
+          : null;
+      selectedAssetFolderId = selectedNode?.folderId;
     }
     return node;
   }
 
-  void _collectPageIds(NavigationNode node, Set<String> pageIds) {
+  void _collectSelectionIds(NavigationNode node, Set<String> selectionIds) {
     final pageId = node.pageId;
     if (pageId != null) {
-      pageIds.add(pageId);
+      selectionIds.add(pageId);
+    }
+    final folderId = node.folderId;
+    if (folderId != null) {
+      selectionIds.add(folderId);
     }
     for (final child in node.children) {
-      _collectPageIds(child, pageIds);
+      _collectSelectionIds(child, selectionIds);
     }
   }
 
-  NavigationNode? _pageNear(List<NavigationNode> siblings, int index) {
+  NavigationNode? _selectableNear(List<NavigationNode> siblings, int index) {
     for (
       var siblingIndex = index;
       siblingIndex < siblings.length;
       siblingIndex++
     ) {
-      final page = _firstPageIn(siblings[siblingIndex]);
-      if (page != null) {
-        return page;
+      final selectable = _firstSelectableIn(siblings[siblingIndex]);
+      if (selectable != null) {
+        return selectable;
       }
     }
     for (var siblingIndex = index - 1; siblingIndex >= 0; siblingIndex--) {
-      final page = _firstPageIn(siblings[siblingIndex]);
-      if (page != null) {
-        return page;
+      final selectable = _firstSelectableIn(siblings[siblingIndex]);
+      if (selectable != null) {
+        return selectable;
       }
     }
     return null;
   }
 
-  NavigationNode? _firstPageIn(NavigationNode node) {
-    if (node.isPage) {
+  NavigationNode? _firstSelectableIn(NavigationNode node) {
+    if (node.isPage || node.isAssetsFolder) {
       return node;
     }
     for (final child in node.children) {
-      final page = _firstPageIn(child);
-      if (page != null) {
-        return page;
+      final selectable = _firstSelectableIn(child);
+      if (selectable != null) {
+        return selectable;
       }
     }
     return null;
@@ -133,7 +179,7 @@ class NavigationPanelVM {
           ? reference!
           : (groups.isEmpty ? addGroup() : groups.first);
       group.children.add(page);
-    } else if (placement == PagePlacement.child) {
+    } else if (placement == PagePlacement.child && reference.isPage) {
       reference.children.add(page);
       reference.isExpanded = true;
     } else {
@@ -147,6 +193,7 @@ class NavigationPanelVM {
 
     selectedPageId = pageId;
     selectedNode = page;
+    selectedAssetFolderId = null;
     return page;
   }
 
