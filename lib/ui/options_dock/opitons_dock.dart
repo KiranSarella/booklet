@@ -7,16 +7,22 @@ class OptionsDock extends StatefulWidget {
     required this.onComponentSelected,
     required this.onComponentTransformed,
     required this.onComponentDeleted,
+    required this.onComponentsCopied,
+    required this.onComponentsPasted,
     required this.hasSelection,
     required this.canTransformSelection,
+    required this.canPaste,
     required this.isReadOnly,
   });
 
   final ValueChanged<String> onComponentSelected;
   final ValueChanged<String> onComponentTransformed;
   final VoidCallback onComponentDeleted;
+  final VoidCallback onComponentsCopied;
+  final VoidCallback onComponentsPasted;
   final bool hasSelection;
   final bool canTransformSelection;
+  final bool canPaste;
   final bool isReadOnly;
 
   @override
@@ -87,6 +93,32 @@ class OptionsDockState extends State<OptionsDock> {
                           ? () => _toggleMenu('transform')
                           : null,
                       enabled: widget.canTransformSelection,
+                    ),
+                    const SizedBox(height: 20),
+                    _DockButton(
+                      icon: Icons.copy_outlined,
+                      color: Colors.teal,
+                      tooltip: 'Copy component(s)',
+                      onPressed: widget.hasSelection
+                          ? () {
+                              widget.onComponentsCopied();
+                              dismissMenu();
+                            }
+                          : null,
+                      enabled: widget.hasSelection,
+                    ),
+                    const SizedBox(height: 20),
+                    _DockButton(
+                      icon: Icons.content_paste,
+                      color: Colors.teal,
+                      tooltip: 'Paste component(s)',
+                      onPressed: widget.canPaste
+                          ? () {
+                              widget.onComponentsPasted();
+                              dismissMenu();
+                            }
+                          : null,
+                      enabled: widget.canPaste,
                     ),
                     const SizedBox(height: 80),
                     _DockButton(

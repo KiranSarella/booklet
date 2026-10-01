@@ -54,18 +54,50 @@ class BaseViewState extends State<BaseView> {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
-    if (!HardwareKeyboard.instance.isShiftPressed) {
-      return KeyEventResult.ignored;
+    if (HardwareKeyboard.instance.isShiftPressed) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        setState(() => _viewModel.extendSelectionWithArrowKey(true));
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        setState(() => _viewModel.extendSelectionWithArrowKey(false));
+        return KeyEventResult.handled;
+      }
     }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      setState(() => _viewModel.extendSelectionWithArrowKey(true));
+    final isCommandPressed =
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isControlPressed;
+    if (isCommandPressed && event.logicalKey == LogicalKeyboardKey.keyC) {
+      if (_viewModel.selectedComponent == null) {
+        return KeyEventResult.ignored;
+      }
+      copySelectedComponents();
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      setState(() => _viewModel.extendSelectionWithArrowKey(false));
+    if (isCommandPressed && event.logicalKey == LogicalKeyboardKey.keyV) {
+      if (!widget.controller.canPasteComponents) {
+        return KeyEventResult.ignored;
+      }
+      pasteComponents();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  void copySelectedComponents() {
+    setState(widget.controller.copySelectedComponents);
+  }
+
+  void pasteComponents() {
+    late final List<ComponentBox> pasted;
+    setState(() => pasted = widget.controller.pasteComponents());
+    if (pasted.isEmpty) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToComponent(pasted.last);
+    });
   }
 
   void selectPage(NavigationNode node) {
@@ -251,8 +283,11 @@ May this day of your birth be auspicious!
                 onComponentSelected: addComponentBelowSelected,
                 onComponentTransformed: transformSelectedComponent,
                 onComponentDeleted: deleteSelectedComponent,
+                onComponentsCopied: copySelectedComponents,
+                onComponentsPasted: pasteComponents,
                 hasSelection: _viewModel.selectedComponent != null,
                 canTransformSelection: _viewModel.canTransformSelectedComponent,
+                canPaste: widget.controller.canPasteComponents,
                 isReadOnly: widget.controller.documentSettingsController.isReadOnly,
               ),
             ),

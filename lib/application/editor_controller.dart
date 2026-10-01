@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:booklet/application/asset_manager_controller.dart';
+import 'package:booklet/application/component_clipboard_controller.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/base_vm.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
+import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 
 class EditorController extends ChangeNotifier {
@@ -18,11 +20,36 @@ class EditorController extends ChangeNotifier {
   final DocumentSettingsController documentSettingsController;
   final BaseVM viewModel;
   final AssetManagerController assetManagerController;
+  // Lives on the controller (not the per-page view model) so copied
+  // components survive page switches and opening a different booklet.
+  final ComponentClipboardController clipboardController =
+      ComponentClipboardController();
   bool isLoadingPage = false;
   String? _documentPath;
   int _selectionRequest = 0;
 
   String? get documentPath => _documentPath;
+
+  bool get canPasteComponents =>
+      clipboardController.hasContent && !documentSettingsController.isReadOnly;
+
+  void copySelectedComponents() {
+    final snapshots = viewModel.captureSelectedComponents();
+    if (snapshots.isEmpty) {
+      return;
+    }
+    clipboardController.copy(snapshots);
+    notifyListeners();
+  }
+
+  List<ComponentBox> pasteComponents() {
+    if (!canPasteComponents) {
+      return const [];
+    }
+    final pasted = viewModel.pasteComponents(clipboardController.snapshots);
+    notifyListeners();
+    return pasted;
+  }
   bool get hasOpenedBooklet => _documentPath != null;
   PageContent? get selectedPage => viewModel.selectedPage;
 

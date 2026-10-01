@@ -3,6 +3,7 @@ import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/ui/components/component_box.dart';
+import 'package:booklet/ui/components/component_snapshot.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/navigation/navigation_panel_vm.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
@@ -306,6 +307,49 @@ class BaseVM {
     oldComponent.dispose();
   }
 
+
+  // MARK: - Copy / paste
+
+  List<ComponentSnapshot> captureSelectedComponents() {
+    if (_selectedComponents.isEmpty) {
+      final selected = _selectedComponent;
+      return selected == null
+          ? const []
+          : [ComponentSnapshot.capture(selected)];
+    }
+    return [
+      for (final box in components)
+        if (_selectedComponents.contains(box)) ComponentSnapshot.capture(box),
+    ];
+  }
+
+  List<ComponentBox> pasteComponents(List<ComponentSnapshot> snapshots) {
+    if (theme.documentSettingsController.isReadOnly || snapshots.isEmpty) {
+      return const [];
+    }
+    final page = selectedPage;
+    if (page == null) {
+      return const [];
+    }
+    final reference = _selectedComponent;
+    var insertIndex = reference != null
+        ? page.components.indexOf(reference)
+        : page.components.length - 1;
+
+    final pasted = <ComponentBox>[];
+    for (final snapshot in snapshots) {
+      insertIndex++;
+      final box = snapshot.instantiate();
+      page.components.insert(insertIndex, box);
+      pasted.add(box);
+    }
+
+    selectComponent(pasted.first);
+    if (pasted.length > 1) {
+      selectComponentRange(pasted.last);
+    }
+    return pasted;
+  }
 
   void deleteSelectedComponent() {
     if (theme.documentSettingsController.isReadOnly) {
