@@ -53,6 +53,10 @@ class BookletFile {
     final packagePath = FileSystemEntity.isDirectorySync(selectedPath)
         ? selectedPath
         : File(selectedPath).parent.path;
+    return loadManifestAtPath(packagePath);
+  }
+
+  static Future<BookletManifest> loadManifestAtPath(String packagePath) async {
     final manifest = File('$packagePath/$_manifestName');
     final json = jsonDecode(await manifest.readAsString());
     if (json is! Map) {

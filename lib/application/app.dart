@@ -33,6 +33,14 @@ class App extends ChangeNotifier {
     return opened;
   }
 
+  Future<bool> openBookletAtPath(String path) async {
+    final opened = await editorController.openBookletAtPath(path);
+    if (opened) {
+      _showEditor();
+    }
+    return opened;
+  }
+
   void _showEditor() {
     if (_screen == AppScreen.editor) {
       return;

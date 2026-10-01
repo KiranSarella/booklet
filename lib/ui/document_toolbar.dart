@@ -8,10 +8,12 @@ class DocumentToolbar extends StatefulWidget {
     super.key,
     required this.controller,
     required this.onEditTheme,
+    required this.onOpenInNewWindow,
   });
 
   final EditorController controller;
   final VoidCallback onEditTheme;
+  final VoidCallback onOpenInNewWindow;
 
   @override
   State<DocumentToolbar> createState() => DocumentToolbarState();
@@ -76,6 +78,12 @@ class DocumentToolbarState extends State<DocumentToolbar> {
           tooltip: 'Save booklet',
           icon: Icons.save_outlined,
           onPressed: saveBooklet,
+        ),
+        const SizedBox(width: 8),
+        _ActionButton(
+          tooltip: 'Open in new window',
+          icon: Icons.open_in_new,
+          onPressed: widget.onOpenInNewWindow,
         ),
         const SizedBox(width: 8),
         _ActionButton(

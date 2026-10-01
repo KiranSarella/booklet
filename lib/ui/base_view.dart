@@ -2,6 +2,7 @@ import 'package:booklet/ui/assets/asset_manager_view.dart';
 import 'package:booklet/ui/page_view/page_view.dart';
 import 'package:flutter/material.dart' hide PageView;
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:booklet/application/editor_controller.dart';
 import 'package:booklet/ui/base_vm.dart';
 import 'package:booklet/ui/components/component_box.dart';
@@ -85,15 +86,19 @@ class BaseViewState extends State<BaseView> {
   }
 
   void copySelectedComponents() {
-    setState(widget.controller.copySelectedComponents);
+    unawaited(widget.controller.copySelectedComponents());
   }
 
   void pasteComponents() {
-    late final List<ComponentBox> pasted;
-    setState(() => pasted = widget.controller.pasteComponents());
-    if (pasted.isEmpty) {
+    unawaited(_pasteComponentsAsync());
+  }
+
+  Future<void> _pasteComponentsAsync() async {
+    final pasted = await widget.controller.pasteComponents();
+    if (!mounted || pasted.isEmpty) {
       return;
     }
+    setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _scrollToComponent(pasted.last);

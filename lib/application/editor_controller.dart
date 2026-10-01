@@ -30,26 +30,31 @@ class EditorController extends ChangeNotifier {
 
   String? get documentPath => _documentPath;
 
-  bool get canPasteComponents =>
-      clipboardController.hasContent && !documentSettingsController.isReadOnly;
+  bool get canPasteComponents => !documentSettingsController.isReadOnly;
 
-  void copySelectedComponents() {
+  Future<void> copySelectedComponents() async {
     final snapshots = viewModel.captureSelectedComponents();
     if (snapshots.isEmpty) {
       return;
     }
-    clipboardController.copy(snapshots);
-    notifyListeners();
+    await clipboardController.copy(snapshots);
   }
 
-  List<ComponentBox> pasteComponents() {
+  Future<List<ComponentBox>> pasteComponents() async {
     if (!canPasteComponents) {
       return const [];
     }
-    final pasted = viewModel.pasteComponents(clipboardController.snapshots);
-    notifyListeners();
+    final snapshots = await clipboardController.paste();
+    if (snapshots.isEmpty) {
+      return const [];
+    }
+    final pasted = viewModel.pasteComponents(snapshots);
+    if (pasted.isNotEmpty) {
+      notifyListeners();
+    }
     return pasted;
   }
+
   bool get hasOpenedBooklet => _documentPath != null;
   PageContent? get selectedPage => viewModel.selectedPage;
 
@@ -63,7 +68,17 @@ class EditorController extends ChangeNotifier {
     if (manifest == null) {
       return false;
     }
+    await _applyManifest(manifest);
+    return true;
+  }
 
+  Future<bool> openBookletAtPath(String packagePath) async {
+    final manifest = await BookletFile.loadManifestAtPath(packagePath);
+    await _applyManifest(manifest);
+    return true;
+  }
+
+  Future<void> _applyManifest(BookletManifest manifest) async {
     _documentPath = manifest.path;
     viewModel.replaceNavigation(
       manifest.groups,
@@ -83,7 +98,6 @@ class EditorController extends ChangeNotifier {
     if (pageId != null) {
       await selectPage(pageId, saveCurrentPage: false);
     }
-    return true;
   }
 
   Future<void> selectPage(String pageId, {bool saveCurrentPage = true}) async {

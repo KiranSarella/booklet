@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -5,6 +8,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/application/app.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
+import 'package:booklet/application/window_manager_service.dart';
 import 'package:booklet/ui/base_view.dart';
 import 'package:booklet/ui/document_toolbar.dart';
 import 'package:booklet/ui/page_settings/page_settings_view.dart';
@@ -26,17 +30,28 @@ ColorScheme _applyGrayTint(ColorScheme scheme) {
   );
 }
 
-void main() {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Every window (the first one and any spawned via WindowManagerService)
+  // goes through this same entry point; the window's own launch arguments
+  // tell us which document (if any) it should open.
+  final windowController = await WindowController.fromCurrentEngine();
+  final documentPath = WindowManagerService.parseDocumentPath(
+    windowController.arguments,
+  );
+
   final documentSettingsController = DocumentSettingsController();
   final pageSettingsController = PageSettingsController(
     documentSettingsController,
   );
-  runApp(
-    MainApp(
-      application: App(pageSettingsController, documentSettingsController),
-    ),
-  );
+  final application = App(pageSettingsController, documentSettingsController);
+
+  runApp(MainApp(application: application));
+
+  if (documentPath != null) {
+    unawaited(application.openBookletAtPath(documentPath));
+  }
 }
 
 class MainApp extends StatefulWidget {
@@ -52,6 +67,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _bookletEditorKey = GlobalKey<BaseViewState>();
   final _documentToolbarKey = GlobalKey<DocumentToolbarState>();
+  final _windowManagerService = WindowManagerService();
 
   @override
   void initState() {
@@ -66,6 +82,14 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
 
   Future<void> _openBookletFromStartup() async {
     await widget.application.openBooklet();
+  }
+
+  void _openInNewWindow() {
+    unawaited(
+      _windowManagerService.openDocumentInNewWindow(
+        widget.application.editorController.documentPath,
+      ),
+    );
   }
 
   @override
@@ -174,6 +198,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                           key: _documentToolbarKey,
                           controller: widget.application.editorController,
                           onEditTheme: _showThemeEditor,
+                          onOpenInNewWindow: _openInNewWindow,
                         ),
                       ),
                       if (widget.application.screen == AppScreen.startup)

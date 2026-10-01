@@ -124,4 +124,19 @@ class ComponentSnapshot {
 
     return ComponentBox(component: component, delta: delta);
   }
+
+  Map<String, dynamic> toJson() => {
+    'type': typeKey,
+    if (delta != null) 'delta': delta,
+    if (extra.isNotEmpty) 'extra': extra,
+  };
+
+  factory ComponentSnapshot.fromJson(Map<String, dynamic> json) {
+    final rawExtra = json['extra'];
+    return ComponentSnapshot._(
+      typeKey: json['type'] as String,
+      delta: (json['delta'] as List?)?.cast<dynamic>(),
+      extra: rawExtra is Map ? Map<String, dynamic>.from(rawExtra) : const {},
+    );
+  }
 }
