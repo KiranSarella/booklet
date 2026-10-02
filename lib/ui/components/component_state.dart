@@ -12,7 +12,6 @@ abstract class ComponentState extends ChangeNotifier {
   Object? get output;
 
   List<dynamic>? get textDelta => null;
-
 }
 
 mixin TextComponentStateOwner {
@@ -88,6 +87,7 @@ class TextComponentState extends ComponentState {
 
   final QuillController controller;
   final FocusNode focusNode = FocusNode();
+  VoidCallback? onBackspaceAtStart;
 
   @override
   String get output => controller.document.toPlainText();
@@ -154,7 +154,6 @@ class ImageComponentState extends ComponentState {
 
   @override
   String? get output => mediaPath;
-
 }
 
 class VideoComponentState extends ComponentState {
@@ -171,7 +170,6 @@ class VideoComponentState extends ComponentState {
 
   @override
   String? get output => mediaPath;
-
 }
 
 class AudioComponentState extends ComponentState {
@@ -188,7 +186,6 @@ class AudioComponentState extends ComponentState {
 
   @override
   String? get output => mediaPath;
-
 }
 
 class EmbedComponentState extends ComponentState {

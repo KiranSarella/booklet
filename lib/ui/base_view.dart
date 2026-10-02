@@ -151,16 +151,35 @@ class BaseViewState extends State<BaseView> {
     });
   }
 
-  void _createEntryBelow(int index) {
+  void _createEntryBelow(int index, TextSelection? selection) {
     late final ComponentBox newComponent;
     setState(() {
-      newComponent = _viewModel.createComponentBelow(index);
+      newComponent = _viewModel.createComponentBelow(
+        index,
+        selection: selection,
+      );
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _scrollToComponent(newComponent);
       newComponent.requestFocus();
+    });
+  }
+
+  void _mergeTextComponentWithPrevious(int index) {
+    ComponentBox? previousComponent;
+    setState(() {
+      previousComponent = _viewModel.mergeTextComponentWithPrevious(index);
+    });
+    if (previousComponent == null) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToComponent(previousComponent!);
+      if (previousComponent!.isTextComponent) {
+        previousComponent!.requestFocus();
+      }
     });
   }
 
@@ -296,6 +315,8 @@ May this day of your birth be auspicious!
                                 onSelectComponent: selectComponent,
                                 onSelectComponentRange: selectComponentRange,
                                 onCreateEntryBelow: _createEntryBelow,
+                                onBackspaceAtStart:
+                                    _mergeTextComponentWithPrevious,
                                 onTapEmptySpace: clearSelectionAndFocus,
                               ),
                             ),

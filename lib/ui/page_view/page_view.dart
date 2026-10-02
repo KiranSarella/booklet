@@ -11,6 +11,7 @@ class PageView extends StatelessWidget {
     required this.onSelectComponent,
     required this.onSelectComponentRange,
     required this.onCreateEntryBelow,
+    required this.onBackspaceAtStart,
     required this.onTapEmptySpace,
   });
 
@@ -18,7 +19,8 @@ class PageView extends StatelessWidget {
   final PageContent? page;
   final ValueChanged<ComponentBox> onSelectComponent;
   final ValueChanged<ComponentBox> onSelectComponentRange;
-  final ValueChanged<int> onCreateEntryBelow;
+  final void Function(int index, TextSelection? selection) onCreateEntryBelow;
+  final ValueChanged<int> onBackspaceAtStart;
   final VoidCallback onTapEmptySpace;
 
   @override
@@ -44,9 +46,7 @@ class PageView extends StatelessWidget {
             ),
             child: Container(
               width: double.infinity,
-              decoration: BoxDecoration(
-                color: editorTheme.pageBackgroundColor,
-              ),
+              decoration: BoxDecoration(color: editorTheme.pageBackgroundColor),
               clipBehavior: Clip.antiAlias,
               padding: const EdgeInsets.all(60),
               child: Column(
@@ -66,7 +66,9 @@ class PageView extends StatelessWidget {
                             onSelectComponent(page!.components[index]),
                         onSelectRange: () =>
                             onSelectComponentRange(page!.components[index]),
-                        onCreateBelow: () => onCreateEntryBelow(index),
+                        onCreateBelow: (selection) =>
+                            onCreateEntryBelow(index, selection),
+                        onBackspaceAtStart: () => onBackspaceAtStart(index),
                       ),
                     ),
                 ],

@@ -36,19 +36,31 @@ class ComponentBox {
     required PageSettingsController theme,
     required VoidCallback onSelect,
     required VoidCallback onSelectRange,
-    required VoidCallback onCreateBelow,
+    required ValueChanged<TextSelection?> onCreateBelow,
+    required VoidCallback onBackspaceAtStart,
   }) {
     final isReadOnly = theme.documentSettingsController.isReadOnly;
     _applyReadOnly(isReadOnly);
     final focused = isFocused && !isReadOnly;
     final selected = isSelected;
 
+    final state = component.state;
+    if (isTextComponent && state is TextComponentState) {
+      state.onBackspaceAtStart = isReadOnly ? null : onBackspaceAtStart;
+    }
+
     Widget child = component.buildUI(
       theme: theme,
       componentState: component.state,
       isSelected: selected,
       onSelect: onSelect,
-      onCreateBelow: onCreateBelow,
+      onCreateBelow: () {
+        onCreateBelow(
+          isTextComponent && state is TextComponentState
+              ? state.controller.selection
+              : null,
+        );
+      },
     );
 
     if (_supportsTapToEdit) {

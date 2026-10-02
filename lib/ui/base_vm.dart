@@ -7,6 +7,8 @@ import 'package:booklet/ui/components/component_snapshot.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/foundation.dart' show VoidCallback;
+import 'package:flutter/widgets.dart' show TextSelection;
+import 'package:flutter_quill/flutter_quill.dart' show ChangeSource, Document;
 import 'package:booklet/ui/navigation/navigation_panel_vm.dart';
 import 'package:booklet/ui/navigation/navigation_node.dart';
 import 'package:uuid/uuid.dart';
@@ -296,8 +298,118 @@ class BaseVM {
     _anchorIndex = null;
   }
 
-  ComponentBox createComponentBelow(int index) {
-    return createComponentBelowType(index, 'text');
+  ComponentBox createComponentBelow(int index, {TextSelection? selection}) {
+    if (theme.documentSettingsController.isReadOnly) {
+      throw StateError('Cannot add components while read-only');
+    }
+    final page = selectedPage;
+    if (page == null) {
+      throw StateError('No page is selected');
+    }
+
+    TextComponentState? sourceState;
+    List<Map<String, dynamic>>? prefixDelta;
+    List<dynamic>? trailingDelta;
+    if (selection != null &&
+        selection.isValid &&
+        index >= 0 &&
+        index < page.components.length) {
+      final source = page.components[index];
+      final state = source.component.state;
+      if (source.isTextComponent && state is TextComponentState) {
+        final sourceDocument = state.controller.document;
+        final maxOffset = sourceDocument.length - 1;
+        final start = selection.start.clamp(0, maxOffset).toInt();
+        final end = selection.end.clamp(start, maxOffset).toInt();
+        final sourceDelta = sourceDocument.toDelta();
+        final prefix = sourceDelta.slice(0, start).toJson();
+        final trailing = sourceDelta.slice(end).toJson();
+        _ensureDeltaEndsWithNewline(prefix);
+        _ensureDeltaEndsWithNewline(trailing);
+        sourceState = state;
+        prefixDelta = prefix;
+        trailingDelta = trailing;
+      }
+    }
+
+    final component = ComponentBox(
+      component: InbuiltComponents.prepareCompoent(const Uuid().v4(), 'text'),
+      delta: trailingDelta,
+    );
+    page.components.insert(index + 1, component);
+    if (sourceState != null && prefixDelta != null) {
+      sourceState.controller.document = Document.fromJson(prefixDelta);
+    }
+    _watchComponent(component);
+    selectComponent(component);
+    _documentChanged();
+    return component;
+  }
+
+  ComponentBox? mergeTextComponentWithPrevious(int index) {
+    if (theme.documentSettingsController.isReadOnly) {
+      return null;
+    }
+    final page = selectedPage;
+    if (page == null || index <= 0 || index >= page.components.length) {
+      return null;
+    }
+
+    final current = page.components[index];
+    if (!current.isTextComponent) {
+      return null;
+    }
+
+    final currentState = current.component.state as TextComponentState;
+    final currentDocument = currentState.controller.document;
+    final previous = index > 0 ? page.components[index - 1] : null;
+    final isEmpty = currentDocument.length == 1;
+    if (!isEmpty && (previous == null || !previous.isTextComponent)) {
+      return null;
+    }
+
+    TextComponentState? previousState;
+    if (previous?.isTextComponent == true) {
+      previousState = previous!.component.state as TextComponentState;
+    }
+    final previousEndOffset = previousState == null
+        ? null
+        : previousState.controller.document.length - 1;
+    if (!isEmpty && previousState != null) {
+      final mergedDelta = previousState.controller.document.toDelta().concat(
+        currentDocument.toDelta(),
+        trimNewLine: true,
+      );
+      previousState.controller.document = Document.fromJson(
+        mergedDelta.toJson(),
+      );
+    }
+
+    page.components.removeAt(index);
+    _unwatchComponent(current.component.state);
+    current.dispose();
+    if (previous != null) {
+      selectComponent(previous);
+      if (previousState != null && previousEndOffset != null) {
+        previousState.controller.updateSelection(
+          TextSelection.collapsed(offset: previousEndOffset),
+          ChangeSource.local,
+        );
+      }
+    } else {
+      _selectedComponent = null;
+      _selectedComponents.clear();
+      _anchorIndex = null;
+    }
+    _documentChanged();
+    return previous;
+  }
+
+  void _ensureDeltaEndsWithNewline(List<Map<String, dynamic>> delta) {
+    final lastInsert = delta.isEmpty ? null : delta.last['insert'];
+    if (lastInsert is! String || !lastInsert.endsWith('\n')) {
+      delta.add({'insert': '\n'});
+    }
   }
 
   ComponentBox createComponentBelowType(int index, String type) {

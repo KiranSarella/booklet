@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/ui/components/component_state.dart';
 
-
 class _CreateBelowIntent extends Intent {
   const _CreateBelowIntent();
 }
@@ -66,6 +65,20 @@ class AutoHeightRichText2 extends StatelessWidget {
                 ),
               },
               child: Focus(
+                onKeyEvent: (node, event) {
+                  if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
+                      event.logicalKey == LogicalKeyboardKey.backspace) {
+                    final state = visualState as TextComponentState;
+                    final selection = state.controller.selection;
+                    if (selection.isCollapsed &&
+                        selection.extentOffset == 0 &&
+                        state.onBackspaceAtStart != null) {
+                      state.onBackspaceAtStart!();
+                      return KeyEventResult.handled;
+                    }
+                  }
+                  return KeyEventResult.ignored;
+                },
                 onFocusChange: (hasFocus) {
                   visualState.isFocused = hasFocus;
                   if (hasFocus) {
@@ -94,6 +107,3 @@ class AutoHeightRichText2 extends StatelessWidget {
     );
   }
 }
-
-
-
