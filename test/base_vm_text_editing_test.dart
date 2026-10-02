@@ -114,6 +114,35 @@ void main() {
     expect(bullet.component.def.key, 'text');
   });
 
+  test(
+    'Enter outdents an empty nested checklist before converting to text',
+    () {
+      final checklist = viewModel.createComponentBelowType(1, 'checklist');
+      final state = checklist.component.state as ChecklistComponentState
+        ..nestingLevel = 2
+        ..isChecked = true;
+
+      for (final expectedLevel in [1, 0]) {
+        expect(
+          viewModel.createComponentBelow(
+            2,
+            selection: const TextSelection.collapsed(offset: 0),
+          ),
+          same(checklist),
+        );
+        expect(state.nestingLevel, expectedLevel);
+        expect(state.isChecked, isTrue);
+        expect(checklist.component.def.key, 'checklist');
+      }
+
+      viewModel.createComponentBelow(
+        2,
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+      expect(checklist.component.def.key, 'text');
+    },
+  );
+
   test('Enter continues numbered and checklist components', () {
     final numbered = viewModel.createComponentBelowType(1, 'numbered_list');
     final numberedState = numbered.component.state as NumberedListComponentState
@@ -355,6 +384,15 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     expect(numberedState.nestingLevel, 0);
+
+    checklistState.focusNode.requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    expect(checklistState.nestingLevel, 1);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    expect(checklistState.nestingLevel, 0);
 
     await tester.tap(find.byType(Checkbox));
     await tester.pump();
