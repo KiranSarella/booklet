@@ -392,6 +392,12 @@ class BaseVM {
         if (state is ListItemComponentState &&
             selection.isCollapsed &&
             state.output.trim().isEmpty) {
+          if (state.nestingLevel > 0) {
+            state.nestingLevel--;
+            selectComponent(source);
+            _documentChanged();
+            return source;
+          }
           _replaceComponentWithType(source, 'text', delta: state.textDelta);
           selectComponent(source);
           _documentChanged();

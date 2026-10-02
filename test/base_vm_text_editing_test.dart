@@ -87,6 +87,33 @@ void main() {
     expect(bullet.component.def.key, 'text');
   });
 
+  test('Enter outdents an empty nested list before converting it to text', () {
+    final bullet = viewModel.createComponentBelowType(1, 'bulleted_list');
+    final state = bullet.component.state as BulletedListComponentState
+      ..nestingLevel = 2;
+
+    for (final expectedLevel in [1, 0]) {
+      expect(
+        viewModel.createComponentBelow(
+          2,
+          selection: const TextSelection.collapsed(offset: 0),
+        ),
+        same(bullet),
+      );
+      expect(state.nestingLevel, expectedLevel);
+      expect(bullet.component.def.key, 'bulleted_list');
+    }
+
+    expect(
+      viewModel.createComponentBelow(
+        2,
+        selection: const TextSelection.collapsed(offset: 0),
+      ),
+      same(bullet),
+    );
+    expect(bullet.component.def.key, 'text');
+  });
+
   test('Enter continues numbered and checklist components', () {
     final numbered = viewModel.createComponentBelowType(1, 'numbered_list');
     final numberedState = numbered.component.state as NumberedListComponentState
