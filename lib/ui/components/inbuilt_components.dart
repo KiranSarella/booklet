@@ -30,8 +30,8 @@ class InbuiltComponents {
         return LabelComponent(id: id);
       case 'text':
         return TextComponent(id: id);
-      case 'dashed_list':
-        return DashedListComponent(id: id);
+      case 'bulleted_list':
+        return BulletedListComponent(id: id);
       case 'numbered_list':
         return NumberedListComponent(id: id);
       case 'checklist':
@@ -76,7 +76,7 @@ class InbuiltComponents {
       SubtitleComponentDef(),
       LabelComponentDef(),
       TextComponentDef(),
-      DashedListComponentDef(),
+      BulletedListComponentDef(),
       NumberedListComponentDef(),
       ChecklistComponentDef(),
       FocusComponentDef(),

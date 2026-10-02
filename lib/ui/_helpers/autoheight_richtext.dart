@@ -34,6 +34,7 @@ class AutoHeightRichText2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textState = visualState as TextComponentState;
     final defaultStyles = DefaultStyles(
       paragraph: DefaultTextBlockStyle(
         textStyle,
@@ -65,36 +66,39 @@ class AutoHeightRichText2 extends StatelessWidget {
                 ),
               },
               child: Focus(
-                onKeyEvent: (node, event) {
-                  if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
-                      event.logicalKey == LogicalKeyboardKey.backspace) {
-                    final state = visualState as TextComponentState;
-                    final selection = state.controller.selection;
-                    if (selection.isCollapsed &&
-                        selection.extentOffset == 0 &&
-                        state.onBackspaceAtStart != null) {
-                      state.onBackspaceAtStart!();
-                      return KeyEventResult.handled;
-                    }
-                  }
-                  return KeyEventResult.ignored;
-                },
                 onFocusChange: (hasFocus) {
                   visualState.isFocused = hasFocus;
                   if (hasFocus) {
                     onSelect();
                   }
                 },
-                child: QuillEditor.basic(
-                  controller: (visualState as TextComponentState).controller,
-                  focusNode: (visualState as TextComponentState).focusNode,
-                  config: QuillEditorConfig(
-                    scrollable: false,
-                    padding: editorPadding,
-                    expands: false,
-                    placeholder: placeholder,
-                    textInputAction: TextInputAction.newline,
-                    customStyles: defaultStyles,
+                child: AbsorbPointer(
+                  absorbing:
+                      !textState.controller.readOnly && !textState.isFocused,
+                  child: QuillEditor.basic(
+                    controller: textState.controller,
+                    focusNode: textState.focusNode,
+                    config: QuillEditorConfig(
+                      scrollable: false,
+                      onKeyPressed: (event, node) {
+                        final state = visualState;
+                        if ((event is KeyDownEvent ||
+                                event is KeyRepeatEvent) &&
+                            event.logicalKey == LogicalKeyboardKey.tab &&
+                            state is BulletedListComponentState &&
+                            !state.controller.readOnly) {
+                          state.nestingLevel +=
+                              HardwareKeyboard.instance.isShiftPressed ? -1 : 1;
+                          return KeyEventResult.handled;
+                        }
+                        return null;
+                      },
+                      padding: editorPadding,
+                      expands: false,
+                      placeholder: placeholder,
+                      textInputAction: TextInputAction.newline,
+                      customStyles: defaultStyles,
+                    ),
                   ),
                 ),
               ),

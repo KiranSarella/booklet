@@ -19,8 +19,8 @@ class ComponentTypes {
         return 'Label';
       case 'text':
         return 'Text';
-      case 'dashed_list':
-        return '- Dashed List';
+      case 'bulleted_list':
+        return '- Bulleted List';
       case 'numbered_list':
         return '1. Numbered List';
       case 'checklist':
@@ -58,8 +58,8 @@ class ComponentTypes {
         return 'label';
       case 'Text':
         return 'text';
-      case '- Dashed List':
-        return 'dashed_list';
+      case '- Bulleted List':
+        return 'bulleted_list';
       case '1. Numbered List':
         return 'numbered_list';
       case '🗸 Checklist':

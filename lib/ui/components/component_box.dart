@@ -63,7 +63,7 @@ class ComponentBox {
       },
     );
 
-    if (_supportsTapToEdit) {
+    if (_supportsTapToEdit && state is! TextComponentState) {
       // Read-only text stays interactive so it can be selected/copied; in
       // edit mode a single tap only selects, requiring a second tap to edit.
       child = AbsorbPointer(absorbing: !isReadOnly && !focused, child: child);

@@ -52,8 +52,78 @@ class BaseVM {
   Iterable<PageContent> get loadedPages => _pagesById.values;
   ComponentBox? get selectedComponent => _selectedComponent;
   Set<ComponentBox> get selectedComponents => _selectedComponents;
+  List<ComponentBox> get _listStyleSelection => _selectedComponents.length > 1
+      ? _selectedComponents.toList(growable: false)
+      : _selectedComponent == null
+      ? const []
+      : [_selectedComponent!];
   bool get canTransformSelectedComponent =>
       _selectedComponent?.component.def.type == ComponentType.text;
+  String? get selectedListKind {
+    final kinds = <String>{};
+    for (final component in _listStyleSelection) {
+      switch (component.component.state) {
+        case BulletedListComponentState():
+          kinds.add('bullet');
+        case NumberedListComponentState():
+          kinds.add('numbered');
+      }
+    }
+    return kinds.length == 1 ? kinds.single : null;
+  }
+
+  String? get selectedListStyle {
+    final kind = selectedListKind;
+    if (kind == null) return null;
+
+    final styles = <String>{};
+    for (final component in _listStyleSelection) {
+      final state = component.component.state;
+      if (kind == 'bullet' && state is BulletedListComponentState) {
+        styles.add(state.symbol);
+      } else if (kind == 'numbered' && state is NumberedListComponentState) {
+        styles.add(state.numberStyle);
+      }
+    }
+    return styles.length == 1 ? styles.single : null;
+  }
+
+  List<String> get selectedListStyleOptions {
+    if (selectedListKind == 'bullet') {
+      return BulletedListComponentState.symbols;
+    }
+    if (selectedListKind == 'numbered') {
+      return NumberedListComponentState.numberStyles;
+    }
+    return const [];
+  }
+
+  void setSelectedListStyle(String value) {
+    if (theme.documentSettingsController.isReadOnly) return;
+    final kind = selectedListKind;
+    if (kind == 'bullet' && _selectedComponents.length <= 1) {
+      final selectedState = _selectedComponent?.component.state;
+      if (selectedState is! BulletedListComponentState) return;
+      for (final component in components) {
+        final state = component.component.state;
+        if (state is BulletedListComponentState &&
+            state.nestingLevel == selectedState.nestingLevel) {
+          state.symbol = value;
+        }
+      }
+      return;
+    }
+
+    for (final component in _listStyleSelection) {
+      final state = component.component.state;
+      if (kind == 'bullet' && state is BulletedListComponentState) {
+        state.symbol = value;
+      } else if (kind == 'numbered' && state is NumberedListComponentState) {
+        state.numberStyle = value;
+      }
+    }
+  }
+
   String? get selectedPageId => navigation.selectedPageId;
   String? get documentPath => _documentPath;
 
@@ -308,8 +378,10 @@ class BaseVM {
     }
 
     TextComponentState? sourceState;
+    ListItemComponentState? sourceListState;
     List<Map<String, dynamic>>? prefixDelta;
     List<dynamic>? trailingDelta;
+    var componentType = 'text';
     if (selection != null &&
         selection.isValid &&
         index >= 0 &&
@@ -317,6 +389,14 @@ class BaseVM {
       final source = page.components[index];
       final state = source.component.state;
       if (source.isTextComponent && state is TextComponentState) {
+        if (state is ListItemComponentState &&
+            selection.isCollapsed &&
+            state.output.trim().isEmpty) {
+          _replaceComponentWithType(source, 'text', delta: state.textDelta);
+          selectComponent(source);
+          _documentChanged();
+          return source;
+        }
         final sourceDocument = state.controller.document;
         final maxOffset = sourceDocument.length - 1;
         final start = selection.start.clamp(0, maxOffset).toInt();
@@ -329,13 +409,34 @@ class BaseVM {
         sourceState = state;
         prefixDelta = prefix;
         trailingDelta = trailing;
+        if (state is ListItemComponentState) {
+          sourceListState = state;
+          componentType = source.component.def.key;
+        }
       }
     }
 
     final component = ComponentBox(
-      component: InbuiltComponents.prepareCompoent(const Uuid().v4(), 'text'),
+      component: InbuiltComponents.prepareCompoent(
+        const Uuid().v4(),
+        componentType,
+      ),
       delta: trailingDelta,
     );
+    final newState = component.component.state;
+    if (sourceListState is BulletedListComponentState &&
+        newState is BulletedListComponentState) {
+      newState
+        ..symbol = sourceListState.symbol
+        ..nestingLevel = sourceListState.nestingLevel;
+    } else if (sourceListState is NumberedListComponentState &&
+        newState is NumberedListComponentState) {
+      newState
+        ..numberStyle = sourceListState.numberStyle
+        ..nestingLevel = sourceListState.nestingLevel;
+    } else if (sourceListState != null && newState is ListItemComponentState) {
+      newState.nestingLevel = sourceListState.nestingLevel;
+    }
     page.components.insert(index + 1, component);
     if (sourceState != null && prefixDelta != null) {
       sourceState.controller.document = Document.fromJson(prefixDelta);
@@ -344,6 +445,24 @@ class BaseVM {
     selectComponent(component);
     _documentChanged();
     return component;
+  }
+
+  void _replaceComponentWithType(
+    ComponentBox box,
+    String type, {
+    required List<dynamic>? delta,
+  }) {
+    final previousComponent = box.component;
+    final previousState = previousComponent.state;
+    final replacement = InbuiltComponents.prepareCompoent(
+      previousComponent.id,
+      type,
+    )..initialize(delta: delta);
+    replacement.state.isSelected = previousState.isSelected;
+    box.component = replacement;
+    _unwatchComponent(previousState);
+    _watchComponent(box);
+    previousComponent.dispose();
   }
 
   ComponentBox? mergeTextComponentWithPrevious(int index) {

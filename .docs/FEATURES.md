@@ -18,6 +18,3 @@
 - [ ] **Light / Dark Theme:** Toggle active color scheme dynamically.
 - [ ] **Side Navigation View** booklet document supports nested pages and media folders (as leaf nodes); need to be expand / collapse visually.
 
-## Future / Brainstorming
-- [ ] Custom component list (dashed list, checklist).
-- [ ] Export file to PDF or custom package format.

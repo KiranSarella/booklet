@@ -9,9 +9,13 @@ class OptionsDock extends StatefulWidget {
     required this.onComponentDeleted,
     required this.onComponentsCopied,
     required this.onComponentsPasted,
+    required this.onListStyleChanged,
     required this.onPageSettings,
     required this.hasSelection,
     required this.canTransformSelection,
+    required this.selectedListKind,
+    required this.selectedListStyle,
+    required this.selectedListStyleOptions,
     required this.canPaste,
     required this.isReadOnly,
   });
@@ -21,9 +25,13 @@ class OptionsDock extends StatefulWidget {
   final VoidCallback onComponentDeleted;
   final VoidCallback onComponentsCopied;
   final VoidCallback onComponentsPasted;
+  final ValueChanged<String> onListStyleChanged;
   final VoidCallback onPageSettings;
   final bool hasSelection;
   final bool canTransformSelection;
+  final String? selectedListKind;
+  final String? selectedListStyle;
+  final List<String> selectedListStyleOptions;
   final bool canPaste;
   final bool isReadOnly;
 
@@ -56,7 +64,21 @@ class OptionsDockState extends State<OptionsDock> {
               child: const SizedBox.expand(),
             ),
           ),
-        if (_openMenu != null) ...[
+        if (_openMenu == 'list')
+          Positioned(
+            top: 12,
+            right: 78,
+            child: _ListOptionsMenu(
+              kind: widget.selectedListKind!,
+              selectedStyle: widget.selectedListStyle,
+              options: widget.selectedListStyleOptions,
+              onSelected: (style) {
+                widget.onListStyleChanged(style);
+                dismissMenu();
+              },
+            ),
+          )
+        else if (_openMenu != null) ...[
           Positioned(
             top: 12,
             right: 78,
@@ -139,13 +161,16 @@ class OptionsDockState extends State<OptionsDock> {
                   enabled: widget.hasSelection,
                 ),
                 const SizedBox(height: 80),
-                // _DockButton(
-                //   icon: Icons.more_horiz,
-                //   color: Colors.black87,
-                //   tooltip: 'More options',
-                //   onPressed: dismissMenu,
-                //   height: 36,
-                // ),
+                _DockButton(
+                  icon: Icons.more_horiz,
+                  color: Colors.black87,
+                  tooltip: 'More options',
+                  onPressed: widget.selectedListKind == null
+                      ? null
+                      : () => _toggleMenu('list'),
+                  enabled: widget.selectedListKind != null,
+                  height: 36,
+                ),
               ],
               const SizedBox(height: 20),
               _DockButton(
@@ -161,6 +186,63 @@ class OptionsDockState extends State<OptionsDock> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ListOptionsMenu extends StatelessWidget {
+  const _ListOptionsMenu({
+    required this.kind,
+    required this.selectedStyle,
+    required this.options,
+    required this.onSelected,
+  });
+
+  final String kind;
+  final String? selectedStyle;
+  final List<String> options;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 10,
+      borderRadius: BorderRadius.circular(8),
+      color: Theme.of(context).colorScheme.surface,
+      child: SizedBox(
+        width: 220,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: Text(
+                kind == 'bullet' ? 'Bullet symbol' : 'Number format',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+            for (final option in options)
+              InkWell(
+                onTap: () => onSelected(option),
+                child: SizedBox(
+                  height: 40,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(option)),
+                        if (option == selectedStyle)
+                          const Icon(Icons.check, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
     );
   }
 }

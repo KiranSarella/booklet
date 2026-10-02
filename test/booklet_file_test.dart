@@ -162,6 +162,64 @@ void main() {
       loadedAgain.dispose();
       await tempDir.delete(recursive: true);
     });
+
+    test('persists list symbols, nesting, and checklist state', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'booklet_list_component_test',
+      );
+      final packagePath = '${tempDir.path}/test_booklet';
+      final bullet = InbuiltComponents.prepareCompoent('bullet-1', 'bulleted_list');
+      final bulletState = bullet.state as BulletedListComponentState
+        ..symbol = '→'
+        ..nestingLevel = 2;
+      final numbered = InbuiltComponents.prepareCompoent(
+        'numbered-1',
+        'numbered_list',
+      );
+      final numberedState = numbered.state as NumberedListComponentState
+        ..numberStyle = 'i.'
+        ..nestingLevel = 1;
+      final checklist = InbuiltComponents.prepareCompoent(
+        'checklist-1',
+        'checklist',
+      );
+      final checklistState = checklist.state as ChecklistComponentState
+        ..isChecked = true
+        ..nestingLevel = 3;
+      final page = PageContent(
+        id: 'page-1',
+        title: 'Test page',
+        components: [
+          ComponentBox(component: bullet),
+          ComponentBox(component: numbered),
+          ComponentBox(component: checklist),
+        ],
+      );
+
+      await BookletFile.savePage(packagePath, page);
+      final loadedPage = await BookletFile.loadPage(
+        packagePath,
+        'page-1',
+        PageSettingsController(DocumentSettingsController()),
+      );
+      final loadedBullet =
+          loadedPage.components[0].component.state as BulletedListComponentState;
+      final loadedNumbered = loadedPage.components[1].component.state
+          as NumberedListComponentState;
+      final loadedChecklist = loadedPage.components[2].component.state
+          as ChecklistComponentState;
+
+      expect(loadedBullet.symbol, '→');
+      expect(loadedBullet.nestingLevel, 2);
+      expect(loadedNumbered.numberStyle, 'i.');
+      expect(loadedNumbered.nestingLevel, 1);
+      expect(loadedChecklist.isChecked, isTrue);
+      expect(loadedChecklist.nestingLevel, 3);
+
+      page.dispose();
+      loadedPage.dispose();
+      await tempDir.delete(recursive: true);
+    });
   });
 
   group('BookletFile image persistence', () {

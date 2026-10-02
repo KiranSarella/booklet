@@ -343,9 +343,15 @@ May this day of your birth be auspicious!
                 onComponentDeleted: deleteSelectedComponent,
                 onComponentsCopied: copySelectedComponents,
                 onComponentsPasted: pasteComponents,
+                onListStyleChanged: (style) =>
+                  _viewModel.setSelectedListStyle(style),
                 onPageSettings: widget.onShowPageSettings,
                 hasSelection: _viewModel.selectedComponent != null,
                 canTransformSelection: _viewModel.canTransformSelectedComponent,
+                selectedListKind: _viewModel.selectedListKind,
+                selectedListStyle: _viewModel.selectedListStyle,
+                selectedListStyleOptions:
+                  _viewModel.selectedListStyleOptions,
                 canPaste: widget.controller.canPasteComponents,
                 isReadOnly:
                     widget.controller.documentSettingsController.isReadOnly,

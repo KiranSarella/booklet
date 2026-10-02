@@ -274,7 +274,6 @@ class LabelComponent with TextComponentStateOwner implements Component {
   @override
   Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
-
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
@@ -325,14 +324,18 @@ class TextComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-class DashedListComponent with TextComponentStateOwner implements Component {
-  DashedListComponent({required this.id});
+class BulletedListComponent with TextComponentStateOwner implements Component {
+  BulletedListComponent({required this.id});
 
   @override
   final String id;
 
   @override
-  ComponentDef get def => DashedListComponentDef();
+  ComponentDef get def => BulletedListComponentDef();
+
+  @override
+  TextComponentState createTextComponentState({List<dynamic>? delta}) =>
+      BulletedListComponentState(alignment, delta: delta);
 
   @override
   Widget buildUI({
@@ -344,6 +347,7 @@ class DashedListComponent with TextComponentStateOwner implements Component {
   }) {
     double fontSizePercent(double percent) =>
         theme.baseFontSize * percent / 100;
+    final listState = componentState as BulletedListComponentState;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(100),
@@ -352,21 +356,42 @@ class DashedListComponent with TextComponentStateOwner implements Component {
       height: 1.5,
     );
 
-    return AutoHeightRichText2(
-      visualState: componentState,
-      isSelected: isSelected,
-      onSelect: onSelect,
-      onCreateBelow: onCreateBelow,
-      textStyle: textStyle,
-      alignment: alignment,
-      editorPadding: editorPadding,
-      placeholder: def.name,
+    return Padding(
+      padding: EdgeInsets.only(left: listState.nestingLevel * 24.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 32,
+            child: Center(
+              child: Text(
+                listState.symbol,
+                style: TextStyle(
+                  color: theme.textColor,
+                  fontSize: theme.baseFontSize,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: AutoHeightRichText2(
+              visualState: componentState,
+              isSelected: isSelected,
+              onSelect: onSelect,
+              onCreateBelow: onCreateBelow,
+              textStyle: textStyle,
+              alignment: alignment,
+              editorPadding: editorPadding,
+              placeholder: def.name,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Attribute<dynamic> get alignment => Attribute.leftAlignment;
-
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -382,6 +407,10 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
   ComponentDef get def => NumberedListComponentDef();
 
   @override
+  TextComponentState createTextComponentState({List<dynamic>? delta}) =>
+      NumberedListComponentState(alignment, delta: delta);
+
+  @override
   Widget buildUI({
     required PageSettingsController theme,
     required ComponentState componentState,
@@ -391,6 +420,7 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
   }) {
     double fontSizePercent(double percent) =>
         theme.baseFontSize * percent / 100;
+    final listState = componentState as NumberedListComponentState;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(100),
@@ -399,21 +429,42 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
       height: 1.5,
     );
 
-    return AutoHeightRichText2(
-      visualState: componentState,
-      isSelected: isSelected,
-      onSelect: onSelect,
-      onCreateBelow: onCreateBelow,
-      textStyle: textStyle,
-      alignment: alignment,
-      editorPadding: editorPadding,
-      placeholder: def.name,
+    return Padding(
+      padding: EdgeInsets.only(left: listState.nestingLevel * 24.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 32,
+            child: Center(
+              child: Text(
+                listState.formatNumber(listState.sequenceNumber),
+                style: TextStyle(
+                  color: theme.textColor,
+                  fontSize: theme.baseFontSize,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: AutoHeightRichText2(
+              visualState: componentState,
+              isSelected: isSelected,
+              onSelect: onSelect,
+              onCreateBelow: onCreateBelow,
+              textStyle: textStyle,
+              alignment: alignment,
+              editorPadding: editorPadding,
+              placeholder: def.name,
+            ),
+          ),
+        ],
+      ),
     );
   }
-  
+
   @override
   Attribute<dynamic> get alignment => Attribute.leftAlignment;
-
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
@@ -429,6 +480,10 @@ class ChecklistComponent with TextComponentStateOwner implements Component {
   ComponentDef get def => ChecklistComponentDef();
 
   @override
+  TextComponentState createTextComponentState({List<dynamic>? delta}) =>
+      ChecklistComponentState(alignment, delta: delta);
+
+  @override
   Widget buildUI({
     required PageSettingsController theme,
     required ComponentState componentState,
@@ -438,6 +493,7 @@ class ChecklistComponent with TextComponentStateOwner implements Component {
   }) {
     double fontSizePercent(double percent) =>
         theme.baseFontSize * percent / 100;
+    final listState = componentState as ChecklistComponentState;
 
     TextStyle textStyle = TextStyle(
       fontSize: fontSizePercent(100),
@@ -446,15 +502,33 @@ class ChecklistComponent with TextComponentStateOwner implements Component {
       height: 1.5,
     );
 
-    return AutoHeightRichText2(
-      visualState: componentState,
-      isSelected: isSelected,
-      onSelect: onSelect,
-      onCreateBelow: onCreateBelow,
-      textStyle: textStyle,
-      alignment: alignment,
-      editorPadding: editorPadding,
-      placeholder: def.name,
+    return Padding(
+      padding: EdgeInsets.only(left: listState.nestingLevel * 24.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Checkbox(
+            value: listState.isChecked,
+            onChanged: theme.documentSettingsController.isReadOnly
+                ? null
+                : (checked) => listState.isChecked = checked ?? false,
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          Expanded(
+            child: AutoHeightRichText2(
+              visualState: componentState,
+              isSelected: isSelected,
+              onSelect: onSelect,
+              onCreateBelow: onCreateBelow,
+              textStyle: textStyle,
+              alignment: alignment,
+              editorPadding: editorPadding,
+              placeholder: def.name,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -560,7 +634,6 @@ class BlockTextComponent with TextComponentStateOwner implements Component {
 
   @override
   Attribute<dynamic> get alignment => Attribute.leftAlignment;
-
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12);

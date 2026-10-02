@@ -474,6 +474,20 @@ class BookletFile {
             : const Uuid().v4();
         final component = InbuiltComponents.prepareCompoent(id, type);
         final componentState = component.state;
+        if (componentState is ListItemComponentState) {
+          final nestingLevel = componentJson['nestingLevel'];
+          if (nestingLevel is num) {
+            componentState.nestingLevel = nestingLevel.toInt();
+          }
+          if (componentState is BulletedListComponentState) {
+            componentState.symbol = componentJson['symbol'] as String? ?? '•';
+          } else if (componentState is NumberedListComponentState) {
+            componentState.numberStyle =
+                componentJson['numberStyle'] as String? ?? '1.';
+          } else if (componentState is ChecklistComponentState) {
+            componentState.isChecked = componentJson['checked'] as bool? ?? false;
+          }
+        }
         if (componentState is ImageComponentState) {
           final mediaPath = componentJson['mediaPath'] as String?;
           componentState.mediaPath = _resolvePackageMediaPath(
@@ -571,6 +585,7 @@ class BookletFile {
           'type': componentBox.component.def.key,
           'content': richText.content,
           'styles': richText.styles.map((s) => s.toJson()).toList(),
+          ..._listStateJson(state),
         });
         continue;
       }
@@ -663,6 +678,25 @@ class BookletFile {
     });
     await File('$packagePath/$_pagesDirectory/${page.id}.json')
         .writeAsString(json);
+  }
+
+  static Map<String, dynamic> _listStateJson(ComponentState state) {
+    if (state is BulletedListComponentState) {
+      return {'symbol': state.symbol, 'nestingLevel': state.nestingLevel};
+    }
+    if (state is NumberedListComponentState) {
+      return {
+        'numberStyle': state.numberStyle,
+        'nestingLevel': state.nestingLevel,
+      };
+    }
+    if (state is ChecklistComponentState) {
+      return {
+        'checked': state.isChecked,
+        'nestingLevel': state.nestingLevel,
+      };
+    }
+    return const {};
   }
 
   static String _normalizePackagePath(String path) =>

@@ -11,7 +11,7 @@ import 'package:booklet/business/components_business/component_def.dart';
 'Subtitle',
 'Label',
 'Text',
-'- Dashed List',
+'* Bulleted List',
 '1. Numbered List',
 '🗸 Checklist',
 '┃ Focus',
@@ -100,12 +100,12 @@ class TextComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
-class DashedListComponentDef extends ComponentDef {
+class BulletedListComponentDef extends ComponentDef {
   @override
-  String get key => "dashed_list";
+  String get key => "bulleted_list";
 
   @override
-  String get name => "- Dashed List";
+  String get name => "- Bulleted List";
 
   @override
   ComponentType get type => ComponentType.text;

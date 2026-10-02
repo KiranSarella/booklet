@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
 final _plainTextClipboardConfig = QuillControllerConfig(
@@ -21,7 +22,10 @@ mixin TextComponentStateOwner {
   TextComponentState? _state;
 
   TextComponentState get state =>
-      _state ??= TextComponentState(alignment, delta: _delta);
+      _state ??= createTextComponentState(delta: _delta);
+
+  TextComponentState createTextComponentState({List<dynamic>? delta}) =>
+      TextComponentState(alignment, delta: delta);
 
   // void initialize({List<dynamic>? delta}) {
   //   _delta = delta;
@@ -34,7 +38,7 @@ mixin TextComponentStateOwner {
     _delta = delta;
     if (delta == null) return;
 
-    final textState = _state ??= TextComponentState(alignment, delta: delta);
+    final textState = _state ??= createTextComponentState(delta: delta);
     final controller = textState.controller;
 
     controller.document = Document.fromJson(delta);
@@ -86,8 +90,25 @@ class TextComponentState extends ComponentState {
   }
 
   final QuillController controller;
-  final FocusNode focusNode = FocusNode();
+  late final FocusNode focusNode = FocusNode(onKeyEvent: _handleEditorKeyEvent);
   VoidCallback? onBackspaceAtStart;
+
+  KeyEventResult _handleEditorKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.backspace &&
+        !controller.readOnly) {
+      final selection = controller.selection;
+      if (selection.isCollapsed &&
+          selection.extentOffset == 0 &&
+          onBackspaceAtStart != null) {
+        onBackspaceAtStart!();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   String get output => controller.document.toPlainText();
@@ -101,6 +122,120 @@ class TextComponentState extends ComponentState {
     controller.dispose();
     focusNode.dispose();
     super.dispose();
+  }
+}
+
+abstract class ListItemComponentState extends TextComponentState {
+  ListItemComponentState(Attribute<dynamic> alignment, {List<dynamic>? delta})
+    : super(alignment, delta: delta);
+
+  int _nestingLevel = 0;
+
+  int get nestingLevel => _nestingLevel;
+  set nestingLevel(int value) {
+    final nextValue = value < 0 ? 0 : value;
+    if (_nestingLevel == nextValue) return;
+    _nestingLevel = nextValue;
+    notifyListeners();
+  }
+}
+
+class BulletedListComponentState extends ListItemComponentState {
+  BulletedListComponentState(
+    Attribute<dynamic> alignment, {
+    List<dynamic>? delta,
+    String symbol = '•',
+  }) : super(alignment, delta: delta) {
+    this.symbol = symbol;
+  }
+
+  static const symbols = ['•', '-', '–', '→', '✓', '★', '◆'];
+
+  String _symbol = '•';
+  String get symbol => _symbol;
+  set symbol(String value) {
+    if (!symbols.contains(value) || _symbol == value) return;
+    _symbol = value;
+    notifyListeners();
+  }
+}
+
+class NumberedListComponentState extends ListItemComponentState {
+  NumberedListComponentState(
+    Attribute<dynamic> alignment, {
+    List<dynamic>? delta,
+    String numberStyle = '1.',
+  }) : super(alignment, delta: delta) {
+    this.numberStyle = numberStyle;
+  }
+
+  static const numberStyles = ['1.', 'a.', 'i.', '1)'];
+
+  int sequenceNumber = 1;
+  String _numberStyle = '1.';
+  String get numberStyle => _numberStyle;
+  set numberStyle(String value) {
+    if (!numberStyles.contains(value) || _numberStyle == value) return;
+    _numberStyle = value;
+    notifyListeners();
+  }
+
+  String formatNumber(int number) => switch (numberStyle) {
+    'a.' => '${_alphabeticNumber(number)}.',
+    'i.' => '${_romanNumber(number)}.',
+    '1)' => '$number)',
+    _ => '$number.',
+  };
+
+  String _alphabeticNumber(int number) {
+    var value = number;
+    final result = StringBuffer();
+    while (value > 0) {
+      value--;
+      result.writeCharCode(97 + value % 26);
+      value ~/= 26;
+    }
+    return result.toString().split('').reversed.join();
+  }
+
+  String _romanNumber(int number) {
+    const numerals = [
+      (1000, 'm'),
+      (900, 'cm'),
+      (500, 'd'),
+      (400, 'cd'),
+      (100, 'c'),
+      (90, 'xc'),
+      (50, 'l'),
+      (40, 'xl'),
+      (10, 'x'),
+      (9, 'ix'),
+      (5, 'v'),
+      (4, 'iv'),
+      (1, 'i'),
+    ];
+    var value = number;
+    final result = StringBuffer();
+    for (final (unit, numeral) in numerals) {
+      while (value >= unit) {
+        result.write(numeral);
+        value -= unit;
+      }
+    }
+    return result.toString();
+  }
+}
+
+class ChecklistComponentState extends ListItemComponentState {
+  ChecklistComponentState(Attribute<dynamic> alignment, {List<dynamic>? delta})
+    : super(alignment, delta: delta);
+
+  bool _isChecked = false;
+  bool get isChecked => _isChecked;
+  set isChecked(bool value) {
+    if (_isChecked == value) return;
+    _isChecked = value;
+    notifyListeners();
   }
 }
 

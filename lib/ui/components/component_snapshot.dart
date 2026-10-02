@@ -79,6 +79,19 @@ class ComponentSnapshot {
         extra: {'url': state.url, 'title': state.title},
       );
     }
+    if (state is ListItemComponentState) {
+      return ComponentSnapshot._(
+        typeKey: component.def.key,
+        delta: component.textDelta,
+        extra: {
+          'nestingLevel': state.nestingLevel,
+          if (state is BulletedListComponentState) 'symbol': state.symbol,
+          if (state is NumberedListComponentState)
+            'numberStyle': state.numberStyle,
+          if (state is ChecklistComponentState) 'checked': state.isChecked,
+        },
+      );
+    }
     // Plain text-based components (title, heading, text, lists, etc.).
     return ComponentSnapshot._(
       typeKey: component.def.key,
@@ -120,6 +133,19 @@ class ComponentSnapshot {
         url: extra['url'] as String? ?? '',
         title: extra['title'] as String?,
       );
+    }
+    if (state is ListItemComponentState) {
+      final nestingLevel = extra['nestingLevel'];
+      if (nestingLevel is num) {
+        state.nestingLevel = nestingLevel.toInt();
+      }
+      if (state is BulletedListComponentState) {
+        state.symbol = extra['symbol'] as String? ?? '•';
+      } else if (state is NumberedListComponentState) {
+        state.numberStyle = extra['numberStyle'] as String? ?? '1.';
+      } else if (state is ChecklistComponentState) {
+        state.isChecked = extra['checked'] as bool? ?? false;
+      }
     }
 
     return ComponentBox(component: component, delta: delta);

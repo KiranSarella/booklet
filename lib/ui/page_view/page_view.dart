@@ -1,5 +1,6 @@
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/ui/components/component_box.dart';
+import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/material.dart';
 
@@ -22,6 +23,43 @@ class PageView extends StatelessWidget {
   final void Function(int index, TextSelection? selection) onCreateEntryBelow;
   final ValueChanged<int> onBackspaceAtStart;
   final VoidCallback onTapEmptySpace;
+
+  int? _numberedSequenceAt(int index) {
+    final components = page?.components;
+    if (components == null ||
+        components[index].component.state is! NumberedListComponentState) {
+      return null;
+    }
+    var number = 1;
+    for (var previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
+      if (components[previousIndex].component.state
+          is! NumberedListComponentState) {
+        break;
+      }
+      number++;
+    }
+    return number;
+  }
+
+  Widget _buildComponent(int index) {
+    final component = page!.components[index];
+    final state = component.component.state;
+    if (state is NumberedListComponentState) {
+      state.sequenceNumber = _numberedSequenceAt(index) ?? 1;
+    }
+
+    return Padding(
+      key: component.componentKey,
+      padding: const EdgeInsets.only(bottom: 6),
+      child: component.buildUI(
+        theme: editorTheme,
+        onSelect: () => onSelectComponent(component),
+        onSelectRange: () => onSelectComponentRange(component),
+        onCreateBelow: (selection) => onCreateEntryBelow(index, selection),
+        onBackspaceAtStart: () => onBackspaceAtStart(index),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,20 +95,7 @@ class PageView extends StatelessWidget {
                     index < (page?.components.length ?? 0);
                     index++
                   )
-                    Padding(
-                      key: page!.components[index].componentKey,
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: page!.components[index].buildUI(
-                        theme: editorTheme,
-                        onSelect: () =>
-                            onSelectComponent(page!.components[index]),
-                        onSelectRange: () =>
-                            onSelectComponentRange(page!.components[index]),
-                        onCreateBelow: (selection) =>
-                            onCreateEntryBelow(index, selection),
-                        onBackspaceAtStart: () => onBackspaceAtStart(index),
-                      ),
-                    ),
+                    _buildComponent(index),
                 ],
               ),
             ),
