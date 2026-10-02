@@ -242,6 +242,42 @@ void main() {
     expect(unselectedState.symbol, '•');
   });
 
+  test('changing one number style updates numbered items at its level', () {
+    final first = viewModel.createComponentBelowType(1, 'numbered_list');
+    final firstState = first.component.state as NumberedListComponentState;
+    final nested = viewModel.createComponentBelowType(2, 'numbered_list');
+    final nestedState = nested.component.state as NumberedListComponentState
+      ..nestingLevel = 1;
+    final sameLevel = viewModel.createComponentBelowType(3, 'numbered_list');
+    final sameLevelState =
+        sameLevel.component.state as NumberedListComponentState;
+
+    viewModel.selectComponent(first);
+    viewModel.setSelectedListStyle('i.');
+
+    expect(firstState.numberStyle, 'i.');
+    expect(sameLevelState.numberStyle, 'i.');
+    expect(nestedState.numberStyle, '1.');
+  });
+
+  test('changing a number style applies to selected numbered items', () {
+    final first = viewModel.createComponentBelowType(1, 'numbered_list');
+    final firstState = first.component.state as NumberedListComponentState;
+    final second = viewModel.createComponentBelowType(2, 'numbered_list');
+    final secondState = second.component.state as NumberedListComponentState;
+    final unselected = viewModel.createComponentBelowType(3, 'numbered_list');
+    final unselectedState =
+        unselected.component.state as NumberedListComponentState;
+
+    viewModel.selectComponent(first);
+    viewModel.selectComponentRange(second);
+    viewModel.setSelectedListStyle('a.');
+
+    expect(firstState.numberStyle, 'a.');
+    expect(secondState.numberStyle, 'a.');
+    expect(unselectedState.numberStyle, '1.');
+  });
+
   testWidgets('renders list markers and toggles checklist items', (
     tester,
   ) async {
@@ -250,20 +286,30 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     viewModel.createComponentBelowType(1, 'numbered_list');
-    viewModel.createComponentBelowType(2, 'numbered_list');
-    viewModel.createComponentBelowType(3, 'text');
+    final nestedFirst = viewModel.createComponentBelowType(2, 'numbered_list');
+    (nestedFirst.component.state as NumberedListComponentState)
+      ..numberStyle = 'a.'
+      ..nestingLevel = 1;
+    final nestedSecond = viewModel.createComponentBelowType(3, 'numbered_list');
+    (nestedSecond.component.state as NumberedListComponentState)
+      ..numberStyle = 'a.'
+      ..nestingLevel = 1;
+    viewModel.createComponentBelowType(4, 'numbered_list');
+    viewModel.createComponentBelowType(5, 'text');
     final restartedNumbering = viewModel.createComponentBelowType(
-      4,
+      6,
       'numbered_list',
     );
     (restartedNumbering.component.state as NumberedListComponentState)
             .numberStyle =
         'i.';
-    final bullet = viewModel.createComponentBelowType(5, 'bulleted_list');
+    final bullet = viewModel.createComponentBelowType(7, 'bulleted_list');
     final bulletState = bullet.component.state as BulletedListComponentState
       ..symbol = '→'
       ..nestingLevel = 1;
-    final checklist = viewModel.createComponentBelowType(6, 'checklist');
+    final numberedState =
+        restartedNumbering.component.state as NumberedListComponentState;
+    final checklist = viewModel.createComponentBelowType(8, 'checklist');
     final checklistState = checklist.component.state as ChecklistComponentState;
 
     await tester.pumpWidget(
@@ -286,6 +332,8 @@ void main() {
 
     expect(find.text('1.'), findsOneWidget);
     expect(find.text('2.'), findsOneWidget);
+    expect(find.text('a.'), findsOneWidget);
+    expect(find.text('b.'), findsOneWidget);
     expect(find.text('i.'), findsOneWidget);
     expect(find.text('→'), findsOneWidget);
     expect(find.byType(Checkbox), findsOneWidget);
@@ -298,6 +346,15 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     expect(bulletState.nestingLevel, 1);
+
+    numberedState.focusNode.requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    expect(numberedState.nestingLevel, 1);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    expect(numberedState.nestingLevel, 0);
 
     await tester.tap(find.byType(Checkbox));
     await tester.pump();

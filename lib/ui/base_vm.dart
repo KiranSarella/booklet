@@ -113,6 +113,18 @@ class BaseVM {
       }
       return;
     }
+    if (kind == 'numbered' && _selectedComponents.length <= 1) {
+      final selectedState = _selectedComponent?.component.state;
+      if (selectedState is! NumberedListComponentState) return;
+      for (final component in components) {
+        final state = component.component.state;
+        if (state is NumberedListComponentState &&
+            state.nestingLevel == selectedState.nestingLevel) {
+          state.numberStyle = value;
+        }
+      }
+      return;
+    }
 
     for (final component in _listStyleSelection) {
       final state = component.component.state;

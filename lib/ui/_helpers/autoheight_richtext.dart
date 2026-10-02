@@ -85,7 +85,7 @@ class AutoHeightRichText2 extends StatelessWidget {
                         if ((event is KeyDownEvent ||
                                 event is KeyRepeatEvent) &&
                             event.logicalKey == LogicalKeyboardKey.tab &&
-                            state is BulletedListComponentState &&
+                            state is ListItemComponentState &&
                             !state.controller.readOnly) {
                           state.nestingLevel +=
                               HardwareKeyboard.instance.isShiftPressed ? -1 : 1;

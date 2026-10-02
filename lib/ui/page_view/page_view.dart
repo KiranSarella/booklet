@@ -30,13 +30,18 @@ class PageView extends StatelessWidget {
         components[index].component.state is! NumberedListComponentState) {
       return null;
     }
+    final currentState =
+        components[index].component.state as NumberedListComponentState;
     var number = 1;
     for (var previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
-      if (components[previousIndex].component.state
-          is! NumberedListComponentState) {
+      final previousState = components[previousIndex].component.state;
+      if (previousState is! NumberedListComponentState ||
+          previousState.nestingLevel < currentState.nestingLevel) {
         break;
       }
-      number++;
+      if (previousState.nestingLevel == currentState.nestingLevel) {
+        number++;
+      }
     }
     return number;
   }
