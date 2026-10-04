@@ -126,8 +126,7 @@ class TextComponentState extends ComponentState {
 }
 
 abstract class ListItemComponentState extends TextComponentState {
-  ListItemComponentState(Attribute<dynamic> alignment, {List<dynamic>? delta})
-    : super(alignment, delta: delta);
+  ListItemComponentState(super.alignment, {super.delta});
 
   int _nestingLevel = 0;
 
@@ -142,10 +141,10 @@ abstract class ListItemComponentState extends TextComponentState {
 
 class BulletedListComponentState extends ListItemComponentState {
   BulletedListComponentState(
-    Attribute<dynamic> alignment, {
-    List<dynamic>? delta,
+    super.alignment, {
+    super.delta,
     String symbol = '•',
-  }) : super(alignment, delta: delta) {
+  }){
     this.symbol = symbol;
   }
 
@@ -162,10 +161,10 @@ class BulletedListComponentState extends ListItemComponentState {
 
 class NumberedListComponentState extends ListItemComponentState {
   NumberedListComponentState(
-    Attribute<dynamic> alignment, {
-    List<dynamic>? delta,
+    super.alignment, {
+    super.delta,
     String numberStyle = '1.',
-  }) : super(alignment, delta: delta) {
+  }){
     this.numberStyle = numberStyle;
   }
 
@@ -227,8 +226,7 @@ class NumberedListComponentState extends ListItemComponentState {
 }
 
 class ChecklistComponentState extends ListItemComponentState {
-  ChecklistComponentState(Attribute<dynamic> alignment, {List<dynamic>? delta})
-    : super(alignment, delta: delta);
+  ChecklistComponentState(super.alignment, {super.delta});
 
   bool _isChecked = false;
   bool get isChecked => _isChecked;
@@ -241,14 +239,11 @@ class ChecklistComponentState extends ListItemComponentState {
 
 class ImageComponentState extends ComponentState {
   ImageComponentState({
-    String? mediaPath,
+    this._mediaPath,
     String? imageSize,
-    int? width,
-    int? height,
-  }) : _mediaPath = mediaPath,
-       _imageSize = imageSize,
-       _width = width,
-       _height = height;
+    this._width,
+    this._height,
+  }) : _imageSize = imageSize;
 
   String? _mediaPath;
   String? _imageSize;
@@ -292,7 +287,7 @@ class ImageComponentState extends ComponentState {
 }
 
 class VideoComponentState extends ComponentState {
-  VideoComponentState({String? mediaPath}) : _mediaPath = mediaPath;
+  VideoComponentState({this._mediaPath});
 
   String? _mediaPath;
   String? get mediaPath => _mediaPath;
@@ -308,7 +303,7 @@ class VideoComponentState extends ComponentState {
 }
 
 class AudioComponentState extends ComponentState {
-  AudioComponentState({String? mediaPath}) : _mediaPath = mediaPath;
+  AudioComponentState({this._mediaPath});
 
   String? _mediaPath;
   String? get mediaPath => _mediaPath;

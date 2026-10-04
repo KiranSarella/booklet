@@ -91,6 +91,7 @@ class HeadingComponent with TextComponentStateOwner implements Component {
     );
   }
 
+  @override
   Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   EdgeInsets get editorPadding =>
@@ -135,6 +136,7 @@ class SubheadingComponent with TextComponentStateOwner implements Component {
     );
   }
 
+  @override
   Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   EdgeInsets get editorPadding =>
@@ -179,6 +181,7 @@ class InlineHeadingComponent with TextComponentStateOwner implements Component {
     );
   }
 
+  @override
   Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   EdgeInsets get editorPadding =>

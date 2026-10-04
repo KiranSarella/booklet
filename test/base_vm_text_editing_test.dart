@@ -350,7 +350,7 @@ void main() {
               page: viewModel.selectedPage,
               onSelectComponent: (_) {},
               onSelectComponentRange: (_) {},
-              onCreateEntryBelow: (_, __) {},
+              onCreateEntryBelow: (_, _) {},
               onBackspaceAtStart: (_) {},
               onTapEmptySpace: () {},
             ),

@@ -94,12 +94,12 @@ class _NavigationPanelViewState extends State<NavigationPanelView> {
             padding: const EdgeInsets.fromLTRB(18, 18, 12, 12),
             child: Row(
               children: [
-                const Expanded(
-                  child: Text(
-                    'Booklet',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                  ),
-                ),
+                // const Expanded(
+                //   child: Text(
+                //     'Booklet',
+                //     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                //   ),
+                // ),
                 NavigationAddMenu(
                   onCreateGroup: widget.onCreateGroup,
                   onAddPageBelow: widget.onAddPageBelow,
@@ -436,12 +436,17 @@ class _NavigationBranchState extends State<_NavigationBranch> {
                                     )
                                   : null,
                             ),
-                            Icon(
-                              node.icon,
-                              size: 18,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                            
+                            SizedBox(
+                              width: node.isGroup ? 0 : 15,
+                              child: node.isGroup || node.isAssetsFolder
+                              ? null 
+                              : Icon(
+                                node.icon,
+                                size: 16,
+                                color: Colors.grey 
+                                    
+                              ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -468,10 +473,15 @@ class _NavigationBranchState extends State<_NavigationBranch> {
                                         fontSize: 13,
                                         fontWeight: node.isGroup
                                             ? FontWeight.w700
-                                            : FontWeight.w500,
-                                        color: Theme.of(context)
+                                            : node.isAssetsFolder 
+                                              ? FontWeight.w400
+                                              : FontWeight.w500,
+                                        color:// node.isAssetsFolder ? Colors.grey :
+                                        
+                                        Theme.of(context)
                                             .colorScheme
                                             .onSurface,
+                                        fontStyle: node.isAssetsFolder ? .italic : .normal
                                       ),
                                     ),
                             ),

@@ -16,7 +16,8 @@ class NavigationNode {
   NavigationNode.page({
     required this.title,
     required this.pageId,
-    this.icon = Icons.description_outlined,
+    // this.icon = Icons.description_outlined,
+    this.icon = Icons.notes,
   }) : type = NavigationNodeType.page,
        folderId = null;
 
