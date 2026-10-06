@@ -1,7 +1,7 @@
 import 'package:booklet/application/asset_manager_controller.dart';
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/ui/assets/asset_manager_view.dart';
-import 'package:booklet/ui/navigation/navigation_node.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -10,9 +10,6 @@ import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/application/window_manager_service.dart';
 import 'package:booklet/ui/base_view.dart';
-import 'package:booklet/ui/document_settings/document_settings_view.dart';
-import 'package:booklet/ui/document_settings/document_settings_vm.dart';
-import 'package:booklet/ui/document_toolbar.dart';
 import 'package:booklet/ui/page_settings/page_settings_view.dart';
 import 'package:booklet/ui/page_settings/page_settings_vm.dart';
 import 'package:booklet/ui/start_booklet.dart';
@@ -134,22 +131,6 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     );
   }
 
-  void _showDocumentSettings() {
-    final navigatorContext = _navigatorKey.currentContext;
-    if (navigatorContext == null) {
-      return;
-    }
-
-    showDialog<void>(
-      context: navigatorContext,
-      builder: (context) => DocumentSettingsDialog(
-        viewModel: DocumentSettingsVM(
-          settingsController: widget.application.documentSettingsController,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final documentSettingsController =
@@ -214,17 +195,9 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                           child: BaseView(
                             key: _bookletEditorKey,
                             controller: widget.application.editorController,
-                            onShowDocumentSettings: _showDocumentSettings,
                             onShowPageSettings: _showThemeEditor,
+                            onOpenInNewWindow: _openInNewWindow,
                           ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 12,
-                        left: 602,
-                        child: DocumentToolbar(
-                          controller: widget.application.editorController,
-                          onOpenInNewWindow: _openInNewWindow,
                         ),
                       ),
                       if (widget.application.screen == AppScreen.startup)

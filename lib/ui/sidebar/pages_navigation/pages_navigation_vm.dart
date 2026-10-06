@@ -3,7 +3,7 @@ import 'navigation_node.dart';
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:uuid/uuid.dart';
 
-class NavigationPanelVM {
+class PagesNavigationVM {
   final List<NavigationNode> groups = [];
   NavigationNode? selectedNode;
   String? selectedPageId;

@@ -6,7 +6,8 @@ class DocumentSettingsVM {
   final DocumentSettingsController settingsController;
 
   DocumentEditMode get editMode => settingsController.editMode;
-  DocumentAppearanceMode get appearanceMode => settingsController.appearanceMode;
+  DocumentAppearanceMode get appearanceMode =>
+      settingsController.appearanceMode;
 
   void updateEditMode(DocumentEditMode mode) =>
       settingsController.updateEditMode(mode);

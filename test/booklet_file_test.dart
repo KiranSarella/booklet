@@ -15,8 +15,8 @@ import 'package:booklet/ui/components/image_component.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/application/document_settings_controller.dart';
-import 'package:booklet/ui/navigation/navigation_node.dart';
-import 'package:booklet/ui/navigation/navigation_panel_vm.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/pages_navigation_vm.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -81,7 +81,7 @@ void main() {
       final bundledNode = NavigationNode.fromJson(
         Map<String, dynamic>.from(bundle['node'] as Map),
       );
-      final navigation = NavigationPanelVM()..addGroup(title: 'Existing');
+      final navigation = PagesNavigationVM()..addGroup(title: 'Existing');
       final copiedGroup = navigation.pasteNode(bundledNode)!;
 
       await BookletFile.importNavigationSubtree(

@@ -9,8 +9,8 @@ import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/foundation.dart' show VoidCallback;
 import 'package:flutter/widgets.dart' show TextSelection;
 import 'package:flutter_quill/flutter_quill.dart' show ChangeSource, Document;
-import 'package:booklet/ui/navigation/navigation_panel_vm.dart';
-import 'package:booklet/ui/navigation/navigation_node.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/pages_navigation_vm.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
 import 'package:uuid/uuid.dart';
 
 class BaseVM {
@@ -35,7 +35,7 @@ class BaseVM {
   }
 
   final PageSettingsController theme;
-  final NavigationPanelVM navigation = NavigationPanelVM();
+  final PagesNavigationVM navigation = PagesNavigationVM();
   final Map<String, PageContent> _pagesById = {};
   final Map<ComponentState, VoidCallback> _componentListeners = {};
   VoidCallback? onDocumentChanged;

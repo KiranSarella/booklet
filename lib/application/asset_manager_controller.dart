@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/storage/booklet_file.dart';
-import 'package:booklet/ui/navigation/navigation_node.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 

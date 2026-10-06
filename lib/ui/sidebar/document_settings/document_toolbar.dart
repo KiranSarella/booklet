@@ -52,37 +52,35 @@ class DocumentToolbarState extends State<DocumentToolbar> {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.controller,
-      builder: (context, _) => Row(
-        mainAxisSize: MainAxisSize.min,
+      builder: (context, _) => Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           _ActionButton(
             tooltip: 'Open booklet',
             icon: Icons.folder_open_outlined,
             onPressed: openBooklet,
           ),
-          const SizedBox(width: 8),
           _ActionButton(
             tooltip: 'Save booklet',
             icon: Icons.save_outlined,
             onPressed: saveBooklet,
           ),
-          const SizedBox(width: 8),
           _ActionButton(
             tooltip: 'Open in new window',
             icon: Icons.open_in_new,
             onPressed: widget.onOpenInNewWindow,
           ),
-          if (widget.controller.isAutoSaving) ...[
-            const SizedBox(width: 10),
+          if (widget.controller.isAutoSaving)
             const Tooltip(
               message: 'Saving changes',
               child: SizedBox.square(
                 dimension: 16,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-            ),
-          ] else if (widget.controller.autoSaveError != null) ...[
-            const SizedBox(width: 10),
+            )
+          else if (widget.controller.autoSaveError != null)
             Tooltip(
               message: 'Auto-save failed: ${widget.controller.autoSaveError}',
               child: Icon(
@@ -90,7 +88,6 @@ class DocumentToolbarState extends State<DocumentToolbar> {
                 color: Theme.of(context).colorScheme.error,
               ),
             ),
-          ],
         ],
       ),
     );

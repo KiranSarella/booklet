@@ -25,7 +25,6 @@ void main() {
         pageId: 'existing-page',
       );
       targetGroup.children.add(targetPage);
-      var documentSettingsPressed = false;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -47,7 +46,6 @@ void main() {
                 onCopyNode: () {},
                 onPasteNode: () {},
                 canPasteNode: true,
-                onShowDocumentSettings: () => documentSettingsPressed = true,
                 canMoveNode: navigation.canMoveNode,
                 onMoveNode: (source, target, before, into) => navigation
                     .moveNode(source, target, before: before, into: into),
@@ -70,16 +68,6 @@ void main() {
       expect(sourceGroup.children, isEmpty);
       expect(targetGroup.children, [targetPage, sourcePage]);
       expect(navigation.groups.every((node) => node.isGroup), isTrue);
-
-      final moreButton = tester.getRect(
-        find.byTooltip('More navigation options'),
-      );
-      final settingsButton = tester.getRect(
-        find.byTooltip('Document settings'),
-      );
-      expect(settingsButton.left, greaterThan(moreButton.right));
-      await tester.tap(find.byTooltip('Document settings'));
-      expect(documentSettingsPressed, isTrue);
     }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 
     test('renames a selected group', () {

@@ -10,7 +10,7 @@ import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
-import 'package:booklet/ui/navigation/navigation_node.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

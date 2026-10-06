@@ -13,7 +13,7 @@ import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_snapshot.dart';
-import 'package:booklet/ui/navigation/navigation_node.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
 
 class EditorController extends ChangeNotifier {
   EditorController(

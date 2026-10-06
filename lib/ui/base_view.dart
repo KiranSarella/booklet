@@ -7,22 +7,25 @@ import 'dart:async';
 
 import 'package:booklet/application/editor_controller.dart';
 import 'package:booklet/ui/base_vm.dart';
+import 'package:booklet/ui/sidebar/document_settings/document_settings_vm.dart';
+import 'package:booklet/ui/sidebar/base_sidebar_view.dart';
+import 'package:booklet/ui/sidebar/document_settings/document_toolbar.dart';
 import 'package:booklet/ui/components/component_box.dart';
-import 'package:booklet/ui/navigation/navigation_panel_view.dart';
-import 'package:booklet/ui/navigation/navigation_node.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/pages_navigation_view.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
 import 'package:booklet/ui/options_dock/opitons_dock.dart';
 
 class BaseView extends StatefulWidget {
   const BaseView({
     super.key,
     required this.controller,
-    required this.onShowDocumentSettings,
     required this.onShowPageSettings,
+    required this.onOpenInNewWindow,
   });
 
   final EditorController controller;
-  final VoidCallback onShowDocumentSettings;
   final VoidCallback onShowPageSettings;
+  final VoidCallback onOpenInNewWindow;
 
   @override
   State<BaseView> createState() => BaseViewState();
@@ -32,7 +35,7 @@ class BaseViewState extends State<BaseView> {
   final ScrollController _scrollController = ScrollController();
   final _optionsDockKey = GlobalKey<OptionsDockState>();
   final FocusNode _pageFocusNode = FocusNode(debugLabel: 'page-shortcuts');
-  double _navigationWidth = NavigationPanelView.defaultWidth;
+  double _navigationWidth = PagesNavigationView.defaultWidth;
   bool _isNavigationVisible = true;
 
   BaseVM get _viewModel => widget.controller.viewModel;
@@ -146,7 +149,7 @@ class BaseViewState extends State<BaseView> {
   void _resizeNavigation(double delta) {
     setState(() {
       _navigationWidth = (_navigationWidth + delta)
-          .clamp(NavigationPanelView.minWidth, NavigationPanelView.maxWidth)
+          .clamp(PagesNavigationView.minWidth, PagesNavigationView.maxWidth)
           .toDouble();
     });
   }
@@ -250,7 +253,17 @@ May this day of your birth be auspicious!
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (_isNavigationVisible) ...[
-                NavigationPanelView(
+                BaseSidebarView(
+                  width: _navigationWidth,
+                  documentSettingsViewModel: DocumentSettingsVM(
+                    settingsController:
+                        widget.controller.documentSettingsController,
+                  ),
+                  fileActions: DocumentToolbar(
+                    controller: widget.controller,
+                    onOpenInNewWindow: widget.onOpenInNewWindow,
+                  ),
+                  pagesNavigation: PagesNavigationView(
                   controller: _viewModel.navigation,
                   width: _navigationWidth,
                   onPageSelected: selectPage,
@@ -274,7 +287,6 @@ May this day of your birth be auspicious!
                     widget.controller.pasteSelectedNavigationNode(),
                   ),
                   canPasteNode: widget.controller.canPasteComponents,
-                  onShowDocumentSettings: widget.onShowDocumentSettings,
                   canMoveNode: (source, target, {required into}) => _viewModel
                       .navigation
                       .canMoveNode(source, target, into: into),
@@ -289,6 +301,7 @@ May this day of your birth be auspicious!
                     setState(() {});
                   },
                   onChanged: () => setState(() {}),
+                  ),
                 ),
                 _NavigationResizeHandle(onDragUpdate: _resizeNavigation),
               ],
