@@ -306,18 +306,30 @@ May this day of your birth be auspicious!
                           onKeyEvent: _handlePageKeyEvent,
                           child: ColoredBox(
                             color: Theme.of(context).scaffoldBackgroundColor,
+                            // color: const Color.fromARGB(255, 224, 223, 223),
                             child: SingleChildScrollView(
                               controller: _scrollController,
                               padding: const EdgeInsets.all(90),
-                              child: PageView(
-                                editorTheme: widget.controller.editorTheme,
-                                page: widget.controller.selectedPage,
-                                onSelectComponent: selectComponent,
-                                onSelectComponentRange: selectComponentRange,
-                                onCreateEntryBelow: _createEntryBelow,
-                                onBackspaceAtStart:
-                                    _mergeTextComponentWithPrevious,
-                                onTapEmptySpace: clearSelectionAndFocus,
+                              child: Container(
+                                  decoration: BoxDecoration(
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withValues(alpha: 0.1),
+                                      blurRadius: 30,
+                                      offset: Offset(0, -2),  
+                                    ),
+                                  ]
+                                ),
+                                child: PageView(
+                                  editorTheme: widget.controller.editorTheme,
+                                  page: widget.controller.selectedPage,
+                                  onSelectComponent: selectComponent,
+                                  onSelectComponentRange: selectComponentRange,
+                                  onCreateEntryBelow: _createEntryBelow,
+                                  onBackspaceAtStart:
+                                      _mergeTextComponentWithPrevious,
+                                  onTapEmptySpace: clearSelectionAndFocus,
+                                ),
                               ),
                             ),
                           ),

@@ -94,12 +94,24 @@ class _NavigationPanelViewState extends State<NavigationPanelView> {
             padding: const EdgeInsets.fromLTRB(18, 18, 12, 12),
             child: Row(
               children: [
-                // const Expanded(
-                //   child: Text(
-                //     'Booklet',
-                //     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                //   ),
-                // ),
+                
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'Document settings',
+                  icon: const Icon(Icons.settings_outlined, size: 20),
+                  onPressed: widget.onShowDocumentSettings,
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+            child: Row(
+              mainAxisAlignment: .end,
+              children: [
+                
                 NavigationAddMenu(
                   onCreateGroup: widget.onCreateGroup,
                   onAddPageBelow: widget.onAddPageBelow,
@@ -122,19 +134,14 @@ class _NavigationPanelViewState extends State<NavigationPanelView> {
                   },
                   onChanged: widget.onChanged,
                 ),
-                const SizedBox(width: 4),
-                IconButton(
-                  tooltip: 'Document settings',
-                  icon: const Icon(Icons.settings_outlined, size: 20),
-                  onPressed: widget.onShowDocumentSettings,
-                ),
+                // const SizedBox(width: 4),
               ],
             ),
           ),
-          const Divider(height: 1),
+
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: 5),
               children: [
                 for (final group in widget.controller.groups)
                   _NavigationBranch(
@@ -439,7 +446,7 @@ class _NavigationBranchState extends State<_NavigationBranch> {
                             
                             SizedBox(
                               width: node.isGroup ? 0 : 15,
-                              child: node.isGroup || node.isAssetsFolder
+                              child: node.isGroup
                               ? null 
                               : Icon(
                                 node.icon,
@@ -481,7 +488,7 @@ class _NavigationBranchState extends State<_NavigationBranch> {
                                         Theme.of(context)
                                             .colorScheme
                                             .onSurface,
-                                        fontStyle: node.isAssetsFolder ? .italic : .normal
+                                        // fontStyle: node.isAssetsFolder ? . : .normal
                                       ),
                                     ),
                             ),

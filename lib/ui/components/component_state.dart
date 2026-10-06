@@ -240,10 +240,10 @@ class ChecklistComponentState extends ListItemComponentState {
 class ImageComponentState extends ComponentState {
   ImageComponentState({
     this._mediaPath,
-    String? imageSize,
+    this._imageSize,
     this._width,
     this._height,
-  }) : _imageSize = imageSize;
+  });
 
   String? _mediaPath;
   String? _imageSize;

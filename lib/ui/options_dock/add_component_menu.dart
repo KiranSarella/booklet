@@ -56,8 +56,8 @@ class AddComponentMenu extends StatelessWidget {
                 child: Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontSize: baseFontSize,
-                    fontWeight: FontWeight.w700,
+                    fontSize: baseFontSize - 2, 
+                    fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -125,7 +125,7 @@ class AddComponentMenu extends StatelessWidget {
       case 'Label':
         return const TextStyle(
           fontFamily: 'Menlo',
-          fontSize: baseFontSize * 1.1,
+          fontSize: baseFontSize,
           // fontWeight: FontWeight.w600,
         );
       case 'Caption':
