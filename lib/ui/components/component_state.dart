@@ -144,7 +144,7 @@ class BulletedListComponentState extends ListItemComponentState {
     super.alignment, {
     super.delta,
     String symbol = '•',
-  }){
+  }) {
     this.symbol = symbol;
   }
 
@@ -164,7 +164,7 @@ class NumberedListComponentState extends ListItemComponentState {
     super.alignment, {
     super.delta,
     String numberStyle = '1.',
-  }){
+  }) {
     this.numberStyle = numberStyle;
   }
 

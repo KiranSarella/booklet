@@ -19,17 +19,20 @@ class AddComponentMenu extends StatelessWidget {
   List<String> get componentTypes => textOnly
       ? _componentTypes
             .where(
-              (key) => InbuiltComponents.getComponentMenuItems()
-                  .firstWhere((definition) => definition.key == key)
-                  .type.name == 'text',
+              (key) =>
+                  InbuiltComponents.getComponentMenuItems()
+                      .firstWhere((definition) => definition.key == key)
+                      .type
+                      .name ==
+                  'text',
             )
             .toList(growable: false)
       : _componentTypes;
 
-  static final List<String> _componentTypes = InbuiltComponents
-      .getComponentMenuItems()
-      .map((definition) => definition.key)
-      .toList(growable: false);
+  static final List<String> _componentTypes =
+      InbuiltComponents.getComponentMenuItems()
+          .map((definition) => definition.key)
+          .toList(growable: false);
 
   static String titleforkey(String key) {
     return InbuiltComponents.getComponentMenuItems()
@@ -56,7 +59,7 @@ class AddComponentMenu extends StatelessWidget {
                 child: Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontSize: baseFontSize - 2, 
+                    fontSize: baseFontSize - 2,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -118,10 +121,7 @@ class AddComponentMenu extends StatelessWidget {
           fontWeight: FontWeight.w700,
         );
       case 'Subtitle':
-        return const TextStyle(
-          fontSize: baseFontSize * 1.35, 
-          height: 1
-          );
+        return const TextStyle(fontSize: baseFontSize * 1.35, height: 1);
       case 'Label':
         return const TextStyle(
           fontFamily: 'Menlo',

@@ -13,8 +13,8 @@ import 'package:booklet/ui/sidebar/pages_navigation/pages_navigation_vm.dart';
 import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
 import 'package:uuid/uuid.dart';
 
-class BaseVM {
-  BaseVM(this.theme, {bool createStarterPage = true}) {
+class EditorVM {
+  EditorVM(this.theme, {bool createStarterPage = true}) {
     if (!createStarterPage) {
       return;
     }

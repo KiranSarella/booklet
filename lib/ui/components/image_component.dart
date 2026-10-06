@@ -188,21 +188,19 @@ class _ImageComponentViewState extends State<ImageComponentView> {
 
   Widget _buildImage(String path, {BoxFit fit = BoxFit.contain}) {
     final uri = Uri.tryParse(path);
-    final isRemote = uri != null &&
-        (uri.scheme == 'http' || uri.scheme == 'https');
+    final isRemote =
+        uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
     if (isRemote) {
       return Image.network(
         path,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) =>
-            const _ImageUnavailable(),
+        errorBuilder: (context, error, stackTrace) => const _ImageUnavailable(),
       );
     }
     return Image.file(
       File(path),
       fit: fit,
-      errorBuilder: (context, error, stackTrace) =>
-          const _ImageUnavailable(),
+      errorBuilder: (context, error, stackTrace) => const _ImageUnavailable(),
     );
   }
 
@@ -341,7 +339,10 @@ class _SizeButton extends StatelessWidget {
 }
 
 class _EmptyImageState extends StatelessWidget {
-  const _EmptyImageState({required this.isDragging, required this.onChooseImage});
+  const _EmptyImageState({
+    required this.isDragging,
+    required this.onChooseImage,
+  });
 
   final bool isDragging;
   final VoidCallback? onChooseImage;

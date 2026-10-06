@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/page_settings_controller.dart';
-import 'package:booklet/ui/page_settings/page_settings_vm.dart';
+import 'package:booklet/ui/detail/editor/page_settings/page_settings_vm.dart';
 import 'package:booklet/ui/_helpers/color_picker_dialog.dart';
 
 class PageSettingsDialog extends StatelessWidget {
@@ -129,7 +129,6 @@ class PageSettingsDialog extends StatelessWidget {
                   ),
                 ),
 
-
                 const SizedBox(height: 12),
 
                 _ThemeColorRow(
@@ -137,19 +136,18 @@ class PageSettingsDialog extends StatelessWidget {
                   color: viewModel.pageBackgroundColor,
                   onChanged: viewModel.updatePageBackgroundColor,
                 ),
-                
+
                 _ThemeColorRow(
                   label: 'Text',
                   color: viewModel.textColor,
                   onChanged: viewModel.updateTextColor,
                 ),
-                
+
                 _ThemeColorRow(
                   label: 'Headings',
                   color: viewModel.headingColor,
                   onChanged: viewModel.updateHeadingColor,
                 ),
-                
               ],
             ),
           ),
@@ -199,6 +197,4 @@ class _ThemeColorRow extends StatelessWidget {
       onChanged(selectedColor);
     }
   }
-
-
 }

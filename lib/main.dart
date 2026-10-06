@@ -9,9 +9,7 @@ import 'package:booklet/application/app.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/application/window_manager_service.dart';
-import 'package:booklet/ui/base_view.dart';
-import 'package:booklet/ui/page_settings/page_settings_view.dart';
-import 'package:booklet/ui/page_settings/page_settings_vm.dart';
+import 'package:booklet/ui/main_view.dart';
 import 'package:booklet/ui/start_booklet.dart';
 
 // Keeps gray appearance dark enough for the dark scheme's white foregrounds.
@@ -65,7 +63,7 @@ class MainApp extends StatefulWidget {
 
 class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
-  final _bookletEditorKey = GlobalKey<BaseViewState>();
+  final _bookletEditorKey = GlobalKey<MainViewState>();
   final _windowManagerService = WindowManagerService();
 
   @override
@@ -111,24 +109,6 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     widget.application.dispose();
     super.dispose();
-  }
-
-  void _showThemeEditor() {
-    final navigatorContext = _navigatorKey.currentContext;
-    if (navigatorContext == null) {
-      return;
-    }
-
-    showDialog<void>(
-      context: navigatorContext,
-      builder: (context) => PageSettingsDialog(
-        viewModel: PageSettingsVM(
-          pageSettingsController: widget.application.editorTheme,
-          documentSettingsController:
-              widget.application.documentSettingsController,
-        ),
-      ),
-    );
   }
 
   @override
@@ -192,10 +172,9 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                         child: SizedBox(
                           width: double.infinity,
                           height: double.infinity,
-                          child: BaseView(
+                          child: MainView(
                             key: _bookletEditorKey,
                             controller: widget.application.editorController,
-                            onShowPageSettings: _showThemeEditor,
                             onOpenInNewWindow: _openInNewWindow,
                           ),
                         ),

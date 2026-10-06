@@ -55,11 +55,9 @@ import 'package:flutter/material.dart';
 //   }
 // }
 
-  // String _colorValue(Color color) {
-  //   return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
-  // }
-
-
+// String _colorValue(Color color) {
+//   return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
+// }
 
 class ColorPickerDialog extends StatefulWidget {
   const ColorPickerDialog({super.key, required this.initialColor});

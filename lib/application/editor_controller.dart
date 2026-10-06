@@ -8,7 +8,7 @@ import 'package:booklet/application/component_clipboard_controller.dart';
 import 'package:booklet/application/navigation_clipboard_controller.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
-import 'package:booklet/ui/base_vm.dart';
+import 'package:booklet/ui/detail/editor/editor_vm.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/components/component_box.dart';
@@ -20,7 +20,7 @@ class EditorController extends ChangeNotifier {
     this.editorTheme,
     this.documentSettingsController, {
     this.autoSaveDelay = const Duration(milliseconds: 750),
-  }) : viewModel = BaseVM(editorTheme),
+  }) : viewModel = EditorVM(editorTheme),
        assetManagerController = AssetManagerController() {
     viewModel.setDocumentChangedCallback(_scheduleAutoSave);
     assetManagerController.onDocumentChanged = markDocumentChanged;
@@ -30,7 +30,7 @@ class EditorController extends ChangeNotifier {
 
   final PageSettingsController editorTheme;
   final DocumentSettingsController documentSettingsController;
-  final BaseVM viewModel;
+  final EditorVM viewModel;
   final AssetManagerController assetManagerController;
   // Lives on the controller (not the per-page view model) so copied
   // components survive page switches and opening a different booklet.

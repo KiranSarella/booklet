@@ -1,9 +1,9 @@
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
-import 'package:booklet/ui/base_vm.dart';
+import 'package:booklet/ui/detail/editor/editor_vm.dart';
 import 'package:booklet/ui/components/component_snapshot.dart';
 import 'package:booklet/ui/components/component_state.dart';
-import 'package:booklet/ui/page_view/page_view.dart';
+import 'package:booklet/ui/detail/editor/page_view/page_view.dart';
 import 'package:flutter/material.dart' hide PageView;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,12 +13,12 @@ void main() {
 
   late DocumentSettingsController documentSettings;
   late PageSettingsController theme;
-  late BaseVM viewModel;
+  late EditorVM viewModel;
 
   setUp(() {
     documentSettings = DocumentSettingsController();
     theme = PageSettingsController(documentSettings);
-    viewModel = BaseVM(theme);
+    viewModel = EditorVM(theme);
   });
 
   tearDown(() {

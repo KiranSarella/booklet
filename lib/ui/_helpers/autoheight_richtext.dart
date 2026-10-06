@@ -97,7 +97,10 @@ class AutoHeightRichText2 extends StatelessWidget {
                       },
                       padding: editorPadding,
                       expands: false,
-                      placeholder: (!hidePlaceholderWhenIdle || isSelected || textState.isFocused)
+                      placeholder:
+                          (!hidePlaceholderWhenIdle ||
+                              isSelected ||
+                              textState.isFocused)
                           ? placeholder
                           : null,
                       textInputAction: TextInputAction.newline,
