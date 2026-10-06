@@ -53,10 +53,10 @@ class DocumentSettingsView extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text('Appearance', style: Theme.of(context).textTheme.titleSmall),
-            Text(
-              'Applies to the whole app (navigation, menus). Not the page view.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            // Text(
+            //   'Applies to the whole app (navigation, menus). Not the page view.',
+            //   style: Theme.of(context).textTheme.bodySmall,
+            // ),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
