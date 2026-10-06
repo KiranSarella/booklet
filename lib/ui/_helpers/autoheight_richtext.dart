@@ -17,6 +17,7 @@ class AutoHeightRichText2 extends StatelessWidget {
     required this.textStyle,
     required this.alignment,
     required this.placeholder,
+    this.hidePlaceholderWhenIdle = false,
     this.editorPadding = const EdgeInsets.symmetric(
       horizontal: 14,
       vertical: 12,
@@ -30,6 +31,7 @@ class AutoHeightRichText2 extends StatelessWidget {
   final TextStyle textStyle;
   final Attribute<dynamic> alignment;
   final String placeholder;
+  final bool hidePlaceholderWhenIdle;
   final EdgeInsets editorPadding;
 
   @override
@@ -95,7 +97,9 @@ class AutoHeightRichText2 extends StatelessWidget {
                       },
                       padding: editorPadding,
                       expands: false,
-                      placeholder: placeholder,
+                      placeholder: (!hidePlaceholderWhenIdle || isSelected || textState.isFocused)
+                          ? placeholder
+                          : null,
                       textInputAction: TextInputAction.newline,
                       customStyles: defaultStyles,
                     ),

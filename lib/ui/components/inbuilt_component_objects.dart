@@ -317,6 +317,7 @@ class TextComponent with TextComponentStateOwner implements Component {
       alignment: alignment,
       editorPadding: editorPadding,
       placeholder: def.name,
+      hidePlaceholderWhenIdle: true,
     );
   }
 
