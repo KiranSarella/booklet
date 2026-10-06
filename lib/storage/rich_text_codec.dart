@@ -58,7 +58,7 @@ class RichTextData {
 
   Map<String, dynamic> toJson() => {
     'content': content,
-    'styles': styles.map((s) => s.toJson()).toList(),
+    if (styles.isNotEmpty) 'styles': styles.map((s) => s.toJson()).toList(),
   };
 
   factory RichTextData.fromJson(Map<String, dynamic> json) {

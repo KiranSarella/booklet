@@ -69,18 +69,54 @@ class BookletFile {
     }
     await _migrateLegacyPages(packagePath, json['pages']);
 
+    final groups = navigationData
+        .whereType<Map>()
+        .map(
+          (group) => NavigationNode.fromJson(Map<String, dynamic>.from(group)),
+        )
+        .toList();
+    for (final group in groups) {
+      await _loadAssetIndexes(packagePath, group);
+    }
+
     return BookletManifest(
       path: packagePath,
-      groups: navigationData
-          .whereType<Map>()
-          .map(
-            (group) =>
-                NavigationNode.fromJson(Map<String, dynamic>.from(group)),
-          )
-          .toList(),
+      groups: groups,
       selectedPageId: json['selectedPageId'] as String?,
       selectedAssetFolderId: json['selectedAssetFolderId'] as String?,
     );
+  }
+
+  static const _assetIndexName = 'index.json';
+
+  static Future<void> _loadAssetIndexes(
+    String packagePath,
+    NavigationNode node,
+  ) async {
+    final folderId = node.folderId;
+    if (node.isAssetsFolder && folderId != null) {
+      final indexFile = File('$packagePath/assets/$folderId/$_assetIndexName');
+      if (await indexFile.exists()) {
+        final raw = jsonDecode(await indexFile.readAsString());
+        node.assets.clear();
+        if (raw is List) {
+          for (final entry in raw.whereType<Map>()) {
+            final id = entry['id'] as String? ?? '';
+            final name = entry['name'] as String? ?? 'Untitled file';
+            node.assets.add(
+              BookletAsset(
+                id: id,
+                name: name,
+                path: 'assets/$folderId/$id${_assetExtension(name)}',
+              ),
+            );
+          }
+        }
+      }
+    }
+    for (final child in node.children) {
+      await _loadAssetIndexes(packagePath, child);
+    }
   }
 
   static Future<List<XFile>> chooseAssets() => openFiles();
@@ -566,7 +602,9 @@ class BookletFile {
       'version': 1,
       'selectedPageId': selectedPageId,
       'selectedAssetFolderId': selectedAssetFolderId,
-      'navigation': groups.map((group) => group.toJson()).toList(),
+      'navigation': groups
+          .map((group) => group.toJson(embedAssets: false))
+          .toList(),
     });
     await File('$packagePath/$_manifestName').writeAsString(json);
   }
@@ -584,7 +622,8 @@ class BookletFile {
           'id': componentBox.component.id,
           'type': componentBox.component.def.key,
           'content': richText.content,
-          'styles': richText.styles.map((s) => s.toJson()).toList(),
+          if (richText.styles.isNotEmpty)
+            'styles': richText.styles.map((s) => s.toJson()).toList(),
           ..._listStateJson(state),
         });
         continue;
@@ -600,9 +639,11 @@ class BookletFile {
           'id': componentBox.component.id,
           'type': componentBox.component.def.key,
           'content': quote.content,
-          'styles': quote.styles.map((s) => s.toJson()).toList(),
+          if (quote.styles.isNotEmpty)
+            'styles': quote.styles.map((s) => s.toJson()).toList(),
           'author': author.content,
-          'authorStyles': author.styles.map((s) => s.toJson()).toList(),
+          if (author.styles.isNotEmpty)
+            'authorStyles': author.styles.map((s) => s.toJson()).toList(),
         });
         continue;
       }
@@ -735,6 +776,12 @@ class BookletFile {
             );
           }
         }
+        await File('${assetDirectory.path}/$_assetIndexName').writeAsString(
+          jsonEncode([
+            for (final asset in node.assets)
+              {'id': asset.id, 'name': asset.name},
+          ]),
+        );
       }
       await _persistNavigationAssets(
         packagePath,

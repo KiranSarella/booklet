@@ -41,17 +41,20 @@ class NavigationNode {
   bool get isPage => type == NavigationNodeType.page;
   bool get isAssetsFolder => type == NavigationNodeType.assetsFolder;
 
-  Map<String, dynamic> toJson() => {
+  /// With [embedAssets] false, the asset list is omitted (stored in a separate index file).
+  Map<String, dynamic> toJson({bool embedAssets = true}) => {
     'type': type.name,
     'title': title,
     if (pageId != null) 'pageId': pageId,
     if (folderId != null) 'folderId': folderId,
     'isExpanded': isExpanded,
-    if (isAssetsFolder)
+    if (isAssetsFolder && embedAssets)
       'assets': assets.map((asset) => asset.toJson()).toList(),
     'children': isAssetsFolder
         ? <Map<String, dynamic>>[]
-        : children.map((child) => child.toJson()).toList(),
+        : children
+              .map((child) => child.toJson(embedAssets: embedAssets))
+              .toList(),
   };
 
   static NavigationNode fromJson(Map<String, dynamic> json) {
