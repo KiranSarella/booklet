@@ -75,13 +75,11 @@ mixin TextComponentStateOwner {
 
 class TextComponentState extends ComponentState {
   TextComponentState(Attribute<dynamic> alignment, {List<dynamic>? delta})
-    : controller = delta == null
-          ? QuillController.basic()
-          : QuillController(
-              config: _plainTextClipboardConfig,
-              document: Document.fromJson(delta),
-              selection: const TextSelection.collapsed(offset: 0),
-            ) {
+    : controller = QuillController(
+        config: _plainTextClipboardConfig,
+        document: delta == null ? Document() : Document.fromJson(delta),
+        selection: const TextSelection.collapsed(offset: 0),
+      ) {
     controller.addListener(notifyListeners);
     // controller.formatSelection(alignment);
     if (delta == null) {
