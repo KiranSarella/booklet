@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/application/app.dart';
 import 'package:booklet/application/document_settings_controller.dart';
+import 'package:booklet/application/open_file_service.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/application/window_manager_service.dart';
 import 'package:booklet/ui/main_view.dart';
@@ -65,6 +66,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _bookletEditorKey = GlobalKey<MainViewState>();
   final _windowManagerService = WindowManagerService();
+  final _openFileService = OpenFileService();
 
   @override
   void initState() {
@@ -75,6 +77,15 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     );
     widget.application.documentSettingsController.load();
     widget.application.editorTheme.load();
+    unawaited(_openFileService.listen(_openExternalBooklet));
+  }
+
+  Future<void> _openExternalBooklet(String path) async {
+    if (widget.application.screen == AppScreen.startup) {
+      await widget.application.openBookletAtPath(path);
+    } else {
+      await _windowManagerService.openDocumentInNewWindow(path);
+    }
   }
 
   Future<void> _openBookletFromStartup() async {

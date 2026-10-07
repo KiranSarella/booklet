@@ -386,7 +386,7 @@ class BulletedListComponent with TextComponentStateOwner implements Component {
               textStyle: textStyle,
               alignment: alignment,
               editorPadding: editorPadding,
-              placeholder: def.name,
+              placeholder: def.placeholder,
             ),
           ),
         ],
@@ -459,7 +459,7 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
               textStyle: textStyle,
               alignment: alignment,
               editorPadding: editorPadding,
-              placeholder: def.name,
+              placeholder: def.placeholder,
             ),
           ),
         ],
@@ -528,7 +528,7 @@ class ChecklistComponent with TextComponentStateOwner implements Component {
               textStyle: textStyle,
               alignment: alignment,
               editorPadding: editorPadding,
-              placeholder: def.name,
+              placeholder: def.placeholder,
             ),
           ),
         ],
@@ -583,7 +583,7 @@ class FocusComponent with TextComponentStateOwner implements Component {
           textStyle: textStyle,
           alignment: alignment,
           editorPadding: editorPadding,
-          placeholder: def.name,
+          placeholder: def.placeholder,
         ),
       ),
     );
@@ -716,7 +716,7 @@ class QuoteComponent implements Component {
             textStyle: textStyle,
             alignment: alignment,
             editorPadding: editorPadding,
-            placeholder: def.name,
+            placeholder: def.placeholder,
           ),
           AutoHeightRichText2(
             visualState: state.author,
@@ -780,7 +780,7 @@ class LocationComponent with TextComponentStateOwner implements Component {
       textStyle: textStyle,
       alignment: alignment,
       editorPadding: editorPadding,
-      placeholder: def.name,
+      placeholder: def.placeholder,
     );
   }
 

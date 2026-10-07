@@ -108,6 +108,9 @@ class BulletedListComponentDef extends ComponentDef {
   String get name => "- Bulleted List";
 
   @override
+  String get placeholder => "Bulleted List";
+
+  @override
   ComponentType get type => ComponentType.text;
 }
 
@@ -117,6 +120,9 @@ class NumberedListComponentDef extends ComponentDef {
 
   @override
   String get name => "1. Numbered List";
+
+  @override
+  String get placeholder => "Numbered List";
 
   @override
   ComponentType get type => ComponentType.text;
@@ -130,8 +136,12 @@ class ChecklistComponentDef extends ComponentDef {
   String get name => "🗸 Checklist";
 
   @override
+  String get placeholder => "Checklist";
+
+  @override
   ComponentType get type => ComponentType.text;
 }
+
 
 class FocusComponentDef extends ComponentDef {
   @override
@@ -139,6 +149,9 @@ class FocusComponentDef extends ComponentDef {
 
   @override
   String get name => "┃ Focus";
+
+  @override
+  String get placeholder => "Focus";
 
   @override
   ComponentType get type => ComponentType.text;
@@ -177,12 +190,16 @@ class MathComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
+
 class QuoteComponentDef extends ComponentDef {
   @override
   String get key => "quote";
 
   @override
   String get name => "❝Quote❞";
+
+  @override
+  String get placeholder => "Quote";
 
   @override
   ComponentType get type => ComponentType.text;
@@ -249,6 +266,9 @@ class LocationComponentDef extends ComponentDef {
 
   @override
   String get name => "📍 Location";
+
+  @override
+  String get placeholder => "Location";
 
   @override
   ComponentType get type => ComponentType.text;
