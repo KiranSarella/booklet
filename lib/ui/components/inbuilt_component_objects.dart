@@ -652,7 +652,7 @@ class QuoteComponent implements Component {
           Row(
             mainAxisAlignment: .start,
             children: [
-              Text("❝", style: TextStyle(fontSize: fontSizePercent(200))),
+              Text("❝", style: TextStyle(fontSize: fontSizePercent(200), color: Colors.cyan)),
             ],
           ),
           AutoHeightRichText2(
@@ -664,6 +664,7 @@ class QuoteComponent implements Component {
             alignment: alignment,
             editorPadding: editorPadding,
             placeholder: def.placeholder,
+            gatePointerInput: false,
           ),
           AutoHeightRichText2(
             visualState: state.author,
@@ -674,11 +675,14 @@ class QuoteComponent implements Component {
             alignment: alignment,
             editorPadding: editorPadding,
             placeholder: "caption",
+            gatePointerInput: false,
           ),
           Row(
             mainAxisAlignment: .end,
             children: [
-              Text("❞", style: TextStyle(fontSize: fontSizePercent(200))),
+              Text("❞", style: TextStyle(
+                fontSize: fontSizePercent(200), color: Colors.cyan),
+              ),
             ],
           ),
         ],

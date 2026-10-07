@@ -18,6 +18,7 @@ class AutoHeightRichText2 extends StatelessWidget {
     required this.alignment,
     required this.placeholder,
     this.hidePlaceholderWhenIdle = false,
+    this.gatePointerInput = true,
     this.editorPadding = const EdgeInsets.symmetric(
       horizontal: 14,
       vertical: 12,
@@ -32,6 +33,8 @@ class AutoHeightRichText2 extends StatelessWidget {
   final Attribute<dynamic> alignment;
   final String placeholder;
   final bool hidePlaceholderWhenIdle;
+  // Off when a parent already gates taps (multi-field components like quote).
+  final bool gatePointerInput;
   final EdgeInsets editorPadding;
 
   @override
@@ -76,7 +79,9 @@ class AutoHeightRichText2 extends StatelessWidget {
                 },
                 child: AbsorbPointer(
                   absorbing:
-                      !textState.controller.readOnly && !textState.isFocused,
+                      gatePointerInput &&
+                      !textState.controller.readOnly &&
+                      !textState.isFocused,
                   child: QuillEditor.basic(
                     controller: textState.controller,
                     focusNode: textState.focusNode,
