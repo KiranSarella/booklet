@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
-final _plainTextClipboardConfig = QuillControllerConfig(
-  clipboardConfig: QuillClipboardConfig(enableExternalRichPaste: false),
-);
-
 abstract class ComponentState extends ChangeNotifier {
   bool isSelected = false;
   bool isFocused = false;
@@ -75,11 +71,7 @@ mixin TextComponentStateOwner {
 
 class TextComponentState extends ComponentState {
   TextComponentState(Attribute<dynamic> alignment, {List<dynamic>? delta})
-    : controller = QuillController(
-        config: _plainTextClipboardConfig,
-        document: delta == null ? Document() : Document.fromJson(delta),
-        selection: const TextSelection.collapsed(offset: 0),
-      ) {
+    : _initialDelta = delta {
     controller.addListener(notifyListeners);
     // controller.formatSelection(alignment);
     if (delta == null) {
@@ -87,7 +79,32 @@ class TextComponentState extends ComponentState {
     }
   }
 
-  final QuillController controller;
+  final List<dynamic>? _initialDelta;
+
+  late final QuillController controller = QuillController(
+    config: QuillControllerConfig(
+      clipboardConfig: QuillClipboardConfig(
+        enableExternalRichPaste: false,
+        onClipboardPaste: _handleClipboardPaste,
+      ),
+    ),
+    document: _initialDelta == null
+        ? Document()
+        : Document.fromJson(_initialDelta),
+    selection: const TextSelection.collapsed(offset: 0),
+  );
+
+  /// Returns true when the text was consumed (split across components).
+  Future<bool> Function(String text)? onPasteText;
+
+  Future<bool> _handleClipboardPaste() async {
+    final handler = onPasteText;
+    if (handler == null) return false;
+    final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
+    if (text == null || text.isEmpty) return false;
+    return handler(text);
+  }
+
   late final FocusNode focusNode = FocusNode(onKeyEvent: _handleEditorKeyEvent);
   VoidCallback? onBackspaceAtStart;
 

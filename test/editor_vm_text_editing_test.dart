@@ -352,6 +352,7 @@ void main() {
               onSelectComponentRange: (_) {},
               onCreateEntryBelow: (_, _) {},
               onBackspaceAtStart: (_) {},
+              onPasteText: (_, _) async => false,
               onTapEmptySpace: () {},
             ),
           ),

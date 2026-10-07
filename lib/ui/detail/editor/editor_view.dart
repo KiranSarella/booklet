@@ -128,6 +128,22 @@ class EditorViewState extends State<EditorView> {
     });
   }
 
+  Future<bool> _pasteTextAt(int index, String text) async {
+    ComponentBox? last;
+    setState(() {
+      last = _viewModel.pasteTextLines(index, text);
+    });
+    final target = last;
+    if (target == null) return false;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToComponent(target);
+      target.requestFocus();
+    });
+    return true;
+  }
+
   void _mergeTextComponentWithPrevious(int index) {
     ComponentBox? previousComponent;
     setState(() {
@@ -249,6 +265,7 @@ May this day of your birth be auspicious!
                         onSelectComponentRange: selectComponentRange,
                         onCreateEntryBelow: _createEntryBelow,
                         onBackspaceAtStart: _mergeTextComponentWithPrevious,
+                        onPasteText: _pasteTextAt,
                         onTapEmptySpace: clearSelectionAndFocus,
                       ),
                     ),

@@ -13,6 +13,7 @@ class PageView extends StatelessWidget {
     required this.onSelectComponentRange,
     required this.onCreateEntryBelow,
     required this.onBackspaceAtStart,
+    required this.onPasteText,
     required this.onTapEmptySpace,
   });
 
@@ -22,6 +23,7 @@ class PageView extends StatelessWidget {
   final ValueChanged<ComponentBox> onSelectComponentRange;
   final void Function(int index, TextSelection? selection) onCreateEntryBelow;
   final ValueChanged<int> onBackspaceAtStart;
+  final Future<bool> Function(int index, String text) onPasteText;
   final VoidCallback onTapEmptySpace;
 
   int? _numberedSequenceAt(int index) {
@@ -62,6 +64,7 @@ class PageView extends StatelessWidget {
         onSelectRange: () => onSelectComponentRange(component),
         onCreateBelow: (selection) => onCreateEntryBelow(index, selection),
         onBackspaceAtStart: () => onBackspaceAtStart(index),
+        onPasteText: (text) => onPasteText(index, text),
       ),
     );
   }

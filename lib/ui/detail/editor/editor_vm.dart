@@ -465,6 +465,61 @@ class EditorVM {
     return component;
   }
 
+  /// Splits [text] on newlines: the first line goes into the component at
+  /// [index], each remaining line into a new component below. Returns the last
+  /// component, or null when [text] has no newline (default paste applies).
+  ComponentBox? pasteTextLines(int index, String text) {
+    final page = selectedPage;
+    if (theme.documentSettingsController.isReadOnly ||
+        page == null ||
+        index < 0 ||
+        index >= page.components.length) {
+      return null;
+    }
+    final lines = text
+        .split(RegExp(r'\r\n|\r|\n'))
+        .where((line) => line.trim().isNotEmpty)
+        .toList();
+    final source = page.components[index];
+    final state = source.component.state;
+    if (lines.length < 2 ||
+        !source.isTextComponent ||
+        state is! TextComponentState) {
+      return null;
+    }
+
+    final controller = state.controller;
+    final selection = controller.selection;
+    final start = selection.start.clamp(0, controller.document.length - 1);
+    final end = selection.end.clamp(start, controller.document.length - 1);
+    controller.replaceText(
+      start,
+      end - start,
+      lines.first,
+      TextSelection.collapsed(offset: start + lines.first.length),
+    );
+
+    var current = source;
+    var currentIndex = index;
+    var cursor = start + lines.first.length;
+    for (final line in lines.skip(1)) {
+      current = createComponentBelow(
+        currentIndex,
+        selection: TextSelection.collapsed(offset: cursor),
+      );
+      currentIndex++;
+      final newState = current.component.state as TextComponentState;
+      newState.controller.replaceText(
+        0,
+        0,
+        line,
+        TextSelection.collapsed(offset: line.length),
+      );
+      cursor = line.length;
+    }
+    return current;
+  }
+
   void _replaceComponentWithType(
     ComponentBox box,
     String type, {
