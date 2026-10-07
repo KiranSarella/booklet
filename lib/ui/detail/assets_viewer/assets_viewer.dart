@@ -10,16 +10,16 @@ enum _AssetLayout { list, icons }
 
 enum _AssetAction { rename, delete, preview }
 
-class AssetManagerView extends StatefulWidget {
-  const AssetManagerView({super.key, required this.controller});
+class AssetsViewer extends StatefulWidget {
+  const AssetsViewer({super.key, required this.controller});
 
   final AssetManagerController controller;
 
   @override
-  State<AssetManagerView> createState() => _AssetManagerViewState();
+  State<AssetsViewer> createState() => _AssetsViewerState();
 }
 
-class _AssetManagerViewState extends State<AssetManagerView> {
+class _AssetsViewerState extends State<AssetsViewer> {
   _AssetLayout _layout = _AssetLayout.list;
 
   Future<void> _addAssets() async {

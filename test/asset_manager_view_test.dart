@@ -1,6 +1,6 @@
 import 'package:booklet/application/asset_manager_controller.dart';
 import 'package:booklet/business/booklet_asset.dart';
-import 'package:booklet/ui/detail/assets/asset_manager_view.dart';
+import 'package:booklet/ui/detail/assets_viewer/assets_viewer.dart';
 import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,7 +38,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: AssetManagerView(controller: controller)),
+        home: Scaffold(body: AssetsViewer(controller: controller)),
       ),
     );
 
@@ -108,7 +108,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: AssetManagerView(controller: controller)),
+        home: Scaffold(body: AssetsViewer(controller: controller)),
       ),
     );
 

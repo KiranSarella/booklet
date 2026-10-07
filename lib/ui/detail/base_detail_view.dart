@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:booklet/application/editor_controller.dart';
-import 'package:booklet/ui/detail/assets/asset_manager_view.dart';
+import 'package:booklet/ui/detail/assets_viewer/assets_viewer.dart';
 import 'package:booklet/ui/detail/editor/editor_view.dart';
 
 class BaseDetailView extends StatelessWidget {
@@ -15,7 +15,7 @@ class BaseDetailView extends StatelessWidget {
     final showAssets =
         controller.viewModel.navigation.selectedNode?.isAssetsFolder == true;
     return showAssets
-        ? AssetManagerView(controller: controller.assetManagerController)
+        ? AssetsViewer(controller: controller.assetManagerController)
         : EditorView(key: editorKey, controller: controller);
   }
 }
