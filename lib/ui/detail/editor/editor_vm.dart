@@ -297,7 +297,7 @@ class EditorVM {
   void _addPage(PagePlacement placement) {
     clearSelectedComponent();
     final page = _createPage('Untitled page', [
-      InbuiltComponents.prepareCompoent(const Uuid().v4(), "text"),
+      InbuiltComponents.prepareCompoent(const Uuid().v4(), "heading"),
     ]);
     navigation.addPage(
       pageId: page.id,
