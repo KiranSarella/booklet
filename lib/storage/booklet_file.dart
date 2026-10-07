@@ -574,7 +574,9 @@ class BookletFile {
             RichTextCodec.richTextToDelta(authorData),
           );
         }
-        components.add(ComponentBox(component: component, delta: delta));
+        final box = ComponentBox(component: component, delta: delta);
+        box.hasFocusBar = componentJson['focusBar'] == true || type == 'focus';
+        components.add(box);
       }
     }
 
@@ -710,6 +712,11 @@ class BookletFile {
         continue;
       }
       throw StateError('Unsupported component state');
+    }
+
+    // Every branch above adds exactly one entry, so indexes line up.
+    for (var i = 0; i < page.components.length; i++) {
+      if (page.components[i].hasFocusBar) componentJson[i]['focusBar'] = true;
     }
 
     final json = const JsonEncoder.withIndent('  ').convert({

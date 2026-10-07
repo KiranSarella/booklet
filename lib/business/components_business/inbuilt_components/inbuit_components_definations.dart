@@ -143,20 +143,6 @@ class ChecklistComponentDef extends ComponentDef {
 }
 
 
-class FocusComponentDef extends ComponentDef {
-  @override
-  String get key => "focus";
-
-  @override
-  String get name => "┃ Focus";
-
-  @override
-  String get placeholder => "Focus";
-
-  @override
-  ComponentType get type => ComponentType.text;
-}
-
 class BlockTextComponentDef extends ComponentDef {
   @override
   String get key => "block_text";

@@ -6,12 +6,14 @@ class OptionsDock extends StatefulWidget {
     super.key,
     required this.onComponentSelected,
     required this.onComponentTransformed,
+    required this.onFocusBarToggled,
     required this.onComponentDeleted,
     required this.onComponentsCopied,
     required this.onComponentsPasted,
     required this.onListStyleChanged,
     required this.onPageSettings,
     required this.hasSelection,
+    required this.hasFocusBar,
     required this.canTransformSelection,
     required this.selectedListKind,
     required this.selectedListStyle,
@@ -22,12 +24,14 @@ class OptionsDock extends StatefulWidget {
 
   final ValueChanged<String> onComponentSelected;
   final ValueChanged<String> onComponentTransformed;
+  final VoidCallback onFocusBarToggled;
   final VoidCallback onComponentDeleted;
   final VoidCallback onComponentsCopied;
   final VoidCallback onComponentsPasted;
   final ValueChanged<String> onListStyleChanged;
   final VoidCallback onPageSettings;
   final bool hasSelection;
+  final bool hasFocusBar;
   final bool canTransformSelection;
   final String? selectedListKind;
   final String? selectedListStyle;
@@ -120,6 +124,21 @@ class OptionsDockState extends State<OptionsDock> {
                       ? () => _toggleMenu('transform')
                       : null,
                   enabled: widget.canTransformSelection,
+                ),
+                const SizedBox(height: 20),
+                _DockButton(
+                  icon: Icons.border_left,
+                  color: Colors.red,
+                  tooltip: widget.hasFocusBar
+                      ? 'Remove focus bar'
+                      : 'Add focus bar',
+                  onPressed: widget.hasSelection
+                      ? () {
+                          widget.onFocusBarToggled();
+                          dismissMenu();
+                        }
+                      : null,
+                  enabled: widget.hasSelection,
                 ),
                 const SizedBox(height: 80),
                 _DockButton(

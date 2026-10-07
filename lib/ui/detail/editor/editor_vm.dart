@@ -59,6 +59,21 @@ class EditorVM {
       : [_selectedComponent!];
   bool get canTransformSelectedComponent =>
       _selectedComponent?.component.def.type == ComponentType.text;
+  bool get selectedHasFocusBar =>
+      _listStyleSelection.isNotEmpty &&
+      _listStyleSelection.every((box) => box.hasFocusBar);
+
+  void toggleFocusBarOnSelection() {
+    if (theme.documentSettingsController.isReadOnly) return;
+    final selection = _listStyleSelection;
+    if (selection.isEmpty) return;
+    final enable = !selectedHasFocusBar;
+    for (final box in selection) {
+      box.hasFocusBar = enable;
+    }
+    _documentChanged();
+  }
+
   String? get selectedListKind {
     final kinds = <String>{};
     for (final component in _listStyleSelection) {

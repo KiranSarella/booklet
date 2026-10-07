@@ -69,6 +69,41 @@ class PageView extends StatelessWidget {
     );
   }
 
+  List<Widget> _buildComponents() {
+    final components = page?.components ?? const <ComponentBox>[];
+    final widgets = <Widget>[];
+    var index = 0;
+    while (index < components.length) {
+      if (!components[index].hasFocusBar) {
+        widgets.add(_buildComponent(index++));
+        continue;
+      }
+      final run = <Widget>[];
+      while (index < components.length && components[index].hasFocusBar) {
+        run.add(_buildComponent(index++));
+      }
+      widgets.add(
+        // 14 matches the text components' horizontal editor padding, so the bar
+        // lines up with the page's text margin.
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: const BoxDecoration(
+              border: Border(left: BorderSide(color: Colors.red, width: 4)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: run,
+            ),
+          ),
+        ),
+      );
+    }
+    return widgets;
+  }
+
   @override
   Widget build(BuildContext context) {
     final pageTheme = Theme.of(context).copyWith(
@@ -97,14 +132,7 @@ class PageView extends StatelessWidget {
               padding: const EdgeInsets.all(60),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (
-                    var index = 0;
-                    index < (page?.components.length ?? 0);
-                    index++
-                  )
-                    _buildComponent(index),
-                ],
+                children: _buildComponents(),
               ),
             ),
           ),

@@ -279,6 +279,8 @@ May this day of your birth be auspicious!
               key: _optionsDockKey,
               onComponentSelected: addComponentBelowSelected,
               onComponentTransformed: transformSelectedComponent,
+              onFocusBarToggled: () =>
+                  setState(_viewModel.toggleFocusBarOnSelection),
               onComponentDeleted: deleteSelectedComponent,
               onComponentsCopied: copySelectedComponents,
               onComponentsPasted: pasteComponents,
@@ -286,6 +288,7 @@ May this day of your birth be auspicious!
                   _viewModel.setSelectedListStyle(style),
               onPageSettings: _showPageSettings,
               hasSelection: _viewModel.selectedComponent != null,
+              hasFocusBar: _viewModel.selectedHasFocusBar,
               canTransformSelection: _viewModel.canTransformSelectedComponent,
               selectedListKind: _viewModel.selectedListKind,
               selectedListStyle: _viewModel.selectedListStyle,

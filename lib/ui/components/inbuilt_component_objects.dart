@@ -543,59 +543,6 @@ class ChecklistComponent with TextComponentStateOwner implements Component {
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
 }
 
-class FocusComponent with TextComponentStateOwner implements Component {
-  FocusComponent({required this.id});
-
-  @override
-  final String id;
-
-  @override
-  ComponentDef get def => FocusComponentDef();
-
-  @override
-  Widget buildUI({
-    required PageSettingsController theme,
-    required ComponentState componentState,
-    required bool isSelected,
-    required VoidCallback onSelect,
-    required VoidCallback onCreateBelow,
-  }) {
-    double fontSizePercent(double percent) =>
-        theme.baseFontSize * percent / 100;
-
-    TextStyle textStyle = TextStyle(
-      fontSize: fontSizePercent(100),
-      fontWeight: FontWeight.w500,
-      color: theme.textColor,
-    );
-
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Container(
-        decoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: Colors.red, width: 4)),
-        ),
-        child: AutoHeightRichText2(
-          visualState: componentState,
-          isSelected: isSelected,
-          onSelect: onSelect,
-          onCreateBelow: onCreateBelow,
-          textStyle: textStyle,
-          alignment: alignment,
-          editorPadding: editorPadding,
-          placeholder: def.placeholder,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Attribute<dynamic> get alignment => Attribute.leftAlignment;
-
-  EdgeInsets get editorPadding =>
-      const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
-}
-
 class BlockTextComponent with TextComponentStateOwner implements Component {
   BlockTextComponent({required this.id});
 

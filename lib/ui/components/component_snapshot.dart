@@ -22,6 +22,16 @@ class ComponentSnapshot {
   final Map<String, dynamic> extra;
 
   factory ComponentSnapshot.capture(ComponentBox box) {
+    final snapshot = _captureContent(box);
+    if (!box.hasFocusBar) return snapshot;
+    return ComponentSnapshot._(
+      typeKey: snapshot.typeKey,
+      delta: snapshot.delta,
+      extra: {...snapshot.extra, 'focusBar': true},
+    );
+  }
+
+  static ComponentSnapshot _captureContent(ComponentBox box) {
     final component = box.component;
     final state = component.state;
 
@@ -148,7 +158,9 @@ class ComponentSnapshot {
       }
     }
 
-    return ComponentBox(component: component, delta: delta);
+    final box = ComponentBox(component: component, delta: delta);
+    box.hasFocusBar = extra['focusBar'] == true;
+    return box;
   }
 
   Map<String, dynamic> toJson() => {

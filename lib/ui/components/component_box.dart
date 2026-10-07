@@ -14,6 +14,7 @@ class ComponentBox {
   }
 
   Component component;
+  bool hasFocusBar = false;
   final GlobalKey componentKey = GlobalKey();
 
   bool get isSelected => component.state.isSelected;

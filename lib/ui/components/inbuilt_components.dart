@@ -36,8 +36,6 @@ class InbuiltComponents {
         return NumberedListComponent(id: id);
       case 'checklist':
         return ChecklistComponent(id: id);
-      case 'focus':
-        return FocusComponent(id: id);
       case 'block_text':
         return BlockTextComponent(id: id);
       case 'code_block':
@@ -79,7 +77,6 @@ class InbuiltComponents {
       BulletedListComponentDef(),
       NumberedListComponentDef(),
       ChecklistComponentDef(),
-      FocusComponentDef(),
       BlockTextComponentDef(),
       CodeBlockComponentDef(),
       MathComponentDef(),

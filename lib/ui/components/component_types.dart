@@ -25,8 +25,6 @@ class ComponentTypes {
         return '1. Numbered List';
       case 'checklist':
         return '🗸 Checklist';
-      case 'focus':
-        return '┃ Focus';
       case 'block_text':
         return 'Block Text';
       case 'location':
@@ -64,9 +62,6 @@ class ComponentTypes {
         return 'numbered_list';
       case '🗸 Checklist':
         return 'checklist';
-      case '┃ Focus':
-      case '|  Focus':
-        return 'focus';
       case 'Block Text':
         return 'block_text';
       case '📍 Location':
