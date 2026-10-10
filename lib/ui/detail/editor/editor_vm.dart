@@ -4,6 +4,7 @@ import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_snapshot.dart';
+import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/foundation.dart' show VoidCallback;
@@ -243,6 +244,128 @@ class EditorVM {
 
   void addPageBelowSelected() {
     _addPage(PagePlacement.below);
+  }
+
+  void importMarkdown(String markdown, {required String fileName}) {
+    if (theme.documentSettingsController.isReadOnly) return;
+    final components = <Component>[];
+    final focusBarIndexes = <int>{};
+    final blocks = markdown
+        .replaceAll('\r\n', '\n')
+        .split(RegExp(r'\n\s*\n+'));
+    for (final block in blocks) {
+      final value = block.trim();
+      if (value.isEmpty) continue;
+      final lines = value.split('\n').map((line) => line.trim()).toList();
+      final heading = lines.length == 1
+          ? RegExp(r'^(#{1,6})\s+(.+?)\s*#*\s*$').firstMatch(lines.single)
+          : null;
+      if (heading != null) {
+        final kind = switch (heading.group(1)!.length) {
+          1 => 'title',
+          2 => 'heading',
+          3 => 'subheading',
+          _ => 'text',
+        };
+        _appendMarkdownComponent(components, kind, heading.group(2)!);
+        continue;
+      }
+
+      final quoteLines = lines.where((line) => line.startsWith('>')).toList();
+      if (quoteLines.length == lines.length) {
+        final text = quoteLines
+            .map((line) => line.replaceFirst(RegExp(r'^>\s?'), ''))
+            .join('\n');
+        focusBarIndexes.add(components.length);
+        _appendMarkdownComponent(components, 'text', text);
+        continue;
+      }
+
+      final hasListOrQuote = lines.any(
+        (line) => RegExp(r'^(?:[-*+]\s+|\d+[.)]\s+|>\s?)').hasMatch(line),
+      );
+      if (!hasListOrQuote) {
+        _appendMarkdownComponent(components, 'text', lines.join('\n'));
+        continue;
+      }
+
+      for (final line in lines) {
+        final task = RegExp(r'^[-*+]\s+\[([ xX])\]\s+(.*)$').firstMatch(line);
+        if (task != null) {
+          final component = _appendMarkdownComponent(
+            components,
+            'checklist',
+            task.group(2)!,
+          );
+          (component.state as ChecklistComponentState).isChecked =
+              task.group(1)!.trim().isNotEmpty;
+          continue;
+        }
+        final numbered = RegExp(r'^(\d+)[.)]\s+(.*)$').firstMatch(line);
+        if (numbered != null) {
+          final component = _appendMarkdownComponent(
+            components,
+            'numbered_list',
+            numbered.group(2)!,
+          );
+          (component.state as NumberedListComponentState).sequenceNumber =
+              int.tryParse(numbered.group(1)!) ?? 1;
+          continue;
+        }
+        final bullet = RegExp(r'^[-*+]\s+(.*)$').firstMatch(line);
+        if (bullet != null) {
+          _appendMarkdownComponent(
+            components,
+            'bulleted_list',
+            bullet.group(1)!,
+          );
+          continue;
+        }
+        final quote = RegExp(r'^>\s?(.*)$').firstMatch(line);
+        if (quote != null) {
+          focusBarIndexes.add(components.length);
+          _appendMarkdownComponent(components, 'text', quote.group(1)!);
+          continue;
+        }
+        _appendMarkdownComponent(components, 'text', line);
+      }
+    }
+    final pageTitle = fileName
+        .replaceFirst(
+          RegExp(r'\.(md|markdown|mdown)$', caseSensitive: false),
+          '',
+        )
+        .trim();
+    final page = _createPage(
+      pageTitle.isEmpty ? 'Imported Markdown' : pageTitle,
+      components,
+    );
+    for (final index in focusBarIndexes) {
+      page.components[index].hasFocusBar = true;
+    }
+    clearSelectedComponent();
+    navigation.addPage(
+      pageId: page.id,
+      title: page.title,
+      placement: PagePlacement.below,
+    );
+    _pagesById[page.id] = page;
+    _watchPage(page);
+    _documentChanged();
+  }
+
+  Component _appendMarkdownComponent(
+    List<Component> components,
+    String kind,
+    String text,
+  ) {
+    final component = InbuiltComponents.prepareCompoent(
+      const Uuid().v4(),
+      kind,
+    );
+    (component.state as TextComponentState).controller.document.insert(0, text);
+    components.add(component);
+    return component;
   }
 
   void addChildPageSelected() {

@@ -64,6 +64,7 @@ class MainViewState extends State<MainView> {
                   documentSettingsViewModel: DocumentSettingsVM(
                     settingsController:
                         widget.controller.documentSettingsController,
+                    editorController: widget.controller,
                   ),
                   fileActions: DocumentToolbar(
                     controller: widget.controller,

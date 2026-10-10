@@ -28,6 +28,26 @@ class DocumentSettingsView extends StatelessWidget {
               fileActions!,
               const SizedBox(height: 20),
             ],
+            Text('Import from', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: viewModel.importMarkdown,
+                icon: const Icon(Icons.description_outlined),
+                label: const Text('Markdown'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.code),
+                label: const Text('HTML'),
+              ),
+            ),
+            const SizedBox(height: 20),
             Text('Mode', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             SizedBox(

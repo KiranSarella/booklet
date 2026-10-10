@@ -14,6 +14,7 @@ import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_snapshot.dart';
 import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
+import 'package:file_selector/file_selector.dart';
 
 class EditorController extends ChangeNotifier {
   EditorController(
@@ -54,6 +55,19 @@ class EditorController extends ChangeNotifier {
   bool get isAutoSaving => _isAutoSaving;
 
   bool get canPasteComponents => !documentSettingsController.isReadOnly;
+
+  Future<void> importMarkdown() async {
+    if (documentSettingsController.isReadOnly) return;
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'Markdown', extensions: ['md', 'markdown', 'mdown']),
+      ],
+    );
+    if (file == null) return;
+    final markdown = await File(file.path).readAsString();
+    viewModel.importMarkdown(markdown, fileName: file.name);
+    notifyListeners();
+  }
 
   void markDocumentChanged() {
     if (documentSettingsController.isReadOnly) return;
