@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
@@ -92,6 +93,19 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     await widget.application.openBooklet();
   }
 
+  Future<void> _createBooklet() async {
+    widget.application.createBooklet();
+    await widget.application.editorController.saveBookletAs();
+  }
+
+  Future<void> _openBookletFromMenu() async {
+    if (widget.application.screen == AppScreen.startup) {
+      await _openBookletFromStartup();
+    } else {
+      await widget.application.editorController.openBooklet();
+    }
+  }
+
   void _openInNewWindow() {
     unawaited(
       _windowManagerService.openDocumentInNewWindow(
@@ -141,6 +155,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
             ? _applyGrayTint(baseGrayScheme)
             : baseLightScheme;
 
+        final isDesktopFileMenu = Platform.isMacOS || Platform.isLinux;
         return MaterialApp(
           navigatorKey: _navigatorKey,
           debugShowCheckedModeBanner: false,
@@ -162,47 +177,90 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
             useMaterial3: true,
           ),
           themeMode: documentSettingsController.themeMode,
-          home: Scaffold(
-            body: SafeArea(
-              child: Actions(
-                actions: <Type, Action<Intent>>{
-                  DismissIntent: CallbackAction<DismissIntent>(
-                    onInvoke: (_) {
-                      _bookletEditorKey.currentState?.dismissOptionsMenu();
-                      return null;
-                    },
-                  ),
-                },
-                child: Shortcuts(
-                  shortcuts: const <ShortcutActivator, Intent>{
-                    SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
-                  },
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: double.infinity,
-                          child: MainView(
-                            key: _bookletEditorKey,
-                            controller: widget.application.editorController,
-                            onOpenInNewWindow: _openInNewWindow,
-                          ),
+          home: isDesktopFileMenu
+              ? PlatformMenuBar(
+                  menus: [
+                    PlatformMenu(
+                      label: 'File',
+                      menus: [
+                        PlatformMenuItemGroup(
+                          members: [
+                            PlatformMenuItem(
+                              label: 'Open…',
+                              onSelected: _openBookletFromMenu,
+                            ),
+                            PlatformMenuItem(
+                              label: 'Save',
+                              onSelected: () => widget
+                                  .application
+                                  .editorController
+                                  .saveBooklet(),
+                            ),
+                            PlatformMenuItem(
+                              label: 'Save As…',
+                              onSelected: () => widget
+                                  .application
+                                  .editorController
+                                  .saveBookletAs(),
+                            ),
+                          ],
                         ),
-                      ),
-                      if (widget.application.screen == AppScreen.startup)
-                        StartBooklet(
-                          onCreateNew: widget.application.createBooklet,
-                          onOpenExisting: _openBookletFromStartup,
+                        PlatformMenuItemGroup(
+                          members: [
+                            PlatformMenuItem(
+                              label: 'Open in New Window',
+                              onSelected: _openInNewWindow,
+                            ),
+                          ],
                         ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+                      ],
+                    ),
+                  ],
+                  child: _buildHome(),
+                )
+              : _buildHome(),
         );
       },
     );
   }
+
+  Widget _buildHome() => Scaffold(
+    body: SafeArea(
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          DismissIntent: CallbackAction<DismissIntent>(
+            onInvoke: (_) {
+              _bookletEditorKey.currentState?.dismissOptionsMenu();
+              return null;
+            },
+          ),
+        },
+        child: Shortcuts(
+          shortcuts: const <ShortcutActivator, Intent>{
+            SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+          },
+          child: Stack(
+            children: [
+              Center(
+                child: SizedBox(
+                  width: double.infinity,
+                  height: double.infinity,
+                  child: MainView(
+                    key: _bookletEditorKey,
+                    controller: widget.application.editorController,
+                    onOpenInNewWindow: _openInNewWindow,
+                  ),
+                ),
+              ),
+              if (widget.application.screen == AppScreen.startup)
+                StartBooklet(
+                  onCreateNew: _createBooklet,
+                  onOpenExisting: _openBookletFromStartup,
+                ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }

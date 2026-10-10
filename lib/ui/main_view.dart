@@ -8,7 +8,6 @@ import 'package:booklet/ui/detail/editor/editor_view.dart';
 import 'package:booklet/ui/detail/editor/editor_vm.dart';
 import 'package:booklet/ui/sidebar/base_sidebar_view.dart';
 import 'package:booklet/ui/sidebar/document_settings/document_settings_vm.dart';
-import 'package:booklet/ui/sidebar/document_settings/document_toolbar.dart';
 import 'package:booklet/ui/sidebar/pages_navigation/pages_navigation_view.dart';
 
 class MainView extends StatefulWidget {
@@ -65,10 +64,6 @@ class MainViewState extends State<MainView> {
                     settingsController:
                         widget.controller.documentSettingsController,
                     editorController: widget.controller,
-                  ),
-                  fileActions: DocumentToolbar(
-                    controller: widget.controller,
-                    onOpenInNewWindow: widget.onOpenInNewWindow,
                   ),
                   pagesNavigation: PagesNavigationView(
                     controller: _viewModel.navigation,

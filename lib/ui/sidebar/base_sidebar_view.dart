@@ -17,13 +17,11 @@ class BaseSidebarView extends StatefulWidget {
     required this.width,
     required this.pagesNavigation,
     required this.documentSettingsViewModel,
-    this.fileActions,
   });
 
   final double width;
   final Widget pagesNavigation;
   final DocumentSettingsVM documentSettingsViewModel;
-  final Widget? fileActions;
 
   @override
   State<BaseSidebarView> createState() => _BaseSidebarViewState();
@@ -62,7 +60,6 @@ class _BaseSidebarViewState extends State<BaseSidebarView> {
               SidebarSection.pages => widget.pagesNavigation,
               SidebarSection.settings => DocumentSettingsView(
                 viewModel: widget.documentSettingsViewModel,
-                fileActions: widget.fileActions,
               ),
             },
           ),

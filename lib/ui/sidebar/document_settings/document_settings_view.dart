@@ -3,15 +3,9 @@ import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/ui/sidebar/document_settings/document_settings_vm.dart';
 
 class DocumentSettingsView extends StatelessWidget {
-  const DocumentSettingsView({
-    super.key,
-    required this.viewModel,
-    this.fileActions,
-  });
+  const DocumentSettingsView({super.key, required this.viewModel});
 
   final DocumentSettingsVM viewModel;
-  // Temporary file actions (open/save), to be removed later.
-  final Widget? fileActions;
 
   @override
   Widget build(BuildContext context) {
@@ -22,12 +16,6 @@ class DocumentSettingsView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (fileActions != null) ...[
-              Text('File', style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 8),
-              fileActions!,
-              const SizedBox(height: 20),
-            ],
             Text('Import from', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             SizedBox(
