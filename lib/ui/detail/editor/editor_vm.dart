@@ -4,7 +4,6 @@ import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/inbuilt_components.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_snapshot.dart';
-import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/foundation.dart' show VoidCallback;
