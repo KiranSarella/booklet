@@ -74,8 +74,10 @@ class MainViewState extends State<MainView> {
                         setState(_viewModel.addPageBelowSelected),
                     onAddChildPage: () =>
                         setState(_viewModel.addChildPageSelected),
-                    onAddAssetsFolder: () =>
-                        setState(widget.controller.addAssetsFolder),
+                    onAddAssetsFolderBelow: () =>
+                        setState(widget.controller.addAssetsFolderBelow),
+                    onAddAssetsFolderInside: () =>
+                        setState(widget.controller.addAssetsFolderInside),
                     onRenameNode: (title) =>
                         setState(() => _viewModel.renameSelectedNode(title)),
                     onDeleteNode: () =>

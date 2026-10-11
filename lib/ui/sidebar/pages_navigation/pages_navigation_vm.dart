@@ -14,22 +14,9 @@ class PagesNavigationVM {
     String? selectedPageId,
     String? selectedAssetFolderId,
   }) {
-    final normalizedNodes = <NavigationNode>[];
-    NavigationNode? looseItemsGroup;
-    for (final node in nodes) {
-      if (node.isGroup) {
-        normalizedNodes.add(node);
-      } else {
-        looseItemsGroup ??= NavigationNode.group(title: 'New group');
-        if (!normalizedNodes.contains(looseItemsGroup)) {
-          normalizedNodes.add(looseItemsGroup);
-        }
-        looseItemsGroup.children.add(node);
-      }
-    }
     groups
       ..clear()
-      ..addAll(normalizedNodes);
+      ..addAll(nodes);
     this.selectedPageId = selectedPageId;
     selectedNode = selectedAssetFolderId == null
         ? (selectedPageId == null
@@ -66,18 +53,18 @@ class PagesNavigationVM {
   NavigationNode addAssetsFolder({
     required String folderId,
     String title = 'Assets',
+    PagePlacement placement = PagePlacement.below,
   }) {
     final folder = NavigationNode.assetsFolder(
       title: title,
       folderId: folderId,
     );
     final reference = selectedNode ?? _selectedNode();
-    if (reference == null || reference.isGroup) {
-      final group = reference?.isGroup == true
-          ? reference!
-          : (groups.isEmpty ? addGroup() : groups.first);
-      group.children.add(folder);
-    } else if (reference.isPage) {
+    if (reference == null) {
+      groups.add(folder);
+    } else if (reference.isGroup) {
+      reference.children.add(folder);
+    } else if (reference.isPage && placement == .child) {
       reference.children.add(folder);
       reference.isExpanded = true;
     } else {
@@ -88,6 +75,7 @@ class PagesNavigationVM {
     selectNode(folder);
     return folder;
   }
+  
 
   NavigationNode? renamePage(String pageId, String title) {
     final page = _findNode((node) => node.pageId == pageId);
@@ -165,7 +153,7 @@ class PagesNavigationVM {
       return false;
     }
     if (target.isGroup) {
-      return into;
+      return true;
     }
     if (!target.isPage) {
       return false;
@@ -222,9 +210,7 @@ class PagesNavigationVM {
       selected!.children.add(duplicate);
       selected.isExpanded = true;
     } else if (selected == null) {
-      final group = groups.isEmpty ? addGroup() : groups.first;
-      group.children.add(duplicate);
-      group.isExpanded = true;
+      groups.add(duplicate);
     } else {
       final siblings = _siblingsOf(selected);
       siblings.insert(siblings.indexOf(selected) + 1, duplicate);
@@ -336,11 +322,10 @@ class PagesNavigationVM {
         ? selectedNode ?? _selectedNode()
         : _findNode((node) => node.pageId == referencePageId);
 
-    if (reference == null || reference.isGroup) {
-      final group = reference?.isGroup == true
-          ? reference!
-          : (groups.isEmpty ? addGroup() : groups.first);
-      group.children.add(page);
+    if (reference == null) {
+      groups.add(page);
+    } else if (reference.isGroup) {
+      reference.children.add(page);
     } else if (placement == PagePlacement.child && reference.isPage) {
       reference.children.add(page);
       reference.isExpanded = true;

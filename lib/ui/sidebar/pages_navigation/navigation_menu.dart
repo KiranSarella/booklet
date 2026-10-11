@@ -6,7 +6,8 @@ class NavigationAddMenu extends StatelessWidget {
     required this.onCreateGroup,
     required this.onAddPageBelow,
     required this.onAddChildPage,
-    required this.onAddAssetsFolder,
+    required this.onAddAssetsFolderBelow,
+    required this.onAddAssetsFolderInside,
     required this.canAddChildPage,
     required this.onChanged,
   });
@@ -14,7 +15,8 @@ class NavigationAddMenu extends StatelessWidget {
   final VoidCallback onCreateGroup;
   final VoidCallback onAddPageBelow;
   final VoidCallback onAddChildPage;
-  final VoidCallback onAddAssetsFolder;
+  final VoidCallback onAddAssetsFolderBelow;
+  final VoidCallback onAddAssetsFolderInside;
   final bool canAddChildPage;
   final VoidCallback onChanged;
 
@@ -26,8 +28,10 @@ class NavigationAddMenu extends StatelessWidget {
         onAddPageBelow();
       case NavigationAddAction.addChild:
         onAddChildPage();
-      case NavigationAddAction.addAssetsFolder:
-        onAddAssetsFolder();
+      case NavigationAddAction.addAssetsFolderBelow:
+        onAddAssetsFolderBelow();
+      case NavigationAddAction.addAssetsFolderInside:
+        onAddAssetsFolderInside();
     }
     onChanged();
   }
@@ -65,10 +69,19 @@ class NavigationAddMenu extends StatelessWidget {
           ),
         ),
         PopupMenuItem(
-          value: NavigationAddAction.addAssetsFolder,
+          value: NavigationAddAction.addAssetsFolderBelow,
           child: ListTile(
             leading: Icon(Icons.create_new_folder_outlined),
-            title: Text('Add assets folder'),
+            title: Text('Add assets folder below'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: NavigationAddAction.addAssetsFolderInside,
+          enabled: canAddChildPage,
+          child: ListTile(
+            leading: Icon(Icons.create_new_folder_outlined),
+            title: Text('Add assets folder inside'),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -172,6 +185,6 @@ class NavigationMoreMenu extends StatelessWidget {
   }
 }
 
-enum NavigationAddAction { createGroup, addBelow, addChild, addAssetsFolder }
+enum NavigationAddAction { createGroup, addBelow, addChild, addAssetsFolderBelow, addAssetsFolderInside }
 
 enum NavigationMoreAction { duplicate, copy, paste, rename, delete }

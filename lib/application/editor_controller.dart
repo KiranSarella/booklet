@@ -372,8 +372,14 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addAssetsFolder() {
-    final folder = viewModel.addAssetsFolder();
+  void addAssetsFolderBelow() {
+    final folder = viewModel.addAssetsFolderBelow();
+    assetManagerController.selectFolder(folder, _documentPath);
+    notifyListeners();
+  }
+
+  void addAssetsFolderInside() {
+    final folder = viewModel.addAssetsFolderInside();
     assetManagerController.selectFolder(folder, _documentPath);
     notifyListeners();
   }

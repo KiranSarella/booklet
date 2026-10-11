@@ -23,7 +23,8 @@ class PagesNavigationView extends StatefulWidget {
     required this.onCreateGroup,
     required this.onAddPageBelow,
     required this.onAddChildPage,
-    required this.onAddAssetsFolder,
+    required this.onAddAssetsFolderInside,
+    required this.onAddAssetsFolderBelow,
     required this.onRenameNode,
     required this.onDeleteNode,
     required this.onDuplicateNode,
@@ -45,7 +46,8 @@ class PagesNavigationView extends StatefulWidget {
   final VoidCallback onCreateGroup;
   final VoidCallback onAddPageBelow;
   final VoidCallback onAddChildPage;
-  final VoidCallback onAddAssetsFolder;
+  final VoidCallback onAddAssetsFolderBelow;
+  final VoidCallback onAddAssetsFolderInside;
   final ValueChanged<String> onRenameNode;
   final VoidCallback onDeleteNode;
   final VoidCallback onDuplicateNode;
@@ -97,7 +99,8 @@ class _PagesNavigationViewState extends State<PagesNavigationView> {
                   onCreateGroup: widget.onCreateGroup,
                   onAddPageBelow: widget.onAddPageBelow,
                   onAddChildPage: widget.onAddChildPage,
-                  onAddAssetsFolder: widget.onAddAssetsFolder,
+                  onAddAssetsFolderBelow: widget.onAddAssetsFolderBelow,
+                  onAddAssetsFolderInside: widget.onAddAssetsFolderInside,
                   canAddChildPage:
                       widget.controller.selectedNode?.isAssetsFolder != true,
                   onChanged: widget.onChanged,
@@ -262,6 +265,8 @@ class _NavigationBranchState extends State<_NavigationBranch> {
           : _NavigationDropZone.after;
     }
     if (widget.node.isGroup && details.data.isPage) {
+      if (position < 0.25) return _NavigationDropZone.before;
+      if (position > 0.75) return _NavigationDropZone.after;
       return _NavigationDropZone.into;
     }
     if (widget.node.isPage && details.data.isPage) {
@@ -273,8 +278,7 @@ class _NavigationBranchState extends State<_NavigationBranch> {
   }
 
   bool _isDropInto(NavigationNode source, _NavigationDropZone zone) =>
-      zone == _NavigationDropZone.into ||
-      (widget.node.isGroup && source.isPage);
+      zone == _NavigationDropZone.into;
 
   bool _canAcceptDrop(DragTargetDetails<NavigationNode> details) {
     final zone = _dropZoneFor(details);

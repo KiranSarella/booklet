@@ -19,11 +19,10 @@ class EditorVM {
       return;
     }
 
-    final starterPage = _createPage('Introduction', [
+    final starterPage = _createPage('Untitled Page', [
       InbuiltComponents.prepareCompoent(const Uuid().v4(), 'title'),
       InbuiltComponents.prepareCompoent(const Uuid().v4(), 'text'),
     ]);
-    navigation.addGroup(title: 'Booklet');
     navigation.addPage(
       pageId: starterPage.id,
       title: starterPage.title,
@@ -234,12 +233,20 @@ class EditorVM {
     _documentChanged();
   }
 
-  NavigationNode addAssetsFolder() {
+  NavigationNode addAssetsFolderBelow() {
     clearSelectedComponent();
-    final folder = navigation.addAssetsFolder(folderId: const Uuid().v4());
+    final folder = navigation.addAssetsFolder(folderId: const Uuid().v4(), placement: .below);
     _documentChanged();
     return folder;
   }
+
+  NavigationNode addAssetsFolderInside() {
+    clearSelectedComponent();
+    final folder = navigation.addAssetsFolder(folderId: const Uuid().v4(), placement: .child);
+    _documentChanged();
+    return folder;
+  }
+
 
   void addPageBelowSelected() {
     _addPage(PagePlacement.below);

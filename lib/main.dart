@@ -108,9 +108,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
 
   void _openInNewWindow() {
     unawaited(
-      _windowManagerService.openDocumentInNewWindow(
-        widget.application.editorController.documentPath,
-      ),
+      _windowManagerService.openDocumentInNewWindow(null),
     );
   }
 
