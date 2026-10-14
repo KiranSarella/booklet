@@ -38,7 +38,7 @@ class PagesNavigationView extends StatefulWidget {
 
   static const double minWidth = 200;
   static const double maxWidth = 420;
-  static const double defaultWidth = 272;
+  static const double defaultWidth = 282;
 
   final PagesNavigationVM controller;
   final double width;

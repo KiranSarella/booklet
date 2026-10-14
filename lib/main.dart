@@ -17,7 +17,8 @@ import 'package:booklet/ui/start_booklet.dart';
 // Keeps gray appearance dark enough for the dark scheme's white foregrounds.
 ColorScheme _applyGrayTint(ColorScheme scheme) {
   Color tint(Color color) =>
-      Color.lerp(color, const Color.fromARGB(255, 103, 102, 102), 0.45)!;
+      // Color.lerp(color, const Color.fromARGB(255, 227, 234, 236), 1)!;
+      Color.fromARGB(255, 201, 202, 202);
   return scheme.copyWith(
     surface: tint(scheme.surface),
     surfaceDim: tint(scheme.surfaceDim),
@@ -27,6 +28,8 @@ ColorScheme _applyGrayTint(ColorScheme scheme) {
     surfaceContainer: tint(scheme.surfaceContainer),
     surfaceContainerHigh: tint(scheme.surfaceContainerHigh),
     surfaceContainerHighest: tint(scheme.surfaceContainerHighest),
+    onSurface: Colors.black,
+    onSurfaceVariant: Colors.black
   );
 }
 

@@ -76,11 +76,11 @@ class DocumentSettingsView extends StatelessWidget {
                     tooltip: 'Light',
                     icon: Icon(Icons.light_mode_outlined),
                   ),
-                  ButtonSegment(
-                    value: DocumentAppearanceMode.gray,
-                    tooltip: 'Gray',
-                    icon: Icon(Icons.brightness_6_outlined),
-                  ),
+                  // ButtonSegment(
+                  //   value: DocumentAppearanceMode.gray,
+                  //   tooltip: 'Gray',
+                  //   icon: Icon(Icons.brightness_6_outlined),
+                  // ),
                   ButtonSegment(
                     value: DocumentAppearanceMode.dark,
                     tooltip: 'Dark',

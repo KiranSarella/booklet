@@ -54,68 +54,82 @@ class MainViewState extends State<MainView> {
       ]),
       builder: (context, _) => Stack(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          Column(
             children: [
-              if (_isNavigationVisible) ...[
-                BaseSidebarView(
-                  width: _navigationWidth,
-                  documentSettingsViewModel: DocumentSettingsVM(
-                    settingsController:
-                        widget.controller.documentSettingsController,
-                    editorController: widget.controller,
-                  ),
-                  pagesNavigation: PagesNavigationView(
-                    controller: _viewModel.navigation,
-                    width: _navigationWidth,
-                    onPageSelected: widget.controller.selectNode,
-                    onCreateGroup: () => setState(_viewModel.addGroup),
-                    onAddPageBelow: () =>
-                        setState(_viewModel.addPageBelowSelected),
-                    onAddChildPage: () =>
-                        setState(_viewModel.addChildPageSelected),
-                    onAddAssetsFolderBelow: () =>
-                        setState(widget.controller.addAssetsFolderBelow),
-                    onAddAssetsFolderInside: () =>
-                        setState(widget.controller.addAssetsFolderInside),
-                    onRenameNode: (title) =>
-                        setState(() => _viewModel.renameSelectedNode(title)),
-                    onDeleteNode: () =>
-                        setState(widget.controller.deleteSelectedNode),
-                    onDuplicateNode: () => unawaited(
-                      widget.controller.duplicateSelectedNavigationNode(),
-                    ),
-                    onCopyNode: () => unawaited(
-                      widget.controller.copySelectedNavigationNode(),
-                    ),
-                    onPasteNode: () => unawaited(
-                      widget.controller.pasteSelectedNavigationNode(),
-                    ),
-                    canPasteNode: widget.controller.canPasteComponents,
-                    canMoveNode: (source, target, {required into}) => _viewModel
-                        .navigation
-                        .canMoveNode(source, target, into: into),
-                    onMoveNode: (source, target, before, into) {
-                      final moved = _viewModel.navigation.moveNode(
-                        source,
-                        target,
-                        before: before,
-                        into: into,
-                      );
-                      if (moved) widget.controller.markDocumentChanged();
-                      setState(() {});
-                    },
-                    onChanged: () => setState(() {}),
-                  ),
-                ),
-                _NavigationResizeHandle(onDragUpdate: _resizeNavigation),
-              ],
               Expanded(
-                child: BaseDetailView(
-                  controller: widget.controller,
-                  editorKey: _editorKey,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_isNavigationVisible) ...[
+                      BaseSidebarView(
+                        width: _navigationWidth,
+                        documentSettingsViewModel: DocumentSettingsVM(
+                          settingsController:
+                              widget.controller.documentSettingsController,
+                          editorController: widget.controller,
+                        ),
+                        pagesNavigation: PagesNavigationView(
+                          controller: _viewModel.navigation,
+                          width: _navigationWidth,
+                          onPageSelected: widget.controller.selectNode,
+                          onCreateGroup: () => setState(_viewModel.addGroup),
+                          onAddPageBelow: () =>
+                              setState(_viewModel.addPageBelowSelected),
+                          onAddChildPage: () =>
+                              setState(_viewModel.addChildPageSelected),
+                          onAddAssetsFolderBelow: () =>
+                              setState(widget.controller.addAssetsFolderBelow),
+                          onAddAssetsFolderInside: () => setState(
+                            widget.controller.addAssetsFolderInside,
+                          ),
+                          onRenameNode: (title) => setState(
+                            () => _viewModel.renameSelectedNode(title),
+                          ),
+                          onDeleteNode: () =>
+                              setState(widget.controller.deleteSelectedNode),
+                          onDuplicateNode: () => unawaited(
+                            widget.controller.duplicateSelectedNavigationNode(),
+                          ),
+                          onCopyNode: () => unawaited(
+                            widget.controller.copySelectedNavigationNode(),
+                          ),
+                          onPasteNode: () => unawaited(
+                            widget.controller.pasteSelectedNavigationNode(),
+                          ),
+                          canPasteNode: widget.controller.canPasteComponents,
+                          canMoveNode: (source, target, {required into}) =>
+                              _viewModel.navigation.canMoveNode(
+                                source,
+                                target,
+                                into: into,
+                              ),
+                          onMoveNode: (source, target, before, into) {
+                            final moved = _viewModel.navigation.moveNode(
+                              source,
+                              target,
+                              before: before,
+                              into: into,
+                            );
+                            if (moved) {
+                              widget.controller.markDocumentChanged();
+                            }
+                            setState(() {});
+                          },
+                          onChanged: () => setState(() {}),
+                        ),
+                      ),
+                      _NavigationResizeHandle(onDragUpdate: _resizeNavigation),
+                    ],
+                    Expanded(
+                      child: BaseDetailView(
+                        controller: widget.controller,
+                        editorKey: _editorKey,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              _DocumentStatusBar(documentPath: widget.controller.documentPath),
             ],
           ),
           Positioned(
@@ -127,6 +141,35 @@ class MainViewState extends State<MainView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DocumentStatusBar extends StatelessWidget {
+  const _DocumentStatusBar({required this.documentPath});
+
+  final String? documentPath;
+
+  @override
+  Widget build(BuildContext context) {
+    final fileName = documentPath?.split(RegExp(r'[/\\]')).last;
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        border: Border(top: BorderSide(color: colors.outlineVariant)),
+      ),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        fileName == null || fileName.isEmpty ? 'Untitled booklet' : fileName,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
       ),
     );
   }
