@@ -645,6 +645,7 @@ class QuoteComponent implements Component {
       // height: 1.5,
     );
 
+
     return Padding(
       padding: const EdgeInsets.all(15.0),
       child: Column(
@@ -666,17 +667,18 @@ class QuoteComponent implements Component {
             placeholder: def.placeholder,
             gatePointerInput: false,
           ),
-          AutoHeightRichText2(
-            visualState: state.author,
-            isSelected: isSelected,
-            onSelect: onSelect,
-            onCreateBelow: onCreateBelow,
-            textStyle: authorTextStyle,
-            alignment: alignment,
-            editorPadding: editorPadding,
-            placeholder: "caption",
-            gatePointerInput: false,
-          ),
+          if (canShowCaption)
+            AutoHeightRichText2(
+              visualState: state.author,
+              isSelected: isSelected,
+              onSelect: onSelect,
+              onCreateBelow: onCreateBelow,
+              textStyle: authorTextStyle,
+              alignment: alignment,
+              editorPadding: editorPadding,
+              placeholder: "caption",
+              gatePointerInput: false,
+            ),
           Row(
             mainAxisAlignment: .end,
             children: [
@@ -695,6 +697,21 @@ class QuoteComponent implements Component {
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12);
+
+
+  bool get canShowCaption {
+    bool isActive = state.isSelected || state.isFocused;
+    if (isActive) {
+      return true;
+    } else {
+      // not active
+      if (state.author.output.trim().isNotEmpty) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }
 
 class LocationComponent with TextComponentStateOwner implements Component {
