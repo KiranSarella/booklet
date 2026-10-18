@@ -91,6 +91,18 @@ class AutoHeightRichText2 extends StatelessWidget {
                         final state = visualState;
                         if ((event is KeyDownEvent ||
                                 event is KeyRepeatEvent) &&
+                            event.logicalKey == LogicalKeyboardKey.backspace &&
+                            !textState.controller.readOnly) {
+                          final selection = textState.controller.selection;
+                          if (selection.isCollapsed &&
+                              selection.extentOffset == 0 &&
+                              textState.onBackspaceAtStart != null) {
+                            textState.onBackspaceAtStart!();
+                            return KeyEventResult.handled;
+                          }
+                        }
+                        if ((event is KeyDownEvent ||
+                                event is KeyRepeatEvent) &&
                             event.logicalKey == LogicalKeyboardKey.tab &&
                             state is ListItemComponentState &&
                             !state.controller.readOnly) {

@@ -105,25 +105,8 @@ class TextComponentState extends ComponentState {
     return handler(text);
   }
 
-  late final FocusNode focusNode = FocusNode(onKeyEvent: _handleEditorKeyEvent);
+  late final FocusNode focusNode = FocusNode();
   VoidCallback? onBackspaceAtStart;
-
-  KeyEventResult _handleEditorKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-      return KeyEventResult.ignored;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.backspace &&
-        !controller.readOnly) {
-      final selection = controller.selection;
-      if (selection.isCollapsed &&
-          selection.extentOffset == 0 &&
-          onBackspaceAtStart != null) {
-        onBackspaceAtStart!();
-        return KeyEventResult.handled;
-      }
-    }
-    return KeyEventResult.ignored;
-  }
 
   @override
   String get output => controller.document.toPlainText();
