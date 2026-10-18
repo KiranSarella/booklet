@@ -49,6 +49,7 @@ class InlineHeadingComponent with TextComponentStateOwner implements Component {
   Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
   EdgeInsets get editorPadding =>
+  const EdgeInsets.fromLTRB(14, 25, 14, 12);
       // const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
-      const EdgeInsets.fromLTRB(14, 0, 14, 0);
+      // const EdgeInsets.fromLTRB(14, 0, 14, 0);
 }
