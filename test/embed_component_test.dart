@@ -1,4 +1,4 @@
-import 'package:booklet/ui/components/embed_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/embed_component.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

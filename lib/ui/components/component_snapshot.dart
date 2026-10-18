@@ -1,8 +1,8 @@
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_state.dart';
-import 'package:booklet/ui/components/code_block_component.dart';
-import 'package:booklet/ui/components/math_component.dart';
-import 'package:booklet/ui/components/inbuilt_components.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/code_block_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/math_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/inbuilt_components.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:uuid/uuid.dart';
 

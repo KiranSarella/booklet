@@ -1,5 +1,5 @@
 import 'package:booklet/ui/components/component_state.dart';
-import 'package:booklet/ui/components/link_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/link_component.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

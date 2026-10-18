@@ -1,4 +1,4 @@
-import 'package:booklet/ui/components/math_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/math_component.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';

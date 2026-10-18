@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:booklet/ui/components/inbuilt_components.dart';
+import 'package:booklet/ui/components/inbuilt_components/inbuilt_components.dart';
 
 class AddComponentMenu extends StatelessWidget {
   const AddComponentMenu({

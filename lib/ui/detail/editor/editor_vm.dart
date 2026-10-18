@@ -1,7 +1,7 @@
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/ui/components/component.dart';
-import 'package:booklet/ui/components/inbuilt_components.dart';
+import 'package:booklet/ui/components/inbuilt_components/inbuilt_components.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_snapshot.dart';
 import 'package:booklet/ui/components/component_state.dart';

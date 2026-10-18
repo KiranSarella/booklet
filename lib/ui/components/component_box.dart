@@ -1,8 +1,8 @@
 import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_state.dart';
-import 'package:booklet/ui/components/code_block_component.dart';
-import 'package:booklet/ui/components/math_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/code_block_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/math_component.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

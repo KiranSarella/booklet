@@ -1,15 +1,29 @@
 import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_types.dart';
-import 'package:booklet/ui/components/inbuilt_component_objects.dart';
-import 'package:booklet/ui/components/code_block_component.dart';
-import 'package:booklet/ui/components/math_component.dart';
-import 'package:booklet/ui/components/audio_component.dart';
-import 'package:booklet/ui/components/embed_component.dart';
-import 'package:booklet/ui/components/link_component.dart';
-import 'package:booklet/ui/components/image_component.dart';
-import 'package:booklet/ui/components/video_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/block_text_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/bulleted_list_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/caption_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/checklist_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/footnote_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/heading_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/code_block_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/inline_heading_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/label_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/location_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/math_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/audio_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/embed_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/link_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/image_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/numbered_list_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/subheading_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/subtitle_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/text_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/title_component.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/video_component.dart';
 import 'package:booklet/business/components_business/inbuilt_components/inbuit_components_definations.dart';
 import 'package:booklet/business/components_business/component_def.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/quote_component.dart';
 
 class InbuiltComponents {
   static Component prepareCompoent(String id, String key) {
