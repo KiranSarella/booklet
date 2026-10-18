@@ -63,13 +63,17 @@ class EditorViewState extends State<EditorView> {
         HardwareKeyboard.instance.isMetaPressed ||
         HardwareKeyboard.instance.isControlPressed;
     if (isCommandPressed && event.logicalKey == LogicalKeyboardKey.keyC) {
-      if (_viewModel.selectedComponent == null) {
+      final selectedComponent = _viewModel.selectedComponent;
+      if (selectedComponent == null || selectedComponent.isFocused) {
         return KeyEventResult.ignored;
       }
       copySelectedComponents();
       return KeyEventResult.handled;
     }
     if (isCommandPressed && event.logicalKey == LogicalKeyboardKey.keyV) {
+      if (_viewModel.selectedComponent?.isFocused ?? false) {
+        return KeyEventResult.ignored;
+      }
       if (!widget.controller.canPasteComponents) {
         return KeyEventResult.ignored;
       }
