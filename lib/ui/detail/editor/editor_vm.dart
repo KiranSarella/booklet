@@ -57,7 +57,15 @@ class EditorVM {
       ? const []
       : [_selectedComponent!];
   bool get canTransformSelectedComponent =>
-      _selectedComponent?.component.def.type == ComponentType.text;
+      _transformSelection.isNotEmpty &&
+      _transformSelection.every(
+        (box) => box.component.def.type == ComponentType.text,
+      );
+  List<ComponentBox> get _transformSelection => _selectedComponents.length > 1
+      ? _selectedComponents.toList(growable: false)
+      : _selectedComponent == null
+      ? const []
+      : [_selectedComponent!];
   bool get selectedHasFocusBar =>
       _listStyleSelection.isNotEmpty &&
       _listStyleSelection.every((box) => box.hasFocusBar);
@@ -781,26 +789,29 @@ class EditorVM {
     if (theme.documentSettingsController.isReadOnly) {
       return;
     }
-    final selected = _selectedComponent;
-    if (selected == null || !canTransformSelectedComponent) {
+    final selection = _transformSelection;
+    if (selection.isEmpty || !canTransformSelectedComponent) {
       return;
     }
 
-    final oldComponent = selected.component;
-    final newComponent = InbuiltComponents.prepareCompoent(
-      oldComponent.id,
-      type,
-    );
-    if (newComponent.def.type != ComponentType.text) {
-      return;
-    }
+    for (final selected in selection) {
+      final oldComponent = selected.component;
+      final newComponent = InbuiltComponents.prepareCompoent(
+        oldComponent.id,
+        type,
+      );
+      if (newComponent.def.type != ComponentType.text) {
+        newComponent.dispose();
+        return;
+      }
 
-    newComponent.initialize(delta: oldComponent.textDelta);
-    newComponent.state.isSelected = oldComponent.state.isSelected;
-    selected.component = newComponent;
-    _unwatchComponent(oldComponent.state);
-    _watchComponent(selected);
-    oldComponent.dispose();
+      newComponent.initialize(delta: oldComponent.textDelta);
+      newComponent.state.isSelected = oldComponent.state.isSelected;
+      selected.component = newComponent;
+      _unwatchComponent(oldComponent.state);
+      _watchComponent(selected);
+      oldComponent.dispose();
+    }
     _documentChanged();
   }
 
