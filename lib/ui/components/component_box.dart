@@ -39,6 +39,7 @@ class ComponentBox {
     required VoidCallback onSelectRange,
     required ValueChanged<TextSelection?> onCreateBelow,
     required VoidCallback onBackspaceAtStart,
+    required ValueChanged<bool> onMoveToAdjacentTextComponent,
     required Future<bool> Function(String text) onPasteText,
   }) {
     final isReadOnly = theme.documentSettingsController.isReadOnly;
@@ -50,6 +51,9 @@ class ComponentBox {
     if (isTextComponent && state is TextComponentState) {
       state.onBackspaceAtStart = isReadOnly ? null : onBackspaceAtStart;
       state.onPasteText = isReadOnly ? null : onPasteText;
+      state.onMoveToAdjacentTextComponent = isReadOnly
+          ? null
+          : onMoveToAdjacentTextComponent;
     }
 
     Widget child = component.buildUI(

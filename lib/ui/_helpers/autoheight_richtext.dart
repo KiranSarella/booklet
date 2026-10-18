@@ -91,6 +91,25 @@ class AutoHeightRichText2 extends StatelessWidget {
                         final state = visualState;
                         if ((event is KeyDownEvent ||
                                 event is KeyRepeatEvent) &&
+                            (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+                                event.logicalKey == LogicalKeyboardKey.arrowDown) &&
+                            !HardwareKeyboard.instance.isShiftPressed) {
+                          final selection = textState.controller.selection;
+                          final moveDown =
+                              event.logicalKey == LogicalKeyboardKey.arrowDown;
+                          final atBoundary = selection.isCollapsed &&
+                              (moveDown
+                                  ? selection.extentOffset >=
+                                      textState.controller.document.length - 1
+                                  : selection.extentOffset == 0);
+                          if (atBoundary &&
+                              textState.onMoveToAdjacentTextComponent != null) {
+                            textState.onMoveToAdjacentTextComponent!(moveDown);
+                            return KeyEventResult.handled;
+                          }
+                        }
+                        if ((event is KeyDownEvent ||
+                                event is KeyRepeatEvent) &&
                             event.logicalKey == LogicalKeyboardKey.backspace &&
                             !textState.controller.readOnly) {
                           final selection = textState.controller.selection;

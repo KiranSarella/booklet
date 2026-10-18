@@ -15,6 +15,7 @@ class PageView extends StatelessWidget {
     required this.onBackspaceAtStart,
     required this.onPasteText,
     required this.onTapEmptySpace,
+    required this.onMoveToAdjacentTextComponent,
   });
 
   final PageSettingsController editorTheme;
@@ -25,6 +26,7 @@ class PageView extends StatelessWidget {
   final ValueChanged<int> onBackspaceAtStart;
   final Future<bool> Function(int index, String text) onPasteText;
   final VoidCallback onTapEmptySpace;
+  final void Function(int index, bool moveDown) onMoveToAdjacentTextComponent;
 
   int? _numberedSequenceAt(int index) {
     final components = page?.components;
@@ -64,6 +66,8 @@ class PageView extends StatelessWidget {
         onSelectRange: () => onSelectComponentRange(component),
         onCreateBelow: (selection) => onCreateEntryBelow(index, selection),
         onBackspaceAtStart: () => onBackspaceAtStart(index),
+        onMoveToAdjacentTextComponent: (moveDown) =>
+            onMoveToAdjacentTextComponent(index, moveDown),
         onPasteText: (text) => onPasteText(index, text),
       ),
     );

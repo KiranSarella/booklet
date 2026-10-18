@@ -514,6 +514,17 @@ class EditorVM {
     selectComponentRange(components[nextIndex]);
   }
 
+  void moveSelectedComponent(bool moveDown) {
+    final current = _selectedComponent;
+    if (current == null) return;
+    final currentIndex = components.indexOf(current);
+    final nextIndex = currentIndex + (moveDown ? 1 : -1);
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= components.length) {
+      return;
+    }
+    selectComponent(components[nextIndex]);
+  }
+
   void clearSelectedComponent() {
     for (final component in components) {
       component.isSelected = false;

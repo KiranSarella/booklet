@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'package:booklet/application/editor_controller.dart';
 import 'package:booklet/ui/components/component_box.dart';
+import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/detail/editor/editor_vm.dart';
 import 'package:booklet/ui/detail/editor/options_dock/opitons_dock.dart';
 import 'package:booklet/ui/detail/editor/page_settings/page_settings_view.dart';
@@ -56,6 +57,16 @@ class EditorViewState extends State<EditorView> {
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
         setState(() => _viewModel.extendSelectionWithArrowKey(false));
+        return KeyEventResult.handled;
+      }
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      final selected = _viewModel.selectedComponent;
+      if (selected != null && !selected.isFocused) {
+        setState(() => _viewModel.moveSelectedComponent(
+              event.logicalKey == LogicalKeyboardKey.arrowDown,
+            ));
         return KeyEventResult.handled;
       }
     }
@@ -130,6 +141,22 @@ class EditorViewState extends State<EditorView> {
       _scrollToComponent(newComponent);
       newComponent.requestFocus();
     });
+  }
+
+  void _moveToTextComponent(int index, bool moveDown) {
+    final components = _viewModel.components;
+    var targetIndex = index + (moveDown ? 1 : -1);
+    while (targetIndex >= 0 && targetIndex < components.length) {
+      final target = components[targetIndex];
+      if (target.component.state is TextComponentState) {
+        setState(() => _viewModel.selectComponent(target));
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) target.requestFocus();
+        });
+        return;
+      }
+      targetIndex += moveDown ? 1 : -1;
+    }
   }
 
   Future<bool> _pasteTextAt(int index, String text) async {
@@ -269,6 +296,7 @@ May this day of your birth be auspicious!
                         onSelectComponentRange: selectComponentRange,
                         onCreateEntryBelow: _createEntryBelow,
                         onBackspaceAtStart: _mergeTextComponentWithPrevious,
+                        onMoveToAdjacentTextComponent: _moveToTextComponent,
                         onPasteText: _pasteTextAt,
                         onTapEmptySpace: clearSelectionAndFocus,
                       ),

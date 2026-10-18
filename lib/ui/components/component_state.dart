@@ -107,6 +107,7 @@ class TextComponentState extends ComponentState {
 
   late final FocusNode focusNode = FocusNode();
   VoidCallback? onBackspaceAtStart;
+  ValueChanged<bool>? onMoveToAdjacentTextComponent;
 
   @override
   String get output => controller.document.toPlainText();
