@@ -2,6 +2,18 @@
 
 A component based document application.
 
+# Supported Platforms:
+Used flutter to make it platform independent.
+
+write mode
+- [X] mac desktop
+- [X] linux desktop
+- [ ] windows desktop
+
+read-only mode
+- [ ] android tablets, mobiles
+- [ ] iOS tablets, mobiles
+
 
 ![](/preview.png)
 
