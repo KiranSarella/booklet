@@ -2,6 +2,8 @@
 
 A free and open-source, component-based document application for education.
 
+![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
+
 # Supported Platforms
 Used flutter to make it platform independent.
 
@@ -34,3 +36,6 @@ flutter build macos --release
 
 ```
 
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPLv3) - see the [LICENSE](LICENSE) file for details.
