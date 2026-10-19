@@ -87,6 +87,9 @@ class AutoHeightRichText2 extends StatelessWidget {
                     focusNode: textState.focusNode,
                     config: QuillEditorConfig(
                       scrollable: false,
+                      // Quill remains interactive for text selection in
+                      // read-only mode, but should not paint an insertion caret.
+                      showCursor: !textState.controller.readOnly,
                       onKeyPressed: (event, node) {
                         final state = visualState;
                         if ((event is KeyDownEvent ||
