@@ -1,6 +1,6 @@
 # .booklet
 
-A component based document application. 
+A free and open-source, component-based document application for education.
 
 # Supported Platforms
 Used flutter to make it platform independent.
