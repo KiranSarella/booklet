@@ -1,15 +1,17 @@
-# booklet
+# .booklet
 
-A new Flutter project.
+A component based document application.
 
+
+![](/preview.png)
 
 
 # Flutter
 
 flutter run -d macos
-flutter build macos
-
 flutter run -d chrome
+
+flutter build macos
 
 
 flutter clean
