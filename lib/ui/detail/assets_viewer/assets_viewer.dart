@@ -11,9 +11,14 @@ enum _AssetLayout { list, icons }
 enum _AssetAction { rename, delete, preview }
 
 class AssetsViewer extends StatefulWidget {
-  const AssetsViewer({super.key, required this.controller});
+  const AssetsViewer({
+    super.key,
+    required this.controller,
+    required this.isReadOnly,
+  });
 
   final AssetManagerController controller;
+  final bool isReadOnly;
 
   @override
   State<AssetsViewer> createState() => _AssetsViewerState();
@@ -156,49 +161,51 @@ class _AssetsViewerState extends State<AssetsViewer> {
                         setState(() => _layout = selection.first),
                   ),
                   const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: widget.controller.isAddingAssets
-                        ? null
-                        : _addAssets,
-                    icon: widget.controller.isAddingAssets
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.add),
-                    label: const Text('Add asset'),
-                  ),
-                  PopupMenuButton<_AssetAction>(
-                    enabled: selectedAsset != null,
-                    tooltip: 'More asset options',
-                    onSelected: _runAssetAction,
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: _AssetAction.rename,
-                        child: ListTile(
-                          leading: Icon(Icons.edit_outlined),
-                          title: Text('Rename'),
-                          contentPadding: EdgeInsets.zero,
+                  if (!widget.isReadOnly) ...[
+                    FilledButton.icon(
+                      onPressed: widget.controller.isAddingAssets
+                          ? null
+                          : _addAssets,
+                      icon: widget.controller.isAddingAssets
+                          ? const SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.add),
+                      label: const Text('Add asset'),
+                    ),
+                    PopupMenuButton<_AssetAction>(
+                      enabled: selectedAsset != null,
+                      tooltip: 'More asset options',
+                      onSelected: _runAssetAction,
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: _AssetAction.rename,
+                          child: ListTile(
+                            leading: Icon(Icons.edit_outlined),
+                            title: Text('Rename'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                      PopupMenuItem(
-                        value: _AssetAction.delete,
-                        child: ListTile(
-                          leading: Icon(Icons.delete_outline),
-                          title: Text('Delete'),
-                          contentPadding: EdgeInsets.zero,
+                        PopupMenuItem(
+                          value: _AssetAction.delete,
+                          child: ListTile(
+                            leading: Icon(Icons.delete_outline),
+                            title: Text('Delete'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                      PopupMenuItem(
-                        value: _AssetAction.preview,
-                        child: ListTile(
-                          leading: Icon(Icons.open_in_full),
-                          title: Text('Preview'),
-                          contentPadding: EdgeInsets.zero,
+                        PopupMenuItem(
+                          value: _AssetAction.preview,
+                          child: ListTile(
+                            leading: Icon(Icons.open_in_full),
+                            title: Text('Preview'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -128,6 +128,10 @@ class MainViewState extends State<MainView> {
                       child: BaseDetailView(
                         controller: widget.controller,
                         editorKey: _editorKey,
+                        isReadOnly: widget
+                            .controller
+                            .documentSettingsController
+                            .isReadOnly,
                       ),
                     ),
                   ],
