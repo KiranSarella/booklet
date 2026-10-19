@@ -19,6 +19,7 @@ class PagesNavigationView extends StatefulWidget {
     super.key,
     required this.controller,
     required this.width,
+    required this.isReadOnly,
     required this.onPageSelected,
     required this.onCreateGroup,
     required this.onAddPageBelow,
@@ -42,6 +43,7 @@ class PagesNavigationView extends StatefulWidget {
 
   final PagesNavigationVM controller;
   final double width;
+  final bool isReadOnly;
   final ValueChanged<NavigationNode> onPageSelected;
   final VoidCallback onCreateGroup;
   final VoidCallback onAddPageBelow;
@@ -81,6 +83,7 @@ class _PagesNavigationViewState extends State<PagesNavigationView> {
     widget.onRenameNode(title);
     setState(() => _editingNode = null);
   }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -95,29 +98,31 @@ class _PagesNavigationViewState extends State<PagesNavigationView> {
             child: Row(
               mainAxisAlignment: .end,
               children: [
-                NavigationAddMenu(
-                  onCreateGroup: widget.onCreateGroup,
-                  onAddPageBelow: widget.onAddPageBelow,
-                  onAddChildPage: widget.onAddChildPage,
-                  onAddAssetsFolderBelow: widget.onAddAssetsFolderBelow,
-                  onAddAssetsFolderInside: widget.onAddAssetsFolderInside,
-                  canAddChildPage:
-                      widget.controller.selectedNode?.isAssetsFolder != true,
-                  onChanged: widget.onChanged,
-                ),
-                NavigationMoreMenu(
-                  hasSelection: widget.controller.selectedNode != null,
-                  canPaste: widget.canPasteNode,
-                  onDuplicate: widget.onDuplicateNode,
-                  onCopy: widget.onCopyNode,
-                  onPaste: widget.onPasteNode,
-                  onRename: _startEditing,
-                  onDelete: () {
-                    _editingNode = null;
-                    widget.onDeleteNode();
-                  },
-                  onChanged: widget.onChanged,
-                ),
+                if (!widget.isReadOnly) ...[
+                  NavigationAddMenu(
+                    onCreateGroup: widget.onCreateGroup,
+                    onAddPageBelow: widget.onAddPageBelow,
+                    onAddChildPage: widget.onAddChildPage,
+                    onAddAssetsFolderBelow: widget.onAddAssetsFolderBelow,
+                    onAddAssetsFolderInside: widget.onAddAssetsFolderInside,
+                    canAddChildPage:
+                        widget.controller.selectedNode?.isAssetsFolder != true,
+                    onChanged: widget.onChanged,
+                  ),
+                  NavigationMoreMenu(
+                    hasSelection: widget.controller.selectedNode != null,
+                    canPaste: widget.canPasteNode,
+                    onDuplicate: widget.onDuplicateNode,
+                    onCopy: widget.onCopyNode,
+                    onPaste: widget.onPasteNode,
+                    onRename: _startEditing,
+                    onDelete: () {
+                      _editingNode = null;
+                      widget.onDeleteNode();
+                    },
+                    onChanged: widget.onChanged,
+                  ),
+                ],
                 // const SizedBox(width: 4),
               ],
             ),
@@ -132,6 +137,7 @@ class _PagesNavigationViewState extends State<PagesNavigationView> {
                     key: ValueKey<NavigationNode>(group),
                     node: group,
                     depth: 0,
+                    isReadOnly: widget.isReadOnly,
                     selectedPageId: widget.controller.selectedPageId,
                     selectedNode: widget.controller.selectedNode,
                     onSelected: widget.onPageSelected,
@@ -156,6 +162,7 @@ class _NavigationBranch extends StatefulWidget {
     super.key,
     required this.node,
     required this.depth,
+    required this.isReadOnly,
     required this.selectedPageId,
     required this.selectedNode,
     required this.onSelected,
@@ -169,6 +176,7 @@ class _NavigationBranch extends StatefulWidget {
 
   final NavigationNode node;
   final int depth;
+  final bool isReadOnly;
   final String? selectedPageId;
   final NavigationNode? selectedNode;
   final ValueChanged<NavigationNode> onSelected;
@@ -239,7 +247,8 @@ class _NavigationBranchState extends State<_NavigationBranch> {
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     if (event is KeyDownEvent &&
         event.logicalKey == LogicalKeyboardKey.enter &&
-        !_isEditing) {
+        !_isEditing &&
+        !widget.isReadOnly) {
       widget.onStartEditing();
       return KeyEventResult.handled;
     }
@@ -506,6 +515,7 @@ class _NavigationBranchState extends State<_NavigationBranch> {
                 key: ValueKey<NavigationNode>(child),
                 node: child,
                 depth: widget.depth + 1,
+                isReadOnly: widget.isReadOnly,
                 selectedPageId: widget.selectedPageId,
                 selectedNode: widget.selectedNode,
                 onSelected: widget.onSelected,

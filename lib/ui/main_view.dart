@@ -71,6 +71,10 @@ class MainViewState extends State<MainView> {
                         pagesNavigation: PagesNavigationView(
                           controller: _viewModel.navigation,
                           width: _navigationWidth,
+                          isReadOnly: widget
+                              .controller
+                              .documentSettingsController
+                              .isReadOnly,
                           onPageSelected: widget.controller.selectNode,
                           onCreateGroup: () => setState(_viewModel.addGroup),
                           onAddPageBelow: () =>

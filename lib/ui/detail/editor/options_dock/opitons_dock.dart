@@ -274,12 +274,12 @@ class _ReadOnlyIndicator extends StatelessWidget {
     return Tooltip(
       message: 'Read-only',
       child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
+        // color: Theme.of(context).colorScheme.surfaceContainer,
+        // borderRadius: BorderRadius.circular(12),
         child: const SizedBox(
           width: 52,
           height: 44,
-          child: Icon(Icons.lock_outline, size: 20),
+          child: Icon(Icons.lock_outline, size: 20, color: Colors.red,),
         ),
       ),
     );
