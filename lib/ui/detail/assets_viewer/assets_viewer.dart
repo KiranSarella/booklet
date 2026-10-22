@@ -1,10 +1,9 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:booklet/application/asset_manager_controller.dart';
 import 'package:booklet/business/booklet_asset.dart';
+import 'package:booklet/ui/detail/assets_viewer/media_slideshow_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 
 enum _AssetLayout { list, icons }
 
@@ -39,18 +38,39 @@ class _AssetsViewerState extends State<AssetsViewer> {
   }
 
   Future<void> _openAsset(BookletAsset asset) async {
-    final path = widget.controller.resolvePath(asset);
+    if (asset.kind == BookletAssetKind.image ||
+        asset.kind == BookletAssetKind.video) {
+      final media =
+          widget.controller.assets
+              .where(
+                (item) =>
+                    item.kind == BookletAssetKind.image ||
+                    item.kind == BookletAssetKind.video,
+              )
+              .toList()
+            ..sort((left, right) {
+              final byLowercaseName = left.name.toLowerCase().compareTo(
+                right.name.toLowerCase(),
+              );
+              return byLowercaseName != 0
+                  ? byLowercaseName
+                  : left.name.compareTo(right.name);
+            });
+      await showDialog<void>(
+        context: context,
+        builder: (_) => MediaSlideshowDialog(
+          assets: media,
+          initialIndex: media.indexWhere((item) => item.id == asset.id),
+          resolvePath: widget.controller.resolvePath,
+          resolveThumbnailPath: widget.controller.resolveThumbnailPath,
+        ),
+      );
+      return;
+    }
     switch (asset.kind) {
       case BookletAssetKind.image:
-        await showDialog<void>(
-          context: context,
-          builder: (_) => _ImagePreviewDialog(name: asset.name, path: path),
-        );
       case BookletAssetKind.video:
-        await showDialog<void>(
-          context: context,
-          builder: (_) => _VideoPreviewDialog(name: asset.name, path: path),
-        );
+        return;
       case BookletAssetKind.pdf:
       case BookletAssetKind.document:
       case BookletAssetKind.file:
@@ -457,176 +477,5 @@ class _AssetIcon extends StatelessWidget {
       );
     }
     return Icon(icon, size: size, color: color);
-  }
-}
-
-class _ImagePreviewDialog extends StatelessWidget {
-  const _ImagePreviewDialog({required this.name, required this.path});
-
-  final String name;
-  final String path;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog.fullscreen(
-      child: ColoredBox(
-        color: Colors.black,
-        child: SafeArea(
-          child: Column(
-            children: [
-              _PreviewToolbar(name: name),
-              Expanded(
-                child: InteractiveViewer(
-                  child: Center(
-                    child: Image.file(
-                      File(path),
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => const Icon(
-                        Icons.broken_image_outlined,
-                        color: Colors.white70,
-                        size: 72,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VideoPreviewDialog extends StatefulWidget {
-  const _VideoPreviewDialog({required this.name, required this.path});
-
-  final String name;
-  final String path;
-
-  @override
-  State<_VideoPreviewDialog> createState() => _VideoPreviewDialogState();
-}
-
-class _VideoPreviewDialogState extends State<_VideoPreviewDialog> {
-  late final VideoPlayerController _player = VideoPlayerController.file(
-    File(widget.path),
-  );
-  bool _initialized = false;
-  bool _failed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializePlayer();
-  }
-
-  Future<void> _initializePlayer() async {
-    try {
-      await _player.initialize();
-      if (mounted) setState(() => _initialized = true);
-    } catch (_) {
-      if (mounted) setState(() => _failed = true);
-    }
-  }
-
-  @override
-  void dispose() {
-    unawaited(_player.dispose());
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog.fullscreen(
-      child: ColoredBox(
-        color: Colors.black,
-        child: SafeArea(
-          child: Column(
-            children: [
-              _PreviewToolbar(name: widget.name),
-              Expanded(
-                child: Center(
-                  child: _initialized
-                      ? AspectRatio(
-                          aspectRatio: _player.value.aspectRatio,
-                          child: Stack(
-                            alignment: Alignment.bottomCenter,
-                            children: [
-                              VideoPlayer(_player),
-                              VideoProgressIndicator(
-                                _player,
-                                allowScrubbing: true,
-                                padding: const EdgeInsets.all(12),
-                              ),
-                              Align(
-                                alignment: Alignment.center,
-                                child: IconButton.filledTonal(
-                                  tooltip: _player.value.isPlaying
-                                      ? 'Pause'
-                                      : 'Play',
-                                  onPressed: () => setState(() {
-                                    _player.value.isPlaying
-                                        ? _player.pause()
-                                        : _player.play();
-                                  }),
-                                  icon: Icon(
-                                    _player.value.isPlaying
-                                        ? Icons.pause
-                                        : Icons.play_arrow,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : _failed
-                      ? const Text(
-                          'Could not preview this video',
-                          style: TextStyle(color: Colors.white),
-                        )
-                      : const CircularProgressIndicator(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PreviewToolbar extends StatelessWidget {
-  const _PreviewToolbar({required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Spacer(),
-        Expanded(
-          flex: 8,
-          child: Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              tooltip: 'Close preview',
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close, color: Colors.white),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
