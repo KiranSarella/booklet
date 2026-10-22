@@ -98,6 +98,9 @@ class ComponentSnapshot {
           if (state is BulletedListComponentState) 'symbol': state.symbol,
           if (state is NumberedListComponentState)
             'numberStyle': state.numberStyle,
+          if (state is NumberedListComponentState &&
+              state.customSequenceNumber != null)
+            'customSequenceNumber': state.customSequenceNumber,
           if (state is ChecklistComponentState) 'checked': state.isChecked,
         },
       );
@@ -153,6 +156,10 @@ class ComponentSnapshot {
         state.symbol = extra['symbol'] as String? ?? '•';
       } else if (state is NumberedListComponentState) {
         state.numberStyle = extra['numberStyle'] as String? ?? '1.';
+        final customNumber = extra['customSequenceNumber'];
+        if (customNumber is num) {
+          state.setCustomSequenceNumber(customNumber.toInt());
+        }
       } else if (state is ChecklistComponentState) {
         state.isChecked = extra['checked'] as bool? ?? false;
       }

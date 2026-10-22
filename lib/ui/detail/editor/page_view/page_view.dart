@@ -36,7 +36,7 @@ class PageView extends StatelessWidget {
     }
     final currentState =
         components[index].component.state as NumberedListComponentState;
-    var number = 1;
+    var number = 0;
     for (var previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
       final previousState = components[previousIndex].component.state;
       if (previousState is! NumberedListComponentState ||
@@ -44,10 +44,11 @@ class PageView extends StatelessWidget {
         break;
       }
       if (previousState.nestingLevel == currentState.nestingLevel) {
-        number++;
+        number = previousState.sequenceNumber;
+        break;
       }
     }
-    return number;
+    return currentState.customSequenceNumber ?? (number == 0 ? 1 : number + 1);
   }
 
   Widget _buildComponent(int index) {

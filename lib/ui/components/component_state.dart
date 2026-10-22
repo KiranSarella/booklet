@@ -169,7 +169,20 @@ class NumberedListComponentState extends ListItemComponentState {
 
   static const numberStyles = ['1.', 'a.', 'i.', '1)'];
 
-  int sequenceNumber = 1;
+  int _sequenceNumber = 1;
+  int? _customSequenceNumber;
+  int? get customSequenceNumber => _customSequenceNumber;
+  int get sequenceNumber => _customSequenceNumber ?? _sequenceNumber;
+  set sequenceNumber(int value) {
+    if (_sequenceNumber == value) return;
+    _sequenceNumber = value;
+  }
+
+  void setCustomSequenceNumber(int? value) {
+    if (_customSequenceNumber == value) return;
+    _customSequenceNumber = value;
+    notifyListeners();
+  }
   String _numberStyle = '1.';
   String get numberStyle => _numberStyle;
   set numberStyle(String value) {

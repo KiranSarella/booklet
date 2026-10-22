@@ -520,6 +520,10 @@ class BookletFile {
           } else if (componentState is NumberedListComponentState) {
             componentState.numberStyle =
                 componentJson['numberStyle'] as String? ?? '1.';
+            final customNumber = componentJson['customSequenceNumber'];
+            if (customNumber is num) {
+              componentState.setCustomSequenceNumber(customNumber.toInt());
+            }
           } else if (componentState is ChecklistComponentState) {
             componentState.isChecked = componentJson['checked'] as bool? ?? false;
           }
@@ -736,6 +740,8 @@ class BookletFile {
       return {
         'numberStyle': state.numberStyle,
         'nestingLevel': state.nestingLevel,
+        if (state.customSequenceNumber != null)
+          'customSequenceNumber': state.customSequenceNumber,
       };
     }
     if (state is ChecklistComponentState) {

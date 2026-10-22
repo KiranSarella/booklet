@@ -45,15 +45,11 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 32,
-            child: Center(
-              child: Text(
-                listState.formatNumber(listState.sequenceNumber),
-                style: TextStyle(
-                  color: theme.textColor,
-                  fontSize: theme.baseFontSize,
-                ),
-              ),
+            width: 52,
+            child: _EditableListNumber(
+              state: listState,
+              color: theme.textColor,
+              fontSize: theme.baseFontSize,
             ),
           ),
           Expanded(
@@ -78,4 +74,92 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
+}
+
+class _EditableListNumber extends StatefulWidget {
+  const _EditableListNumber({
+    required this.state,
+    required this.color,
+    required this.fontSize,
+  });
+
+  final NumberedListComponentState state;
+  final Color color;
+  final double fontSize;
+
+  @override
+  State<_EditableListNumber> createState() => _EditableListNumberState();
+}
+
+class _EditableListNumberState extends State<_EditableListNumber> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.state.formatNumber(widget.state.sequenceNumber),
+    );
+    _focusNode = FocusNode();
+    widget.state.addListener(_syncNumber);
+  }
+
+  @override
+  void didUpdateWidget(covariant _EditableListNumber oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state != widget.state) {
+      oldWidget.state.removeListener(_syncNumber);
+      widget.state.addListener(_syncNumber);
+      _syncNumber();
+    }
+  }
+
+  void _syncNumber() {
+    if (_focusNode.hasFocus) return;
+    final text = widget.state.formatNumber(widget.state.sequenceNumber);
+    if (_controller.text != text) _controller.text = text;
+  }
+
+  void _commitNumber(String input) {
+    final match = RegExp(r'^\s*(\d+)\s*[.)]?\s*$').firstMatch(input);
+    final value = match == null ? null : int.tryParse(match.group(1)!);
+    if (value == null || value < 1) {
+      _syncNumber();
+      return;
+    }
+    widget.state.setCustomSequenceNumber(value);
+    _focusNode.unfocus();
+    _syncNumber();
+  }
+
+  @override
+  void dispose() {
+    widget.state.removeListener(_syncNumber);
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _syncNumber();
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      onSubmitted: _commitNumber,
+      onTap: () => _controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _controller.text.length,
+      ),
+      textAlign: TextAlign.center,
+      style: TextStyle(color: widget.color, fontSize: widget.fontSize),
+      decoration: const InputDecoration(
+        isDense: true,
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.zero,
+      ),
+      keyboardType: TextInputType.number,
+    );
+  }
 }
