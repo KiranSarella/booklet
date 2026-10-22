@@ -108,6 +108,7 @@ class BookletFile {
                 id: id,
                 name: name,
                 path: 'assets/$folderId/$id${_assetExtension(name)}',
+                thumbnailPath: entry['thumbnailPath'] as String?,
               ),
             );
           }
@@ -525,7 +526,8 @@ class BookletFile {
               componentState.setCustomSequenceNumber(customNumber.toInt());
             }
           } else if (componentState is ChecklistComponentState) {
-            componentState.isChecked = componentJson['checked'] as bool? ?? false;
+            componentState.isChecked =
+                componentJson['checked'] as bool? ?? false;
           }
         }
         if (componentState is ImageComponentState) {
@@ -745,10 +747,7 @@ class BookletFile {
       };
     }
     if (state is ChecklistComponentState) {
-      return {
-        'checked': state.isChecked,
-        'nestingLevel': state.nestingLevel,
-      };
+      return {'checked': state.isChecked, 'nestingLevel': state.nestingLevel};
     }
     return const {};
   }
@@ -782,17 +781,44 @@ class BookletFile {
             await sourceFile.copy(targetPath);
           }
           if (await targetFile.exists()) {
+            String? thumbnailPath = asset.thumbnailPath;
+            if (thumbnailPath != null) {
+              final thumbnailSource = File(
+                File(thumbnailPath).isAbsolute
+                    ? thumbnailPath
+                    : '${sourcePackagePath ?? packagePath}/$thumbnailPath',
+              );
+              final thumbnailName = thumbnailPath.split('/').last;
+              final thumbnailRelative =
+                  'assets/$folderId/thumbnails/$thumbnailName';
+              final thumbnailTarget = File('$packagePath/$thumbnailRelative');
+              if (await thumbnailSource.exists() &&
+                  thumbnailSource.absolute.path !=
+                      thumbnailTarget.absolute.path) {
+                await thumbnailTarget.parent.create(recursive: true);
+                await thumbnailSource.copy(thumbnailTarget.path);
+              }
+              thumbnailPath = await thumbnailTarget.exists()
+                  ? thumbnailRelative
+                  : null;
+            }
             node.assets[index] = BookletAsset(
               id: asset.id,
               name: asset.name,
               path: _toPackageMediaPath(packagePath, targetPath),
+              thumbnailPath: thumbnailPath,
             );
           }
         }
         await File('${assetDirectory.path}/$_assetIndexName').writeAsString(
           jsonEncode([
             for (final asset in node.assets)
-              {'id': asset.id, 'name': asset.name},
+              {
+                'id': asset.id,
+                'name': asset.name,
+                if (asset.thumbnailPath != null)
+                  'thumbnailPath': asset.thumbnailPath,
+              },
           ]),
         );
       }

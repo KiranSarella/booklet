@@ -5,11 +5,13 @@ class BookletAsset {
     required this.id,
     required this.name,
     required this.path,
+    this.thumbnailPath,
   });
 
   final String id;
   final String name;
   final String path;
+  final String? thumbnailPath;
 
   String get extension {
     final dotIndex = name.lastIndexOf('.');
@@ -53,11 +55,17 @@ class BookletAsset {
     return BookletAssetKind.file;
   }
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'path': path};
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'path': path,
+    if (thumbnailPath != null) 'thumbnailPath': thumbnailPath,
+  };
 
   static BookletAsset fromJson(Map<String, dynamic> json) => BookletAsset(
     id: json['id'] as String? ?? '',
     name: json['name'] as String? ?? 'Untitled file',
     path: json['path'] as String? ?? '',
+    thumbnailPath: json['thumbnailPath'] as String?,
   );
 }

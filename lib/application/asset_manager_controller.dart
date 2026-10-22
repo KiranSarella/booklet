@@ -1,12 +1,18 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 class AssetManagerController extends ChangeNotifier {
+  static const _macOsThumbnailChannel = MethodChannel(
+    'booklet/video_thumbnail',
+  );
   VoidCallback? onDocumentChanged;
   NavigationNode? _folder;
   String? _packagePath;
@@ -57,6 +63,7 @@ class AssetManagerController extends ChangeNotifier {
       id: asset.id,
       name: newName,
       path: asset.path,
+      thumbnailPath: asset.thumbnailPath,
     );
     notifyListeners();
     onDocumentChanged?.call();
@@ -76,6 +83,11 @@ class AssetManagerController extends ChangeNotifier {
       final file = File(path);
       if (await file.exists()) {
         await file.delete();
+      }
+      final thumbnailPath = resolveThumbnailPath(asset);
+      if (thumbnailPath != null) {
+        final thumbnail = File(thumbnailPath);
+        if (await thumbnail.exists()) await thumbnail.delete();
       }
     }
   }
@@ -98,12 +110,94 @@ class AssetManagerController extends ChangeNotifier {
           files: files,
         );
         folder.assets.addAll(imported);
+        await _createThumbnails(imported);
         onDocumentChanged?.call();
       }
     } finally {
       _isAddingAssets = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _createThumbnails(List<BookletAsset> imported) async {
+    final packagePath = _packagePath;
+    final folder = _folder;
+    if (packagePath == null || folder?.folderId == null) return;
+    final directory = Directory(
+      '$packagePath/assets/${folder!.folderId}/thumbnails',
+    );
+    await directory.create(recursive: true);
+    for (var index = 0; index < imported.length; index++) {
+      final asset = imported[index];
+      final source = File(resolvePath(asset));
+      if (!await source.exists() ||
+          (asset.kind != BookletAssetKind.image &&
+              asset.kind != BookletAssetKind.video)) {
+        continue;
+      }
+      final thumbnailExtension =
+          asset.kind == BookletAssetKind.image ||
+              (asset.kind == BookletAssetKind.video && Platform.isMacOS)
+          ? 'png'
+          : 'jpg';
+      final thumbnail = File(
+        '${directory.path}/${asset.id}.$thumbnailExtension',
+      );
+      try {
+        if (asset.kind == BookletAssetKind.image) {
+          final codec = await ui.instantiateImageCodec(
+            await source.readAsBytes(),
+            targetWidth: 320,
+          );
+          final frame = await codec.getNextFrame();
+          final bytes = await frame.image.toByteData(
+            format: ui.ImageByteFormat.png,
+          );
+          if (bytes != null)
+            await thumbnail.writeAsBytes(bytes.buffer.asUint8List());
+          frame.image.dispose();
+          codec.dispose();
+        } else {
+          if (Platform.isMacOS) {
+            await _macOsThumbnailChannel.invokeMethod<bool>(
+              'createVideoThumbnail',
+              {'videoPath': source.path, 'thumbnailPath': thumbnail.path},
+            );
+          } else {
+            final bytes = await VideoThumbnail.thumbnailData(
+              video: source.path,
+              imageFormat: ImageFormat.JPEG,
+              maxWidth: 320,
+              quality: 75,
+            );
+            if (bytes != null) await thumbnail.writeAsBytes(bytes);
+          }
+        }
+        if (await thumbnail.exists() && await thumbnail.length() > 0) {
+          final updated = BookletAsset(
+            id: asset.id,
+            name: asset.name,
+            path: asset.path,
+            thumbnailPath:
+                'assets/${folder.folderId}/thumbnails/${asset.id}.$thumbnailExtension',
+          );
+          imported[index] = updated;
+          final assetIndex = folder.assets.indexWhere(
+            (item) => item.id == asset.id,
+          );
+          if (assetIndex >= 0) folder.assets[assetIndex] = updated;
+        }
+      } catch (_) {
+        // Keep the asset usable when the platform cannot extract a preview.
+      }
+    }
+  }
+
+  String? resolveThumbnailPath(BookletAsset asset) {
+    final path = asset.thumbnailPath;
+    if (path == null) return null;
+    if (File(path).isAbsolute || _packagePath == null) return path;
+    return '$_packagePath/$path';
   }
 
   String resolvePath(BookletAsset asset) {

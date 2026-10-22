@@ -1,4 +1,5 @@
 import Cocoa
+import AVFoundation
 import FlutterMacOS
 
 @main
@@ -33,6 +34,37 @@ class AppDelegate: FlutterAppDelegate {
         self.pendingPath = nil
       }
       openFileChannel = channel
+
+      let thumbnailChannel = FlutterMethodChannel(
+        name: "booklet/video_thumbnail",
+        binaryMessenger: controller.engine.binaryMessenger)
+      thumbnailChannel.setMethodCallHandler { call, result in
+        guard call.method == "createVideoThumbnail",
+              let arguments = call.arguments as? [String: String],
+              let videoPath = arguments["videoPath"],
+              let thumbnailPath = arguments["thumbnailPath"] else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        do {
+          let video = AVURLAsset(url: URL(fileURLWithPath: videoPath))
+          let generator = AVAssetImageGenerator(asset: video)
+          generator.appliesPreferredTrackTransform = true
+          generator.maximumSize = CGSize(width: 320, height: 320)
+          let duration = video.duration.seconds
+          let time = CMTime(seconds: duration.isFinite ? min(1, duration / 2) : 0, preferredTimescale: 600)
+          let image = try generator.copyCGImage(at: time, actualTime: nil)
+          let bitmap = NSBitmapImageRep(cgImage: image)
+          guard let data = bitmap.representation(using: .png, properties: [:]) else {
+            result(false)
+            return
+          }
+          try data.write(to: URL(fileURLWithPath: thumbnailPath), options: .atomic)
+          result(true)
+        } catch {
+          result(FlutterError(code: "thumbnail_failed", message: error.localizedDescription, details: nil))
+        }
+      }
     }
     super.applicationDidFinishLaunching(notification)
   }

@@ -225,6 +225,9 @@ class _AssetsViewerState extends State<AssetsViewer> {
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, index) => _AssetListTile(
                         asset: assets[index],
+                        thumbnailPath: widget.controller.resolveThumbnailPath(
+                          assets[index],
+                        ),
                         isSelected: selectedAsset?.id == assets[index].id,
                         onTap: () =>
                             widget.controller.selectAsset(assets[index]),
@@ -243,6 +246,9 @@ class _AssetsViewerState extends State<AssetsViewer> {
                       itemCount: assets.length,
                       itemBuilder: (context, index) => _AssetIconTile(
                         asset: assets[index],
+                        thumbnailPath: widget.controller.resolveThumbnailPath(
+                          assets[index],
+                        ),
                         isSelected: selectedAsset?.id == assets[index].id,
                         onTap: () =>
                             widget.controller.selectAsset(assets[index]),
@@ -308,12 +314,14 @@ class _RenameAssetDialogState extends State<_RenameAssetDialog> {
 class _AssetListTile extends StatelessWidget {
   const _AssetListTile({
     required this.asset,
+    required this.thumbnailPath,
     required this.isSelected,
     required this.onTap,
     required this.onDoubleTap,
   });
 
   final BookletAsset asset;
+  final String? thumbnailPath;
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onDoubleTap;
@@ -332,7 +340,11 @@ class _AssetListTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                _AssetIcon(asset: asset, size: 24),
+                _AssetIcon(
+                  asset: asset,
+                  size: 40,
+                  thumbnailPath: thumbnailPath,
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -363,12 +375,14 @@ class _AssetListTile extends StatelessWidget {
 class _AssetIconTile extends StatelessWidget {
   const _AssetIconTile({
     required this.asset,
+    required this.thumbnailPath,
     required this.isSelected,
     required this.onTap,
     required this.onDoubleTap,
   });
 
   final BookletAsset asset;
+  final String? thumbnailPath;
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onDoubleTap;
@@ -392,7 +406,7 @@ class _AssetIconTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _AssetIcon(asset: asset, size: 42),
+            _AssetIcon(asset: asset, size: 64, thumbnailPath: thumbnailPath),
             const SizedBox(height: 10),
             Text(
               asset.name,
@@ -409,10 +423,15 @@ class _AssetIconTile extends StatelessWidget {
 }
 
 class _AssetIcon extends StatelessWidget {
-  const _AssetIcon({required this.asset, required this.size});
+  const _AssetIcon({
+    required this.asset,
+    required this.size,
+    this.thumbnailPath,
+  });
 
   final BookletAsset asset;
   final double size;
+  final String? thumbnailPath;
 
   @override
   Widget build(BuildContext context) {
@@ -423,6 +442,20 @@ class _AssetIcon extends StatelessWidget {
       BookletAssetKind.document => (Icons.description_outlined, Colors.blue),
       BookletAssetKind.file => (Icons.insert_drive_file_outlined, Colors.grey),
     };
+    if ((asset.kind == BookletAssetKind.image ||
+            asset.kind == BookletAssetKind.video) &&
+        thumbnailPath != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(5),
+        child: Image.file(
+          File(thumbnailPath!),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => Icon(icon, size: size, color: color),
+        ),
+      );
+    }
     return Icon(icon, size: size, color: color);
   }
 }
