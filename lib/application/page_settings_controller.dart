@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:booklet/application/appearance_mode.dart';
@@ -17,6 +19,8 @@ class PageSettingsController extends ChangeNotifier {
   static const _baseFontSizeKey = 'editor.baseFontSize';
   static const _paletteKeyPrefix = 'editor.palette';
   static const _pageWidthKey = 'editor.pageWidth';
+  static const _lightThemesKey = 'editor.themes.light';
+  static const _darkThemesKey = 'editor.themes.dark';
 
   // Secondary appearance: scoped to the page view only. 'auto' follows the
   // primary document appearance instead of the system brightness directly.
@@ -25,6 +29,8 @@ class PageSettingsController extends ChangeNotifier {
   final _preferences = SharedPreferences.getInstance();
   final _Palette _light;
   final _Palette _dark;
+  final List<PageColorTheme> _lightCustomThemes = [];
+  final List<PageColorTheme> _darkCustomThemes = [];
   double baseFontSize;
   EditorAppearanceMode _appearanceMode = EditorAppearanceMode.auto;
   PageWidth _pageWidth = PageWidth.normal;
@@ -63,6 +69,14 @@ class PageSettingsController extends ChangeNotifier {
   Color get textColor => _activePalette.textColor;
   Color get styleColor => _activePalette.styleColor;
   Color get pageBackgroundColor => _activePalette.pageBackgroundColor;
+  List<PageColorTheme> get themes => [
+    ...PageColorTheme.defaults(effectiveBrightness),
+    ..._customThemes,
+  ];
+  List<PageColorTheme> get _customThemes =>
+      effectiveBrightness == Brightness.dark
+      ? _darkCustomThemes
+      : _lightCustomThemes;
 
   void updateTitleColor(Color color) =>
       _update(() => _activePalette.titleColor = color);
@@ -79,6 +93,33 @@ class PageSettingsController extends ChangeNotifier {
   void updateAppearanceMode(EditorAppearanceMode mode) =>
       _update(() => _appearanceMode = mode);
   void updatePageWidth(PageWidth width) => _update(() => _pageWidth = width);
+
+  void applyTheme(PageColorTheme theme) => _update(() {
+    _activePalette.pageBackgroundColor = theme.pageBackgroundColor;
+    _activePalette.textColor = theme.textColor;
+    _activePalette.headingColor = theme.headingColor;
+    _activePalette.styleColor = theme.styleColor;
+  });
+
+  Future<void> addCurrentTheme(String name) async {
+    final theme = PageColorTheme(
+      name: name,
+      pageBackgroundColor: pageBackgroundColor,
+      textColor: textColor,
+      headingColor: headingColor,
+      styleColor: styleColor,
+      isDefault: false,
+    );
+    _customThemes.add(theme);
+    notifyListeners();
+    await _persistThemes();
+  }
+
+  Future<void> deleteTheme(PageColorTheme theme) async {
+    if (theme.isDefault || !_customThemes.remove(theme)) return;
+    notifyListeners();
+    await _persistThemes();
+  }
 
   void increaseFontSize() => _update(() => baseFontSize += 2);
   void resetFontSize() => _update(() => baseFontSize = originalBaseFontSize);
@@ -101,6 +142,8 @@ class PageSettingsController extends ChangeNotifier {
     baseFontSize = preferences.getDouble(_baseFontSizeKey) ?? baseFontSize;
     _light.load(preferences, '$_paletteKeyPrefix.light');
     _dark.load(preferences, '$_paletteKeyPrefix.dark');
+    _loadThemes(preferences.getString(_lightThemesKey), _lightCustomThemes);
+    _loadThemes(preferences.getString(_darkThemesKey), _darkCustomThemes);
     notifyListeners();
   }
 
@@ -117,6 +160,107 @@ class PageSettingsController extends ChangeNotifier {
     await preferences.setDouble(_baseFontSizeKey, baseFontSize);
     _light.save(preferences, '$_paletteKeyPrefix.light');
     _dark.save(preferences, '$_paletteKeyPrefix.dark');
+  }
+
+  void _loadThemes(String? stored, List<PageColorTheme> destination) {
+    if (stored == null) return;
+    try {
+      final decoded = jsonDecode(stored) as List<dynamic>;
+      destination
+        ..clear()
+        ..addAll(
+          decoded.whereType<Map<String, dynamic>>().map(
+            PageColorTheme.fromJson,
+          ),
+        );
+    } on FormatException {
+      destination.clear();
+    } on TypeError {
+      destination.clear();
+    }
+  }
+
+  Future<void> _persistThemes() async {
+    final preferences = await _preferences;
+    await preferences.setString(
+      _lightThemesKey,
+      jsonEncode(_lightCustomThemes.map((theme) => theme.toJson()).toList()),
+    );
+    await preferences.setString(
+      _darkThemesKey,
+      jsonEncode(_darkCustomThemes.map((theme) => theme.toJson()).toList()),
+    );
+  }
+}
+
+class PageColorTheme {
+  const PageColorTheme({
+    required this.name,
+    required this.pageBackgroundColor,
+    required this.textColor,
+    required this.headingColor,
+    required this.styleColor,
+    required this.isDefault,
+  });
+
+  final String name;
+  final Color pageBackgroundColor;
+  final Color textColor;
+  final Color headingColor;
+  final Color styleColor;
+  final bool isDefault;
+
+  factory PageColorTheme.fromJson(Map<String, dynamic> json) => PageColorTheme(
+    name: json['name'] as String,
+    pageBackgroundColor: Color(json['pageBackground'] as int),
+    textColor: Color(json['text'] as int),
+    headingColor: Color(json['headings'] as int),
+    styleColor: Color(json['style'] as int),
+    isDefault: false,
+  );
+
+  Map<String, Object> toJson() => {
+    'name': name,
+    'pageBackground': pageBackgroundColor.toARGB32(),
+    'text': textColor.toARGB32(),
+    'headings': headingColor.toARGB32(),
+    'style': styleColor.toARGB32(),
+  };
+
+  static List<PageColorTheme> defaults(Brightness brightness) {
+    final dark = brightness == Brightness.dark;
+    final background = dark ? const Color(0xFF121212) : Colors.white;
+    final text = dark ? const Color(0xFFF5F5F5) : const Color(0xFF202124);
+    return [
+      PageColorTheme(
+        name: 'Classic',
+        pageBackgroundColor: background,
+        textColor: text,
+        headingColor: dark ? const Color(0xFF90CAF9) : const Color(0xFF174EA6),
+        styleColor: dark ? const Color(0xFF80CBC4) : const Color(0xFF00897B),
+        isDefault: true,
+      ),
+      PageColorTheme(
+        name: 'Ocean',
+        pageBackgroundColor: dark
+            ? const Color(0xFF10212B)
+            : const Color(0xFFEAF6FA),
+        textColor: dark ? const Color(0xFFE3F2FD) : const Color(0xFF183642),
+        headingColor: dark ? const Color(0xFF80DEEA) : const Color(0xFF007C91),
+        styleColor: dark ? const Color(0xFF4DD0E1) : const Color(0xFF0097A7),
+        isDefault: true,
+      ),
+      PageColorTheme(
+        name: 'Forest',
+        pageBackgroundColor: dark
+            ? const Color(0xFF17231B)
+            : const Color(0xFFF0F5EC),
+        textColor: dark ? const Color(0xFFE8F5E9) : const Color(0xFF26352A),
+        headingColor: dark ? const Color(0xFFA5D6A7) : const Color(0xFF2E6B3F),
+        styleColor: dark ? const Color(0xFF81C784) : const Color(0xFF558B2F),
+        isDefault: true,
+      ),
+    ];
   }
 }
 

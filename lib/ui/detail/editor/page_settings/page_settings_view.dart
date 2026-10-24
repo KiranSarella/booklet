@@ -154,8 +154,43 @@ class PageSettingsDialog extends StatelessWidget {
                   color: viewModel.styleColor,
                   onChanged: viewModel.updateStyleColor,
                 ),
-
-                
+                const SizedBox(height: 16),
+                const Divider(),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Themes',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Save current colors as a theme',
+                      onPressed: () => _addTheme(context),
+                      icon: const Icon(Icons.add),
+                    ),
+                  ],
+                ),
+                for (final theme in viewModel.themes)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    child: ListTile(
+                      dense: true,
+                      onTap: () => viewModel.applyTheme(theme),
+                      title: Text(theme.name),
+                      leading: _ThemeSwatches(theme: theme),
+                      trailing: theme.isDefault
+                          ? null
+                          : IconButton(
+                              tooltip: 'Delete ${theme.name}',
+                              icon: const Icon(Icons.remove_circle_outline),
+                              onPressed: () => viewModel.deleteTheme(theme),
+                            ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -169,6 +204,89 @@ class PageSettingsDialog extends StatelessWidget {
       ],
     );
   }
+
+  Future<void> _addTheme(BuildContext context) async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => const _SaveThemeDialog(),
+    );
+    final trimmedName = name?.trim();
+    if (trimmedName != null && trimmedName.isNotEmpty) {
+      await viewModel.addCurrentTheme(trimmedName);
+    }
+  }
+}
+
+class _SaveThemeDialog extends StatefulWidget {
+  const _SaveThemeDialog();
+
+  @override
+  State<_SaveThemeDialog> createState() => _SaveThemeDialogState();
+}
+
+class _SaveThemeDialogState extends State<_SaveThemeDialog> {
+  final _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _save() => Navigator.of(context).pop(_nameController.text);
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Save theme'),
+    content: TextField(
+      controller: _nameController,
+      autofocus: true,
+      decoration: const InputDecoration(labelText: 'Theme name'),
+      onSubmitted: (_) => _save(),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(onPressed: _save, child: const Text('Save')),
+    ],
+  );
+}
+
+class _ThemeSwatches extends StatelessWidget {
+  const _ThemeSwatches({required this.theme});
+
+  final PageColorTheme theme;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _ThemeSwatch(color: theme.pageBackgroundColor),
+      _ThemeSwatch(color: theme.textColor),
+      _ThemeSwatch(color: theme.headingColor),
+      _ThemeSwatch(color: theme.styleColor),
+    ],
+  );
+}
+
+class _ThemeSwatch extends StatelessWidget {
+  const _ThemeSwatch({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 13,
+    height: 13,
+    margin: const EdgeInsets.only(right: 3),
+    decoration: BoxDecoration(
+      color: color,
+      shape: BoxShape.circle,
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+    ),
+  );
 }
 
 class _ThemeColorRow extends StatelessWidget {
