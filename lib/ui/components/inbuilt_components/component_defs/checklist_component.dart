@@ -33,6 +33,7 @@ class ChecklistComponent with TextComponentStateOwner implements Component {
     final listState = componentState as ChecklistComponentState;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.bodyFontFamily,
       fontSize: fontSizePercent(100),
       fontWeight: FontWeight.w300,
       color: theme.textColor,

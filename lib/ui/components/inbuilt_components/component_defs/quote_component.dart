@@ -47,6 +47,7 @@ class QuoteComponent implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.bodyFontFamily,
       fontSize: fontSizePercent(160),
       // fontFamily: 'Menlo',
       letterSpacing: 2,
@@ -55,6 +56,7 @@ class QuoteComponent implements Component {
     );
 
     TextStyle authorTextStyle = TextStyle(
+      fontFamily: theme.bodyFontFamily,
       fontSize: fontSizePercent(120),
       // fontFamily: 'Menlo',
       letterSpacing: 2.4,
@@ -72,6 +74,7 @@ class QuoteComponent implements Component {
               Text(
                 "❝",
                 style: TextStyle(
+                  fontFamily: theme.bodyFontFamily,
                   fontSize: fontSizePercent(200),
                   color: theme.styleColor,
                 ),
@@ -107,6 +110,7 @@ class QuoteComponent implements Component {
               Text(
                 "❞",
                 style: TextStyle(
+                  fontFamily: theme.bodyFontFamily,
                   fontSize: fontSizePercent(200),
                   color: theme.styleColor,
                 ),

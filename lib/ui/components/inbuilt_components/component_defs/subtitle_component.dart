@@ -28,6 +28,7 @@ class SubtitleComponent with TextComponentStateOwner implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.bodyFontFamily,
       fontSize: fontSizePercent(157),
       height: 1.2,
       color: theme.textColor,

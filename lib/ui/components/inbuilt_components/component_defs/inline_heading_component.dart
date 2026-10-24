@@ -28,6 +28,7 @@ class InlineHeadingComponent with TextComponentStateOwner implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.headingsFontFamily,
       fontSize: fontSizePercent(100),
       fontWeight: FontWeight.w600,
       color: theme.headingColor,
@@ -48,8 +49,7 @@ class InlineHeadingComponent with TextComponentStateOwner implements Component {
   @override
   Attribute<dynamic> get alignment => Attribute.leftAlignment;
 
-  EdgeInsets get editorPadding =>
-  const EdgeInsets.fromLTRB(14, 25, 14, 12);
-      // const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
-      // const EdgeInsets.fromLTRB(14, 0, 14, 0);
+  EdgeInsets get editorPadding => const EdgeInsets.fromLTRB(14, 25, 14, 12);
+  // const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
+  // const EdgeInsets.fromLTRB(14, 0, 14, 0);
 }

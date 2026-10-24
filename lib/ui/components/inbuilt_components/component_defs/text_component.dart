@@ -28,6 +28,7 @@ class TextComponent with TextComponentStateOwner implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.bodyFontFamily,
       fontSize: fontSizePercent(100),
       fontWeight: FontWeight.w300,
       color: theme.textColor,

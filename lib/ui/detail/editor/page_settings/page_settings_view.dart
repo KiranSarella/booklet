@@ -154,6 +154,18 @@ class PageSettingsDialog extends StatelessWidget {
                   color: viewModel.styleColor,
                   onChanged: viewModel.updateStyleColor,
                 ),
+                _FontPicker(
+                  label: 'Body font',
+                  value: viewModel.bodyFont,
+                  options: PageColorTheme.bodyFontOptions,
+                  onChanged: viewModel.updateBodyFont,
+                ),
+                _FontPicker(
+                  label: 'Headings font',
+                  value: viewModel.headingsFont,
+                  options: PageColorTheme.headingsFontOptions,
+                  onChanged: viewModel.updateHeadingsFont,
+                ),
                 const SizedBox(height: 16),
                 const Divider(),
                 Row(
@@ -168,7 +180,7 @@ class PageSettingsDialog extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Save current colors as a theme',
+                      tooltip: 'Save current colors and fonts as a theme',
                       onPressed: () => _addTheme(context),
                       icon: const Icon(Icons.add),
                     ),
@@ -268,6 +280,41 @@ class _ThemeSwatches extends StatelessWidget {
       _ThemeSwatch(color: theme.headingColor),
       _ThemeSwatch(color: theme.styleColor),
     ],
+  );
+}
+
+class _FontPicker extends StatelessWidget {
+  const _FontPicker({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String value;
+  final List<String> options;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: InputDecorator(
+      decoration: InputDecoration(labelText: label),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: options.contains(value) ? value : PageColorTheme.systemFont,
+          isExpanded: true,
+          items: [
+            for (final option in options)
+              DropdownMenuItem(value: option, child: Text(option)),
+          ],
+          onChanged: (font) {
+            if (font != null) onChanged(font);
+          },
+        ),
+      ),
+    ),
   );
 }
 

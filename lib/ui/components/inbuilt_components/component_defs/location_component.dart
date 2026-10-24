@@ -28,6 +28,7 @@ class LocationComponent with TextComponentStateOwner implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.bodyFontFamily,
       fontSize: fontSizePercent(100),
       fontWeight: FontWeight.w500,
       color: theme.textColor,

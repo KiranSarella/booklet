@@ -24,6 +24,8 @@ class PageSettingsVM {
   Color get styleColor => pageSettingsController.styleColor;
   Color get pageBackgroundColor => pageSettingsController.pageBackgroundColor;
   double get baseFontSize => pageSettingsController.baseFontSize;
+  String get bodyFont => pageSettingsController.bodyFont;
+  String get headingsFont => pageSettingsController.headingsFont;
   List<PageColorTheme> get themes => pageSettingsController.themes;
 
   void updateAppearanceMode(EditorAppearanceMode mode) =>
@@ -42,6 +44,10 @@ class PageSettingsVM {
       pageSettingsController.updateStyleColor(color);
   void updatePageBackgroundColor(Color color) =>
       pageSettingsController.updatePageBackgroundColor(color);
+  void updateBodyFont(String font) =>
+      pageSettingsController.updateBodyFont(font);
+  void updateHeadingsFont(String font) =>
+      pageSettingsController.updateHeadingsFont(font);
   void increaseFontSize() => pageSettingsController.increaseFontSize();
   void decreaseFontSize() => pageSettingsController.decreaseFontSize();
   void applyTheme(PageColorTheme theme) =>

@@ -33,6 +33,7 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
     final listState = componentState as NumberedListComponentState;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.bodyFontFamily,
       fontSize: fontSizePercent(100),
       fontWeight: FontWeight.w300,
       color: theme.textColor,
@@ -50,6 +51,7 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
               state: listState,
               color: theme.styleColor,
               fontSize: theme.baseFontSize,
+              fontFamily: theme.bodyFontFamily,
             ),
           ),
           Expanded(
@@ -81,11 +83,13 @@ class _EditableListNumber extends StatefulWidget {
     required this.state,
     required this.color,
     required this.fontSize,
+    required this.fontFamily,
   });
 
   final NumberedListComponentState state;
   final Color color;
   final double fontSize;
+  final String? fontFamily;
 
   @override
   State<_EditableListNumber> createState() => _EditableListNumberState();
@@ -153,7 +157,11 @@ class _EditableListNumberState extends State<_EditableListNumber> {
         extentOffset: _controller.text.length,
       ),
       textAlign: TextAlign.center,
-      style: TextStyle(color: widget.color, fontSize: widget.fontSize),
+      style: TextStyle(
+        fontFamily: widget.fontFamily,
+        color: widget.color,
+        fontSize: widget.fontSize,
+      ),
       decoration: const InputDecoration(
         isDense: true,
         border: InputBorder.none,

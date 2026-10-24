@@ -28,8 +28,8 @@ class BlockTextComponent with TextComponentStateOwner implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.bodyFontFamily,
       fontSize: fontSizePercent(100),
-      fontFamily: 'Menlo',
       letterSpacing: 1.2,
       color: theme.textColor,
       height: 1.5,

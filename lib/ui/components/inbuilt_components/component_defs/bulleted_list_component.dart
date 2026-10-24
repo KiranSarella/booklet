@@ -33,6 +33,7 @@ class BulletedListComponent with TextComponentStateOwner implements Component {
     final listState = componentState as BulletedListComponentState;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.bodyFontFamily,
       fontSize: fontSizePercent(100),
       fontWeight: FontWeight.w300,
       color: theme.textColor,
@@ -50,6 +51,7 @@ class BulletedListComponent with TextComponentStateOwner implements Component {
               child: Text(
                 listState.symbol,
                 style: TextStyle(
+                  fontFamily: theme.bodyFontFamily,
                   color: theme.styleColor,
                   fontSize: theme.baseFontSize,
                 ),

@@ -28,6 +28,7 @@ class HeadingComponent with TextComponentStateOwner implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.headingsFontFamily,
       fontSize: fontSizePercent(214),
       fontWeight: FontWeight.w800,
       color: theme.headingColor,

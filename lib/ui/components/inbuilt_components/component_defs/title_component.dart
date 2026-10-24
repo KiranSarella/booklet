@@ -28,6 +28,7 @@ class TitleComponent with TextComponentStateOwner implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.headingsFontFamily,
       fontSize: fontSizePercent(310),
       fontWeight: FontWeight.w800,
       color: theme.headingColor,
@@ -51,5 +52,5 @@ class TitleComponent with TextComponentStateOwner implements Component {
 
   EdgeInsets get editorPadding =>
       // const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
-    const EdgeInsets.fromLTRB(14, 30, 14, 12);
+      const EdgeInsets.fromLTRB(14, 30, 14, 12);
 }

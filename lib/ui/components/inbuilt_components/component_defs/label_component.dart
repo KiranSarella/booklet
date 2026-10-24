@@ -28,6 +28,7 @@ class LabelComponent with TextComponentStateOwner implements Component {
         theme.baseFontSize * percent / 100;
 
     TextStyle textStyle = TextStyle(
+      fontFamily: theme.bodyFontFamily,
       fontSize: fontSizePercent(107),
       fontWeight: FontWeight.w600,
       color: theme.textColor,

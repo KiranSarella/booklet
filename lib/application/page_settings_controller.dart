@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/document_settings_controller.dart';
@@ -69,6 +70,10 @@ class PageSettingsController extends ChangeNotifier {
   Color get textColor => _activePalette.textColor;
   Color get styleColor => _activePalette.styleColor;
   Color get pageBackgroundColor => _activePalette.pageBackgroundColor;
+  String get bodyFont => _activePalette.bodyFont;
+  String get headingsFont => _activePalette.headingsFont;
+  String? get bodyFontFamily => _resolveFontFamily(bodyFont);
+  String? get headingsFontFamily => _resolveFontFamily(headingsFont);
   List<PageColorTheme> get themes => [
     ...PageColorTheme.defaults(effectiveBrightness),
     ..._customThemes,
@@ -90,6 +95,10 @@ class PageSettingsController extends ChangeNotifier {
       _update(() => _activePalette.styleColor = color);
   void updatePageBackgroundColor(Color color) =>
       _update(() => _activePalette.pageBackgroundColor = color);
+  void updateBodyFont(String font) =>
+      _update(() => _activePalette.bodyFont = font);
+  void updateHeadingsFont(String font) =>
+      _update(() => _activePalette.headingsFont = font);
   void updateAppearanceMode(EditorAppearanceMode mode) =>
       _update(() => _appearanceMode = mode);
   void updatePageWidth(PageWidth width) => _update(() => _pageWidth = width);
@@ -99,6 +108,8 @@ class PageSettingsController extends ChangeNotifier {
     _activePalette.textColor = theme.textColor;
     _activePalette.headingColor = theme.headingColor;
     _activePalette.styleColor = theme.styleColor;
+    _activePalette.bodyFont = theme.bodyFont;
+    _activePalette.headingsFont = theme.headingsFont;
   });
 
   Future<void> addCurrentTheme(String name) async {
@@ -108,6 +119,8 @@ class PageSettingsController extends ChangeNotifier {
       textColor: textColor,
       headingColor: headingColor,
       styleColor: styleColor,
+      bodyFont: bodyFont,
+      headingsFont: headingsFont,
       isDefault: false,
     );
     _customThemes.add(theme);
@@ -191,6 +204,10 @@ class PageSettingsController extends ChangeNotifier {
       jsonEncode(_darkCustomThemes.map((theme) => theme.toJson()).toList()),
     );
   }
+
+  String? _resolveFontFamily(String font) => font == PageColorTheme.systemFont
+      ? null
+      : GoogleFonts.getFont(font).fontFamily;
 }
 
 class PageColorTheme {
@@ -200,6 +217,8 @@ class PageColorTheme {
     required this.textColor,
     required this.headingColor,
     required this.styleColor,
+    required this.bodyFont,
+    required this.headingsFont,
     required this.isDefault,
   });
 
@@ -208,7 +227,29 @@ class PageColorTheme {
   final Color textColor;
   final Color headingColor;
   final Color styleColor;
+  final String bodyFont;
+  final String headingsFont;
   final bool isDefault;
+
+  static const systemFont = 'System';
+  static const bodyFontOptions = [
+    systemFont,
+    'Roboto',
+    'Open Sans',
+    'Lato',
+    'Nunito',
+    'Source Sans 3',
+    'Lora',
+  ];
+  static const headingsFontOptions = [
+    systemFont,
+    'Montserrat',
+    'Poppins',
+    'Playfair Display',
+    'Merriweather',
+    'Oswald',
+    'Raleway',
+  ];
 
   factory PageColorTheme.fromJson(Map<String, dynamic> json) => PageColorTheme(
     name: json['name'] as String,
@@ -216,6 +257,8 @@ class PageColorTheme {
     textColor: Color(json['text'] as int),
     headingColor: Color(json['headings'] as int),
     styleColor: Color(json['style'] as int),
+    bodyFont: json['bodyFont'] as String? ?? systemFont,
+    headingsFont: json['headingsFont'] as String? ?? systemFont,
     isDefault: false,
   );
 
@@ -225,6 +268,8 @@ class PageColorTheme {
     'text': textColor.toARGB32(),
     'headings': headingColor.toARGB32(),
     'style': styleColor.toARGB32(),
+    'bodyFont': bodyFont,
+    'headingsFont': headingsFont,
   };
 
   static List<PageColorTheme> defaults(Brightness brightness) {
@@ -238,6 +283,8 @@ class PageColorTheme {
         textColor: text,
         headingColor: dark ? const Color(0xFF90CAF9) : const Color(0xFF174EA6),
         styleColor: dark ? const Color(0xFF80CBC4) : const Color(0xFF00897B),
+        bodyFont: systemFont,
+        headingsFont: systemFont,
         isDefault: true,
       ),
       PageColorTheme(
@@ -248,6 +295,8 @@ class PageColorTheme {
         textColor: dark ? const Color(0xFFE3F2FD) : const Color(0xFF183642),
         headingColor: dark ? const Color(0xFF80DEEA) : const Color(0xFF007C91),
         styleColor: dark ? const Color(0xFF4DD0E1) : const Color(0xFF0097A7),
+        bodyFont: systemFont,
+        headingsFont: systemFont,
         isDefault: true,
       ),
       PageColorTheme(
@@ -258,6 +307,8 @@ class PageColorTheme {
         textColor: dark ? const Color(0xFFE8F5E9) : const Color(0xFF26352A),
         headingColor: dark ? const Color(0xFFA5D6A7) : const Color(0xFF2E6B3F),
         styleColor: dark ? const Color(0xFF81C784) : const Color(0xFF558B2F),
+        bodyFont: systemFont,
+        headingsFont: systemFont,
         isDefault: true,
       ),
     ];
@@ -272,6 +323,8 @@ class _Palette {
     required this.textColor,
     required this.styleColor,
     required this.pageBackgroundColor,
+    required this.bodyFont,
+    required this.headingsFont,
   });
 
   factory _Palette.light() => _Palette(
@@ -281,6 +334,8 @@ class _Palette {
     textColor: const Color(0xFF000800),
     styleColor: const Color(0xFF00897B),
     pageBackgroundColor: Colors.white,
+    bodyFont: PageColorTheme.systemFont,
+    headingsFont: PageColorTheme.systemFont,
   );
 
   factory _Palette.dark() => _Palette(
@@ -290,6 +345,8 @@ class _Palette {
     textColor: const Color(0xFFF5F5F5),
     styleColor: const Color(0xFF80CBC4),
     pageBackgroundColor: const Color(0xFF121212),
+    bodyFont: PageColorTheme.systemFont,
+    headingsFont: PageColorTheme.systemFont,
   );
 
   Color titleColor;
@@ -298,6 +355,8 @@ class _Palette {
   Color textColor;
   Color styleColor;
   Color pageBackgroundColor;
+  String bodyFont;
+  String headingsFont;
 
   void load(SharedPreferences preferences, String prefix) {
     titleColor = _readColor(preferences, '$prefix.title', titleColor);
@@ -309,6 +368,9 @@ class _Palette {
     );
     textColor = _readColor(preferences, '$prefix.text', textColor);
     styleColor = _readColor(preferences, '$prefix.style', styleColor);
+    bodyFont = preferences.getString('$prefix.bodyFont') ?? bodyFont;
+    headingsFont =
+        preferences.getString('$prefix.headingsFont') ?? headingsFont;
     pageBackgroundColor = _readColor(
       preferences,
       '$prefix.pageBackground',
@@ -322,6 +384,8 @@ class _Palette {
     preferences.setInt('$prefix.subheading', subheadingColor.toARGB32());
     preferences.setInt('$prefix.text', textColor.toARGB32());
     preferences.setInt('$prefix.style', styleColor.toARGB32());
+    preferences.setString('$prefix.bodyFont', bodyFont);
+    preferences.setString('$prefix.headingsFont', headingsFont);
     preferences.setInt(
       '$prefix.pageBackground',
       pageBackgroundColor.toARGB32(),
