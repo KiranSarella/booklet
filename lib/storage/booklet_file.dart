@@ -218,9 +218,7 @@ class BookletFile {
         pages[pageId] = jsonDecode(await pageFile.readAsString());
       }
 
-      final mediaDirectory = Directory(
-        '${temporaryPackage.path}/$_mediaDirectory',
-      );
+      final mediaDirectory = Directory(temporaryPackage.path);
       if (await mediaDirectory.exists()) {
         await for (final entity in mediaDirectory.list(recursive: true)) {
           if (entity is File) {
@@ -301,6 +299,24 @@ class BookletFile {
         for (final rawComponent in components.whereType<Map>()) {
           final component = Map<String, dynamic>.from(rawComponent);
           component['id'] = const Uuid().v4();
+          final inlineAssets = component['assets'];
+          if (inlineAssets is List) {
+            for (final asset in inlineAssets.whereType<Map>()) {
+              for (final key in ['path', 'thumbnailPath']) {
+                final path = asset[key];
+                final encoded = resources[path];
+                if (path is String && encoded is String) {
+                  final extension = _mediaExtension(path) ?? 'bin';
+                  final relative =
+                      '$_mediaDirectory/${const Uuid().v4()}.$extension';
+                  final file = File('$packagePath/$relative');
+                  await file.parent.create(recursive: true);
+                  await file.writeAsBytes(base64Decode(encoded));
+                  asset[key] = relative;
+                }
+              }
+            }
+          }
           final mediaPath = component['mediaPath'];
           final encodedMedia = mediaPath is String
               ? resources[mediaPath]
@@ -358,8 +374,10 @@ class BookletFile {
     PageContent page,
   ) async {
     final originalPaths = <Object, String?>{};
+    final originalAssets = <AssetsComponentState, List<dynamic>>{};
     for (final box in page.components) {
       final state = box.component.state;
+      if (state is AssetsComponentState) originalAssets[state] = state.output;
       if (state is ImageComponentState ||
           state is VideoComponentState ||
           state is AudioComponentState) {
@@ -369,6 +387,9 @@ class BookletFile {
     try {
       await savePage(packagePath, page);
     } finally {
+      for (final entry in originalAssets.entries) {
+        entry.key.restoreAssets(entry.value);
+      }
       for (final box in page.components) {
         final state = box.component.state;
         if (state is ImageComponentState ||
@@ -530,6 +551,12 @@ class BookletFile {
                 componentJson['checked'] as bool? ?? false;
           }
         }
+        if (componentState is AssetsComponentState) {
+          componentState.restoreAssets(
+            componentJson['assets'] as List? ?? const [],
+          );
+          _resolveComponentAssets(packagePath, componentState);
+        }
         if (componentState is ImageComponentState) {
           final mediaPath = componentJson['mediaPath'] as String?;
           componentState.mediaPath = _resolvePackageMediaPath(
@@ -653,6 +680,16 @@ class BookletFile {
           if (author.styles.isNotEmpty)
             'authorStyles': author.styles.map((s) => s.toJson()).toList(),
         });
+        continue;
+      }
+      if (state is AssetsComponentState) {
+        await _persistNavigationAssets(packagePath, [state.folder]);
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': 'assets',
+          'assets': state.output,
+        });
+        _resolveComponentAssets(packagePath, state);
         continue;
       }
       if (state is ImageComponentState) {
@@ -826,6 +863,24 @@ class BookletFile {
         packagePath,
         node.children,
         sourcePackagePath: sourcePackagePath,
+      );
+    }
+  }
+
+  static void _resolveComponentAssets(
+    String packagePath,
+    AssetsComponentState state,
+  ) {
+    for (var index = 0; index < state.folder.assets.length; index++) {
+      final asset = state.folder.assets[index];
+      state.folder.assets[index] = BookletAsset(
+        id: asset.id,
+        name: asset.name,
+        path: _resolvePackageMediaPath(packagePath, asset.path)!,
+        thumbnailPath: _resolvePackageMediaPath(
+          packagePath,
+          asset.thumbnailPath,
+        ),
       );
     }
   }

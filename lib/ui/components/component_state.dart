@@ -1,3 +1,7 @@
+import 'package:booklet/application/asset_manager_controller.dart';
+import 'package:booklet/business/booklet_asset.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -183,6 +187,7 @@ class NumberedListComponentState extends ListItemComponentState {
     _customSequenceNumber = value;
     notifyListeners();
   }
+
   String _numberStyle = '1.';
   String get numberStyle => _numberStyle;
   set numberStyle(String value) {
@@ -498,6 +503,40 @@ class QuoteComponentState extends ComponentState {
     author.removeListener(notifyListeners);
     quote.dispose();
     author.dispose();
+    super.dispose();
+  }
+}
+
+class AssetsComponentState extends ComponentState {
+  AssetsComponentState() {
+    controller.selectFolder(folder, null);
+    controller.onDocumentChanged = notifyListeners;
+  }
+
+  final folder = NavigationNode.assetsFolder(
+    title: 'Assets',
+    folderId: const Uuid().v4(),
+  );
+  final controller = AssetManagerController();
+
+  void restoreAssets(List<dynamic> assets) {
+    folder.assets
+      ..clear()
+      ..addAll(
+        assets.whereType<Map>().map(
+          (asset) => BookletAsset.fromJson(Map<String, dynamic>.from(asset)),
+        ),
+      );
+    controller.selectFolder(folder, null);
+  }
+
+  @override
+  List<Map<String, dynamic>> get output =>
+      folder.assets.map((asset) => asset.toJson()).toList();
+
+  @override
+  void dispose() {
+    controller.dispose();
     super.dispose();
   }
 }

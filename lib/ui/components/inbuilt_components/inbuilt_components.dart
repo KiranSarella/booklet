@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/inbuilt_components/component_defs/assets_component.dart';
 import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/ui/components/component_types.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/block_text_component.dart';
@@ -58,6 +59,8 @@ class InbuiltComponents {
         return MathComponent(id: id);
       case 'quote':
         return QuoteComponent(id: id);
+      case 'assets':
+        return AssetsComponent(id: id);
       case 'image':
         return ImageComponent(id: id);
       case 'video':
@@ -95,6 +98,7 @@ class InbuiltComponents {
       CodeBlockComponentDef(),
       MathComponentDef(),
       QuoteComponentDef(),
+      AssetsComponentDef(),
       ImageComponentDef(),
       VideoComponentDef(),
       AudioComponentDef(),

@@ -42,6 +42,12 @@ class ComponentSnapshot {
         extra: {'authorDelta': state.author.textDelta},
       );
     }
+    if (state is AssetsComponentState) {
+      return ComponentSnapshot._(
+        typeKey: component.def.key,
+        extra: {'assets': state.output},
+      );
+    }
     if (state is ImageComponentState) {
       return ComponentSnapshot._(
         typeKey: component.def.key,
@@ -120,7 +126,9 @@ class ComponentSnapshot {
     );
     final state = component.state;
 
-    if (state is QuoteComponentState) {
+    if (state is AssetsComponentState) {
+      state.restoreAssets(extra['assets'] as List? ?? const []);
+    } else if (state is QuoteComponentState) {
       final authorDelta = extra['authorDelta'] as List<dynamic>?;
       if (authorDelta != null) {
         state.author.controller.document = Document.fromJson(authorDelta);

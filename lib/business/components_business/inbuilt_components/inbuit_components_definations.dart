@@ -142,7 +142,6 @@ class ChecklistComponentDef extends ComponentDef {
   ComponentType get type => ComponentType.text;
 }
 
-
 class BlockTextComponentDef extends ComponentDef {
   @override
   String get key => "block_text";
@@ -175,7 +174,6 @@ class MathComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.text;
 }
-
 
 class QuoteComponentDef extends ComponentDef {
   @override
@@ -280,4 +278,15 @@ class FootnoteComponentDef extends ComponentDef {
 
   @override
   ComponentType get type => ComponentType.text;
+}
+
+class AssetsComponentDef extends ComponentDef {
+  @override
+  String get key => 'assets';
+
+  @override
+  String get name => 'Assets';
+
+  @override
+  ComponentType get type => ComponentType.media;
 }

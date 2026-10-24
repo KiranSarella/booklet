@@ -5,8 +5,6 @@ import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/ui/detail/assets_viewer/media_slideshow_dialog.dart';
 import 'package:flutter/material.dart';
 
-enum _AssetLayout { list, icons }
-
 enum _AssetAction { rename, delete, preview }
 
 class AssetsViewer extends StatefulWidget {
@@ -14,17 +12,31 @@ class AssetsViewer extends StatefulWidget {
     super.key,
     required this.controller,
     required this.isReadOnly,
+    this.onExpand,
   });
 
   final AssetManagerController controller;
   final bool isReadOnly;
+  final VoidCallback? onExpand;
 
   @override
   State<AssetsViewer> createState() => _AssetsViewerState();
 }
 
 class _AssetsViewerState extends State<AssetsViewer> {
-  _AssetLayout _layout = _AssetLayout.list;
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.generateMissingThumbnails();
+  }
+
+  @override
+  void didUpdateWidget(covariant AssetsViewer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      widget.controller.generateMissingThumbnails();
+    }
+  }
 
   Future<void> _addAssets() async {
     try {
@@ -135,7 +147,6 @@ class _AssetsViewerState extends State<AssetsViewer> {
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, _) {
-        final folder = widget.controller.folder;
         final selectedAsset = widget.controller.selectedAsset;
         final assets = widget.controller.assets.toList()
           ..sort((left, right) {
@@ -152,34 +163,43 @@ class _AssetsViewerState extends State<AssetsViewer> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 20, 12),
-              child: Row(
+              child: _AssetsToolbar(
+                wrap: widget.onExpand != null,
+                trailing: widget.onExpand == null
+                    ? null
+                    : IconButton(
+                        tooltip: 'Expand assets',
+                        onPressed: widget.onExpand,
+                        icon: const Icon(Icons.open_in_full),
+                      ),
                 children: [
-                  Icon(Icons.folder_open_outlined, color: colors.primary),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      folder?.title ?? 'Assets',
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  SegmentedButton<_AssetLayout>(
+                  // Icon(Icons.folder_open_outlined, color: colors.primary),
+                  // const SizedBox(width: 10),
+                  // Flexible(
+                  //   child: Text(
+                  //     folder?.title ?? 'Assets',
+                  //     overflow: TextOverflow.ellipsis,
+                  //     style: Theme.of(context).textTheme.titleMedium,
+                  //   ),
+                  // ),
+                  SegmentedButton<AssetLayout>(
                     segments: const [
                       ButtonSegment(
-                        value: _AssetLayout.list,
+                        value: AssetLayout.list,
                         icon: Icon(Icons.view_list_outlined),
                         label: Text('List'),
                       ),
                       ButtonSegment(
-                        value: _AssetLayout.icons,
+                        value: AssetLayout.icons,
                         icon: Icon(Icons.grid_view_outlined),
                         label: Text('Icons'),
                       ),
                     ],
-                    selected: {_layout},
+                    selected: {widget.controller.layout},
                     onSelectionChanged: (selection) =>
-                        setState(() => _layout = selection.first),
+                        widget.controller.setLayout(selection.first),
                   ),
+
                   const SizedBox(width: 12),
                   if (!widget.isReadOnly) ...[
                     FilledButton.icon(
@@ -238,7 +258,7 @@ class _AssetsViewerState extends State<AssetsViewer> {
                         style: TextStyle(color: colors.onSurfaceVariant),
                       ),
                     )
-                  : _layout == _AssetLayout.list
+                  : widget.controller.layout == AssetLayout.list
                   ? ListView.separated(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: assets.length,
@@ -477,5 +497,37 @@ class _AssetIcon extends StatelessWidget {
       );
     }
     return Icon(icon, size: size, color: color);
+  }
+}
+
+class _AssetsToolbar extends StatelessWidget {
+  const _AssetsToolbar({
+    required this.wrap,
+    required this.children,
+    this.trailing,
+  });
+
+  final bool wrap;
+  final List<Widget> children;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!wrap) return Row(children: children);
+    final controls = Wrap(
+      spacing: 4,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: children
+          .map((child) => child is Flexible ? child.child : child)
+          .toList(),
+    );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: controls),
+        if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+      ],
+    );
   }
 }
