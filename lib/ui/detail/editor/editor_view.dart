@@ -193,10 +193,9 @@ class EditorViewState extends State<EditorView> {
 
   void addComponentBelowSelected(String type) {
     final selectedComponent = _viewModel.selectedComponent;
-    if (selectedComponent == null) {
-      return;
-    }
-    final selectedIndex = _viewModel.components.indexOf(selectedComponent);
+    final selectedIndex = selectedComponent == null
+        ? -1
+        : _viewModel.components.indexOf(selectedComponent);
     late final ComponentBox newComponent;
     setState(() {
       newComponent = _viewModel.createComponentBelowType(selectedIndex, type);
