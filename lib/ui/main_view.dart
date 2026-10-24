@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:booklet/ui/document_status_bar.dart';
 import 'package:flutter/material.dart';
 
 import 'package:booklet/application/editor_controller.dart';
@@ -83,9 +84,8 @@ class MainViewState extends State<MainView> {
                               setState(_viewModel.addChildPageSelected),
                           onAddAssetsFolderBelow: () =>
                               setState(widget.controller.addAssetsFolderBelow),
-                          onAddAssetsFolderInside: () => setState(
-                            widget.controller.addAssetsFolderInside,
-                          ),
+                          onAddAssetsFolderInside: () =>
+                              setState(widget.controller.addAssetsFolderInside),
                           onRenameNode: (title) => setState(
                             () => _viewModel.renameSelectedNode(title),
                           ),
@@ -137,7 +137,12 @@ class MainViewState extends State<MainView> {
                   ],
                 ),
               ),
-              _DocumentStatusBar(documentPath: widget.controller.documentPath),
+              DocumentStatusBar(
+                documentPath: widget.controller.documentPath,
+                pageSettingsController: widget.controller.editorTheme,
+                documentSettingsController:
+                    widget.controller.documentSettingsController,
+              ),
             ],
           ),
           Positioned(
@@ -149,35 +154,6 @@ class MainViewState extends State<MainView> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DocumentStatusBar extends StatelessWidget {
-  const _DocumentStatusBar({required this.documentPath});
-
-  final String? documentPath;
-
-  @override
-  Widget build(BuildContext context) {
-    final fileName = documentPath?.split(RegExp(r'[/\\]')).last;
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerLow,
-        border: Border(top: BorderSide(color: colors.outlineVariant)),
-      ),
-      alignment: Alignment.centerLeft,
-      child: Text(
-        fileName == null || fileName.isEmpty ? 'Untitled booklet' : fileName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
       ),
     );
   }

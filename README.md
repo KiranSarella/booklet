@@ -4,6 +4,8 @@ A free and open-source, component-based document application for education.
 
 ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 
+Version: 0.1
+
 # Supported Platforms
 Used flutter to make it platform independent.
 

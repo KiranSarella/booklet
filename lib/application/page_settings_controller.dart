@@ -6,9 +6,12 @@ import 'package:booklet/application/document_settings_controller.dart';
 enum PageWidth { normal, wide, twoColumns }
 
 class PageSettingsController extends ChangeNotifier {
-  PageSettingsController(this.documentSettingsController, {this.baseFontSize = 14})
-    : _light = _Palette.light(),
-      _dark = _Palette.dark();
+  PageSettingsController(
+    this.documentSettingsController, {
+    this.baseFontSize = 14,
+  }) : originalBaseFontSize = baseFontSize,
+       _light = _Palette.light(),
+       _dark = _Palette.dark();
 
   static const _appearanceModeKey = 'editor.appearanceMode';
   static const _baseFontSizeKey = 'editor.baseFontSize';
@@ -18,6 +21,7 @@ class PageSettingsController extends ChangeNotifier {
   // Secondary appearance: scoped to the page view only. 'auto' follows the
   // primary document appearance instead of the system brightness directly.
   final DocumentSettingsController documentSettingsController;
+  final double originalBaseFontSize;
   final _preferences = SharedPreferences.getInstance();
   final _Palette _light;
   final _Palette _dark;
@@ -71,10 +75,10 @@ class PageSettingsController extends ChangeNotifier {
       _update(() => _activePalette.pageBackgroundColor = color);
   void updateAppearanceMode(EditorAppearanceMode mode) =>
       _update(() => _appearanceMode = mode);
-  void updatePageWidth(PageWidth width) =>
-      _update(() => _pageWidth = width);
+  void updatePageWidth(PageWidth width) => _update(() => _pageWidth = width);
 
   void increaseFontSize() => _update(() => baseFontSize += 2);
+  void resetFontSize() => _update(() => baseFontSize = originalBaseFontSize);
   void decreaseFontSize() => _update(
     () => baseFontSize = baseFontSize > 2 ? baseFontSize - 2 : baseFontSize,
   );
