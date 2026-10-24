@@ -24,26 +24,26 @@ class PageSettingsDialog extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Font size'),
-                  // subtitle: Text('${viewModel.baseFontSize.toInt()} px'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: 'Decrease font size',
-                        onPressed: viewModel.decreaseFontSize,
-                        icon: const Icon(Icons.remove),
-                      ),
-                      IconButton(
-                        tooltip: 'Increase font size',
-                        onPressed: viewModel.increaseFontSize,
-                        icon: const Icon(Icons.add),
-                      ),
-                    ],
-                  ),
-                ),
+                // ListTile(
+                //   contentPadding: EdgeInsets.zero,
+                //   title: const Text('Font size'),
+                //   // subtitle: Text('${viewModel.baseFontSize.toInt()} px'),
+                //   trailing: Row(
+                //     mainAxisSize: MainAxisSize.min,
+                //     children: [
+                //       IconButton(
+                //         tooltip: 'Decrease font size',
+                //         onPressed: viewModel.decreaseFontSize,
+                //         icon: const Icon(Icons.remove),
+                //       ),
+                //       IconButton(
+                //         tooltip: 'Increase font size',
+                //         onPressed: viewModel.increaseFontSize,
+                //         icon: const Icon(Icons.add),
+                //       ),
+                //     ],
+                //   ),
+                // ),
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -148,6 +148,14 @@ class PageSettingsDialog extends StatelessWidget {
                   color: viewModel.headingColor,
                   onChanged: viewModel.updateHeadingColor,
                 ),
+
+                _ThemeColorRow(
+                  label: 'Style',
+                  color: viewModel.styleColor,
+                  onChanged: viewModel.updateStyleColor,
+                ),
+
+                
               ],
             ),
           ),

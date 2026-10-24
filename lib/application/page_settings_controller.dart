@@ -61,6 +61,7 @@ class PageSettingsController extends ChangeNotifier {
   Color get headingColor => _activePalette.headingColor;
   Color get subheadingColor => _activePalette.subheadingColor;
   Color get textColor => _activePalette.textColor;
+  Color get styleColor => _activePalette.styleColor;
   Color get pageBackgroundColor => _activePalette.pageBackgroundColor;
 
   void updateTitleColor(Color color) =>
@@ -71,6 +72,8 @@ class PageSettingsController extends ChangeNotifier {
       _update(() => _activePalette.subheadingColor = color);
   void updateTextColor(Color color) =>
       _update(() => _activePalette.textColor = color);
+  void updateStyleColor(Color color) =>
+      _update(() => _activePalette.styleColor = color);
   void updatePageBackgroundColor(Color color) =>
       _update(() => _activePalette.pageBackgroundColor = color);
   void updateAppearanceMode(EditorAppearanceMode mode) =>
@@ -123,6 +126,7 @@ class _Palette {
     required this.headingColor,
     required this.subheadingColor,
     required this.textColor,
+    required this.styleColor,
     required this.pageBackgroundColor,
   });
 
@@ -131,6 +135,7 @@ class _Palette {
     headingColor: const Color(0xFF081CFE),
     subheadingColor: const Color(0xFF05E0B1),
     textColor: const Color(0xFF000800),
+    styleColor: const Color(0xFF00897B),
     pageBackgroundColor: Colors.white,
   );
 
@@ -139,6 +144,7 @@ class _Palette {
     headingColor: const Color(0xFF90CAF9),
     subheadingColor: const Color(0xFF80CBC4),
     textColor: const Color(0xFFF5F5F5),
+    styleColor: const Color(0xFF80CBC4),
     pageBackgroundColor: const Color(0xFF121212),
   );
 
@@ -146,6 +152,7 @@ class _Palette {
   Color headingColor;
   Color subheadingColor;
   Color textColor;
+  Color styleColor;
   Color pageBackgroundColor;
 
   void load(SharedPreferences preferences, String prefix) {
@@ -157,6 +164,7 @@ class _Palette {
       subheadingColor,
     );
     textColor = _readColor(preferences, '$prefix.text', textColor);
+    styleColor = _readColor(preferences, '$prefix.style', styleColor);
     pageBackgroundColor = _readColor(
       preferences,
       '$prefix.pageBackground',
@@ -169,6 +177,7 @@ class _Palette {
     preferences.setInt('$prefix.heading', headingColor.toARGB32());
     preferences.setInt('$prefix.subheading', subheadingColor.toARGB32());
     preferences.setInt('$prefix.text', textColor.toARGB32());
+    preferences.setInt('$prefix.style', styleColor.toARGB32());
     preferences.setInt(
       '$prefix.pageBackground',
       pageBackgroundColor.toARGB32(),

@@ -21,6 +21,7 @@ class PageSettingsVM {
   Color get headingColor => pageSettingsController.headingColor;
   Color get subheadingColor => pageSettingsController.subheadingColor;
   Color get textColor => pageSettingsController.textColor;
+  Color get styleColor => pageSettingsController.styleColor;
   Color get pageBackgroundColor => pageSettingsController.pageBackgroundColor;
   double get baseFontSize => pageSettingsController.baseFontSize;
 
@@ -36,6 +37,8 @@ class PageSettingsVM {
       pageSettingsController.updateSubheadingColor(color);
   void updateTextColor(Color color) =>
       pageSettingsController.updateTextColor(color);
+  void updateStyleColor(Color color) =>
+      pageSettingsController.updateStyleColor(color);
   void updatePageBackgroundColor(Color color) =>
       pageSettingsController.updatePageBackgroundColor(color);
   void increaseFontSize() => pageSettingsController.increaseFontSize();

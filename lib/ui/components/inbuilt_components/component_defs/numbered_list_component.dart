@@ -48,7 +48,7 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
             width: 52,
             child: _EditableListNumber(
               state: listState,
-              color: theme.textColor,
+              color: theme.styleColor,
               fontSize: theme.baseFontSize,
             ),
           ),

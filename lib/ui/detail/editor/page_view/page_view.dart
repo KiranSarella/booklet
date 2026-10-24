@@ -95,8 +95,10 @@ class PageView extends StatelessWidget {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: const BoxDecoration(
-              border: Border(left: BorderSide(color: Colors.red, width: 4)),
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(color: editorTheme.styleColor, width: 4),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -114,7 +116,7 @@ class PageView extends StatelessWidget {
     final pageTheme = Theme.of(context).copyWith(
       brightness: editorTheme.effectiveBrightness,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.indigo,
+        seedColor: editorTheme.styleColor,
         brightness: editorTheme.effectiveBrightness,
       ),
     );

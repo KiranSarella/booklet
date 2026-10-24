@@ -50,7 +50,7 @@ class QuoteComponent implements Component {
       fontSize: fontSizePercent(160),
       // fontFamily: 'Menlo',
       letterSpacing: 2,
-      color: theme.headingColor,
+      color: theme.styleColor,
       height: 1.2,
     );
 
@@ -62,7 +62,6 @@ class QuoteComponent implements Component {
       // height: 1.5,
     );
 
-
     return Padding(
       padding: const EdgeInsets.all(15.0),
       child: Column(
@@ -70,7 +69,13 @@ class QuoteComponent implements Component {
           Row(
             mainAxisAlignment: .start,
             children: [
-              Text("❝", style: TextStyle(fontSize: fontSizePercent(200), color: Colors.cyan)),
+              Text(
+                "❝",
+                style: TextStyle(
+                  fontSize: fontSizePercent(200),
+                  color: theme.styleColor,
+                ),
+              ),
             ],
           ),
           AutoHeightRichText2(
@@ -99,8 +104,12 @@ class QuoteComponent implements Component {
           Row(
             mainAxisAlignment: .end,
             children: [
-              Text("❞", style: TextStyle(
-                fontSize: fontSizePercent(200), color: Colors.cyan),
+              Text(
+                "❞",
+                style: TextStyle(
+                  fontSize: fontSizePercent(200),
+                  color: theme.styleColor,
+                ),
               ),
             ],
           ),
@@ -114,7 +123,6 @@ class QuoteComponent implements Component {
 
   EdgeInsets get editorPadding =>
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12);
-
 
   bool get canShowCaption {
     bool isActive = state.isSelected || state.isFocused;
