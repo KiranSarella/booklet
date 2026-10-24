@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 class MediaSlideshowDialog extends StatefulWidget {
-  const MediaSlideshowDialog({
+  const MediaSlideshowDialog({super.key, 
     required this.assets,
     required this.initialIndex,
     required this.resolvePath,
@@ -63,8 +63,9 @@ class _MediaSlideshowDialogState extends State<MediaSlideshowDialog> {
     _player = player;
     try {
       await player.initialize();
-      if (mounted && identical(_player, player))
+      if (mounted && identical(_player, player)) {
         setState(() => _initialized = true);
+      }
     } catch (_) {
       if (mounted && identical(_player, player)) setState(() => _failed = true);
     }

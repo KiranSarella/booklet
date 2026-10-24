@@ -153,8 +153,9 @@ class AssetManagerController extends ChangeNotifier {
           final bytes = await frame.image.toByteData(
             format: ui.ImageByteFormat.png,
           );
-          if (bytes != null)
+          if (bytes != null) {
             await thumbnail.writeAsBytes(bytes.buffer.asUint8List());
+          }
           frame.image.dispose();
           codec.dispose();
         } else {
