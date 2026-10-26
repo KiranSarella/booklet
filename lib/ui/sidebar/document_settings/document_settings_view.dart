@@ -1,3 +1,4 @@
+import 'package:booklet/ui/sidebar/document_settings/deleted_items_section.dart';
 import 'package:booklet/ui/sidebar/document_settings/daily_snapshots_section.dart';
 import 'package:flutter/material.dart';
 import 'package:booklet/application/document_settings_controller.dart';
@@ -102,6 +103,7 @@ class DocumentSettingsView extends StatelessWidget {
               ),
             ),
             DailySnapshotsSection(controller: viewModel.editorController),
+            DeletedItemsSection(controller: viewModel.editorController),
           ],
         ),
       ),

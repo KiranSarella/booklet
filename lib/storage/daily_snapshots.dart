@@ -14,11 +14,18 @@ class DailySnapshots {
   static String working(String package) => '${root(package)}/working';
   static String day(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  static Future<void> copyPackage(String source, String target) async {
+  static Future<void> copyPackage(
+    String source,
+    String target, {
+    bool includeDeletedItems = true,
+  }) async {
     await Directory(target).create(recursive: true);
     await for (final entry in Directory(source).list(followLinks: false)) {
       final name = entry.uri.pathSegments.where((s) => s.isNotEmpty).last;
-      if (name == '.daily_snapshots') continue;
+      if (name == '.daily_snapshots' ||
+          (!includeDeletedItems && name == '.deleted_items')) {
+        continue;
+      }
       await _copy(entry, '$target/$name');
     }
   }
@@ -75,7 +82,7 @@ class DailySnapshots {
       if (!await destination.exists()) {
         final staged = Directory('${root(package)}/capturing');
         if (await staged.exists()) await staged.delete(recursive: true);
-        await copyPackage(package, staged.path);
+        await copyPackage(package, staged.path, includeDeletedItems: false);
         await staged.rename(destination.path);
       }
       final entries = await list(package);
@@ -115,7 +122,16 @@ class DailySnapshots {
     }
     final directory = Directory(working(package));
     if (await directory.exists()) await directory.delete(recursive: true);
-    await copyPackage('${root(package)}/$snapshotDay', directory.path);
+    await copyPackage(
+      '${root(package)}/$snapshotDay',
+      directory.path,
+      includeDeletedItems: false,
+    );
+    // Trash follows the current document, rather than an old snapshot's list.
+    final trash = Directory('$package/.deleted_items');
+    if (await trash.exists()) {
+      await _copy(trash, '${directory.path}/.deleted_items');
+    }
     final marker = File('${root(package)}/session.tmp');
     await marker.writeAsString(jsonEncode({'day': snapshotDay}), flush: true);
     await marker.rename('${root(package)}/session.json');

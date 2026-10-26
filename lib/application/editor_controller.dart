@@ -9,6 +9,7 @@ import 'package:booklet/application/component_clipboard_controller.dart';
 import 'package:booklet/application/navigation_clipboard_controller.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
+import 'package:booklet/storage/deleted_items.dart';
 import 'package:booklet/storage/daily_snapshots.dart';
 import 'package:booklet/ui/detail/editor/editor_vm.dart';
 import 'package:booklet/application/document_settings_controller.dart';
@@ -16,6 +17,7 @@ import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_snapshot.dart';
 import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
+import 'package:booklet/ui/sidebar/pages_navigation/pages_navigation_vm.dart';
 import 'package:file_selector/file_selector.dart';
 
 class EditorController extends ChangeNotifier {
@@ -28,6 +30,16 @@ class EditorController extends ChangeNotifier {
     viewModel.setDocumentChangedCallback(_scheduleAutoSave);
     viewModel.onHistoryChanged = notifyListeners;
     assetManagerController.onDocumentChanged = markDocumentChanged;
+    _trashExpiryTimer = Timer.periodic(const Duration(hours: 1), (_) {
+      if (!trashBusy && !snapshotsBusy) {
+        unawaited(
+          refreshDeletedItems().catchError((Object error) {
+            trashError = error.toString();
+            notifyListeners();
+          }),
+        );
+      }
+    });
   }
 
   final Duration autoSaveDelay;
@@ -45,6 +57,77 @@ class EditorController extends ChangeNotifier {
   final Map<String, String> _navigationPageSources = {};
   final Map<String, NavigationNode> _stagedNavigationSubtrees = {};
   Timer? _autoSaveTimer;
+  Timer? _trashExpiryTimer;
+  String? _unsavedTrashPackage;
+  bool trashBusy = false;
+  String? trashError;
+  List<DeletedItem> deletedItems = [];
+  String? get _trashPackage => _documentPath ?? _unsavedTrashPackage;
+
+  Future<void> refreshDeletedItems() async {
+    final package = _trashPackage;
+    deletedItems = package == null ? [] : await DeletedItems.list(package);
+    notifyListeners();
+  }
+
+  Future<void> _trashAction(Future<void> Function() action) async {
+    if (trashBusy || snapshotsBusy || documentSettingsController.isReadOnly) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    trashBusy = true;
+    trashError = null;
+    notifyListeners();
+    try {
+      await action();
+    } catch (error) {
+      trashError = error.toString();
+    } finally {
+      try {
+        await refreshDeletedItems();
+      } catch (error) {
+        trashError = error.toString();
+      }
+      trashBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> permanentlyDeleteItem(String id) => _trashAction(() async {
+    final package = _trashPackage;
+    if (package != null) await DeletedItems.delete(package, id);
+  });
+
+  Future<void> restoreDeletedItem(String id) => _trashAction(() async {
+    final package = _trashPackage;
+    if (package == null) return;
+    final bundle = await DeletedItems.read(package, id);
+    final source = NavigationNode.fromJson(
+      Map<String, dynamic>.from(bundle['node'] as Map),
+    );
+    // Use the navigation copy implementation to assign fresh IDs throughout.
+    final restored = PagesNavigationVM().pasteNode(source)!;
+    void rename(NavigationNode node) {
+      if (node.isPage || node.isGroup) node.title = '${node.title} (restored)';
+      for (final child in node.children) {
+        rename(child);
+      }
+    }
+
+    rename(restored);
+    await _importNavigationNode(bundle, source, restored);
+    viewModel.navigation.groups.add(restored);
+    viewModel.navigation.selectNode(restored);
+    markDocumentChanged();
+    await flushAutoSave();
+    if (_autoSaveError != null) {
+      throw StateError(
+        'Could not save restored item. The trash copy has been kept.',
+      );
+    }
+    await DeletedItems.delete(package, id);
+    await _activateCopiedNode(restored);
+  });
   Future<void>? _saveInProgress;
   String? _lastSavedSignature;
   String? _autoSaveError;
@@ -72,7 +155,7 @@ class EditorController extends ChangeNotifier {
   }
 
   Future<void> _snapshotAction(Future<void> Function() action) async {
-    if (snapshotsBusy) return;
+    if (snapshotsBusy || trashBusy) return;
     FocusManager.instance.primaryFocus?.unfocus();
     ++_selectionRequest;
     snapshotsBusy = true;
@@ -368,6 +451,8 @@ class EditorController extends ChangeNotifier {
   void createBooklet() {
     if (examiningSnapshot) return;
     dailySnapshots = [];
+    deletedItems = [];
+    trashError = null;
     _autoSaveTimer?.cancel();
     _documentPath = null;
     _lastSavedSignature = null;
@@ -392,6 +477,11 @@ class EditorController extends ChangeNotifier {
   }
 
   Future<void> _openWithSnapshots(BookletManifest manifest) async {
+    final pendingTrash = _unsavedTrashPackage;
+    _unsavedTrashPackage = null;
+    if (pendingTrash != null) {
+      await Directory(pendingTrash).delete(recursive: true);
+    }
     _snapshotPackage = null;
     restoredSnapshotDay = null;
     await DailySnapshots.recover(manifest.path);
@@ -434,6 +524,7 @@ class EditorController extends ChangeNotifier {
       await selectPage(pageId, saveCurrentPage: false);
     }
     _lastSavedSignature = _documentSignature();
+    await refreshDeletedItems();
   }
 
   Future<void> selectPage(String pageId, {bool saveCurrentPage = true}) async {
@@ -504,18 +595,67 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void deleteSelectedNode() {
-    final removedNode = viewModel.deleteSelectedNode();
-    if (removedNode == null) {
-      return;
+  Future<void> deleteSelectedNode() => _trashAction(() async {
+    final node = viewModel.navigation.selectedNode;
+    if (node == null) return;
+    // Flush staged pages and preserve the previous day's snapshot first.
+    await flushAutoSave();
+    if (_autoSaveError != null) {
+      throw StateError('Save failed. The item has not been deleted.');
     }
+    final extraPages = <PageContent>[];
+    late final Map<String, dynamic> bundle;
+    try {
+      final loadedIds = viewModel.loadedPages.map((page) => page.id).toSet();
+      for (final pageNode in _pageNodes(node)) {
+        final staged = _navigationPageSources[pageNode.pageId];
+        if (staged != null && !loadedIds.contains(pageNode.pageId)) {
+          extraPages.add(
+            await BookletFile.loadPage(staged, pageNode.pageId!, editorTheme),
+          );
+        }
+      }
+      bundle = await BookletFile.exportNavigationSubtree(
+        packagePath: _documentPath,
+        node: node,
+        loadedPages: [...viewModel.loadedPages, ...extraPages],
+        theme: editorTheme,
+      );
+    } finally {
+      for (final page in extraPages) {
+        page.dispose();
+      }
+    }
+    final package =
+        _documentPath ??
+        (_unsavedTrashPackage ??= (await Directory.systemTemp.createTemp(
+          'booklet_deleted_items',
+        )).path);
+    await DeletedItems.add(package, bundle);
+    // Do not remove any live data until the recoverable copy is durable.
+    viewModel.navigation.selectNode(node);
+    final removedNode = viewModel.deleteSelectedNode();
+    if (removedNode == null) return;
     assetManagerController.selectFolder(
       viewModel.navigation.selectedNode,
       _documentPath,
     );
-    unawaited(BookletFile.deleteAssetsForNode(_documentPath, removedNode));
-    notifyListeners();
-  }
+    await flushAutoSave();
+    if (_autoSaveError != null) {
+      throw StateError(
+        'Deletion could not be saved. A recoverable copy is in Deleted pages and groups.',
+      );
+    }
+    await BookletFile.deleteAssetsForNode(_documentPath, removedNode);
+    if (_documentPath != null) {
+      for (final page in _pageNodes(removedNode)) {
+        final file = File('$_documentPath/pages/${page.pageId}.json');
+        if (await file.exists()) await file.delete();
+      }
+    }
+    final selected = viewModel.navigation.selectedNode;
+    if (selected != null) await _activateCopiedNode(selected);
+  });
 
   Future<bool> saveBooklet() => _save(saveAs: false);
 
@@ -535,6 +675,7 @@ class EditorController extends ChangeNotifier {
     await _persistToPath(path, sourcePackagePath: previousPath);
     _lastSavedSignature = _documentSignature();
     _autoSaveError = null;
+    await refreshDeletedItems();
     assetManagerController.selectFolder(
       viewModel.navigation.selectedNode,
       path,
@@ -565,6 +706,10 @@ class EditorController extends ChangeNotifier {
         );
       }
       await _saveLoadedPages();
+      final trashSource = sourcePackagePath ?? _unsavedTrashPackage;
+      if (trashSource != null) {
+        await DeletedItems.copyEntries(trashSource, path);
+      }
       await BookletFile.saveManifest(
         packagePath: path,
         groups: viewModel.navigation.groups,
@@ -577,6 +722,11 @@ class EditorController extends ChangeNotifier {
       }
       _stagedNavigationSubtrees.clear();
       _navigationPageSources.clear();
+      final temporaryTrash = _unsavedTrashPackage;
+      if (temporaryTrash != null && path != temporaryTrash) {
+        await Directory(temporaryTrash).delete(recursive: true);
+        _unsavedTrashPackage = null;
+      }
       assetManagerController.selectFolder(
         viewModel.navigation.selectedNode,
         path,
@@ -614,6 +764,11 @@ class EditorController extends ChangeNotifier {
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
+    _trashExpiryTimer?.cancel();
+    final temporary = _unsavedTrashPackage;
+    if (temporary != null) {
+      unawaited(Directory(temporary).delete(recursive: true));
+    }
     assetManagerController.dispose();
     viewModel.dispose();
     super.dispose();

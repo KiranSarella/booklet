@@ -116,7 +116,7 @@ class MainViewState extends State<MainView> {
                             () => _viewModel.renameSelectedNode(title),
                           ),
                           onDeleteNode: () =>
-                              setState(widget.controller.deleteSelectedNode),
+                              unawaited(widget.controller.deleteSelectedNode()),
                           onDuplicateNode: () => unawaited(
                             widget.controller.duplicateSelectedNavigationNode(),
                           ),
@@ -179,7 +179,8 @@ class MainViewState extends State<MainView> {
               onPressed: _toggleNavigation,
             ),
           ),
-          if (widget.controller.snapshotsBusy) ...[
+          if (widget.controller.snapshotsBusy ||
+              widget.controller.trashBusy) ...[
             const Positioned.fill(
               child: ModalBarrier(dismissible: false, color: Color(0x22000000)),
             ),
