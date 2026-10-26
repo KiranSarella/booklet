@@ -68,9 +68,11 @@ class EditorViewState extends State<EditorView> {
         event.logicalKey == LogicalKeyboardKey.arrowUp) {
       final selected = _viewModel.selectedComponent;
       if (selected != null && !selected.isFocused) {
-        setState(() => _viewModel.moveSelectedComponent(
-              event.logicalKey == LogicalKeyboardKey.arrowDown,
-            ));
+        setState(
+          () => _viewModel.moveSelectedComponent(
+            event.logicalKey == LogicalKeyboardKey.arrowDown,
+          ),
+        );
         return KeyEventResult.handled;
       }
     }
@@ -241,7 +243,39 @@ May this day of your birth be auspicious!
   }
 
   @override
+  void initState() {
+    super.initState();
+    FocusManager.instance.addEarlyKeyEventHandler(_handleHistoryKey);
+  }
+
+  void _applyHistory({bool redo = false}) {
+    redo ? _viewModel.redo() : _viewModel.undo();
+    _pageFocusNode.requestFocus();
+  }
+
+  KeyEventResult _handleHistoryKey(KeyEvent event) {
+    if (event is! KeyDownEvent || !_pageFocusNode.hasFocus) {
+      return KeyEventResult.ignored;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    if (!keyboard.isMetaPressed && !keyboard.isControlPressed) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.keyZ) {
+      _applyHistory(redo: keyboard.isShiftPressed);
+      return KeyEventResult.handled;
+    }
+    if (keyboard.isControlPressed &&
+        event.logicalKey == LogicalKeyboardKey.keyY) {
+      _applyHistory(redo: true);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   void dispose() {
+    FocusManager.instance.removeEarlyKeyEventHandler(_handleHistoryKey);
     _scrollController.dispose();
     _pageFocusNode.dispose();
     super.dispose();
@@ -307,6 +341,26 @@ May this day of your birth be auspicious!
                   ),
                 ),
               ),
+            ),
+          ),
+          Positioned(
+            top: 12,
+            right: 86,
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: 'Undo',
+                  icon: const Icon(Icons.undo),
+                  onPressed: _viewModel.canUndo ? () => _applyHistory() : null,
+                ),
+                IconButton(
+                  tooltip: 'Redo',
+                  icon: const Icon(Icons.redo),
+                  onPressed: _viewModel.canRedo
+                      ? () => _applyHistory(redo: true)
+                      : null,
+                ),
+              ],
             ),
           ),
           Positioned.fill(

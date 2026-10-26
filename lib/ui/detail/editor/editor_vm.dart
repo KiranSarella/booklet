@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:booklet/ui/detail/editor/editor_history.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/ui/components/component.dart';
@@ -38,6 +41,141 @@ class EditorVM {
   final Map<String, PageContent> _pagesById = {};
   final Map<ComponentState, VoidCallback> _componentListeners = {};
   VoidCallback? onDocumentChanged;
+  VoidCallback? onHistoryChanged;
+  final Map<String, EditorHistory> _histories = {};
+  bool _replayingHistory = false;
+  int _transactionDepth = 0;
+
+  EditorHistory? get _history =>
+      selectedPage == null ? null : _histories[selectedPage!.id];
+  bool get canUndo =>
+      !theme.documentSettingsController.isReadOnly &&
+      (_history?.canUndo ?? false);
+  bool get canRedo =>
+      !theme.documentSettingsController.isReadOnly &&
+      (_history?.canRedo ?? false);
+
+  void breakHistoryGroup() => _history?.breakGroup();
+
+  T _transaction<T>(T Function() action) {
+    breakHistoryGroup();
+    _transactionDepth++;
+    try {
+      return action();
+    } finally {
+      _transactionDepth--;
+      if (_transactionDepth == 0) {
+        _recordHistory();
+        breakHistoryGroup();
+      }
+    }
+  }
+
+  void _recordHistory({String? mergeKey}) {
+    final page = selectedPage;
+    if (_replayingHistory || _transactionDepth > 0 || page == null) return;
+    final history = _histories.putIfAbsent(
+      page.id,
+      () => EditorHistory(_captureHistory(page)),
+    );
+    if (history.record(_captureHistory(page), mergeKey: mergeKey)) {
+      onHistoryChanged?.call();
+    }
+  }
+
+  EditorHistoryState _captureHistory(PageContent page) => EditorHistoryState(
+    [
+      for (final box in page.components)
+        {
+          'id': box.component.id,
+          'snapshot': ComponentSnapshot.capture(box).toJson(),
+        },
+    ],
+    selectedIds: _selectedComponents.map((box) => box.component.id).toList(),
+    carets: {
+      for (final box in page.components)
+        if (box.component.state is TextComponentState)
+          box.component.id: [
+            (box.component.state as TextComponentState)
+                .controller
+                .selection
+                .baseOffset,
+            (box.component.state as TextComponentState)
+                .controller
+                .selection
+                .extentOffset,
+          ],
+    },
+  );
+
+  void undo() {
+    if (canUndo) _restoreHistory(_history!.undo());
+  }
+
+  void redo() {
+    if (canRedo) _restoreHistory(_history!.redo());
+  }
+
+  void _restoreHistory(EditorHistoryState target) {
+    final page = selectedPage!;
+    _replayingHistory = true;
+    try {
+      clearSelectedComponent();
+      final existing = {
+        for (final box in page.components) box.component.id: box,
+      };
+      final restored = <ComponentBox>[];
+      for (final entry in target.components) {
+        final id = entry['id'] as String;
+        final data = Map<String, dynamic>.from(entry['snapshot'] as Map);
+        final old = existing.remove(id);
+        if (old != null &&
+            jsonEncode(ComponentSnapshot.capture(old).toJson()) ==
+                jsonEncode(data)) {
+          restored.add(old);
+        } else {
+          if (old != null) {
+            _unwatchComponent(old.component.state);
+            old.dispose();
+          }
+          final box = ComponentSnapshot.fromJson(data).instantiate(id: id);
+          restored.add(box);
+          _watchComponent(box);
+        }
+      }
+      for (final box in existing.values) {
+        _unwatchComponent(box.component.state);
+        box.dispose();
+      }
+      page.components
+        ..clear()
+        ..addAll(restored);
+      for (final box in restored) {
+        final caret = target.carets[box.component.id];
+        final state = box.component.state;
+        if (caret != null && state is TextComponentState) {
+          final end = state.controller.document.length - 1;
+          state.controller.updateSelection(
+            TextSelection(
+              baseOffset: caret[0].clamp(0, end),
+              extentOffset: caret[1].clamp(0, end),
+            ),
+            ChangeSource.local,
+          );
+        }
+        if (target.selectedIds.contains(box.component.id)) {
+          box.isSelected = true;
+          _selectedComponents.add(box);
+          _selectedComponent = box;
+        }
+      }
+    } finally {
+      _replayingHistory = false;
+    }
+    onDocumentChanged?.call();
+    onHistoryChanged?.call();
+  }
+
   ComponentBox? _selectedComponent;
   final Set<ComponentBox> _selectedComponents = {};
   int? _anchorIndex;
@@ -71,14 +209,16 @@ class EditorVM {
       _listStyleSelection.every((box) => box.hasFocusBar);
 
   void toggleFocusBarOnSelection() {
-    if (theme.documentSettingsController.isReadOnly) return;
-    final selection = _listStyleSelection;
-    if (selection.isEmpty) return;
-    final enable = !selectedHasFocusBar;
-    for (final box in selection) {
-      box.hasFocusBar = enable;
-    }
-    _documentChanged();
+    _transaction(() {
+      if (theme.documentSettingsController.isReadOnly) return;
+      final selection = _listStyleSelection;
+      if (selection.isEmpty) return;
+      final enable = !selectedHasFocusBar;
+      for (final box in selection) {
+        box.hasFocusBar = enable;
+      }
+      _documentChanged();
+    });
   }
 
   String? get selectedListKind {
@@ -121,41 +261,43 @@ class EditorVM {
   }
 
   void setSelectedListStyle(String value) {
-    if (theme.documentSettingsController.isReadOnly) return;
-    final kind = selectedListKind;
-    if (kind == 'bullet' && _selectedComponents.length <= 1) {
-      final selectedState = _selectedComponent?.component.state;
-      if (selectedState is! BulletedListComponentState) return;
-      for (final component in components) {
-        final state = component.component.state;
-        if (state is BulletedListComponentState &&
-            state.nestingLevel == selectedState.nestingLevel) {
-          state.symbol = value;
+    _transaction(() {
+      if (theme.documentSettingsController.isReadOnly) return;
+      final kind = selectedListKind;
+      if (kind == 'bullet' && _selectedComponents.length <= 1) {
+        final selectedState = _selectedComponent?.component.state;
+        if (selectedState is! BulletedListComponentState) return;
+        for (final component in components) {
+          final state = component.component.state;
+          if (state is BulletedListComponentState &&
+              state.nestingLevel == selectedState.nestingLevel) {
+            state.symbol = value;
+          }
         }
+        return;
       }
-      return;
-    }
-    if (kind == 'numbered' && _selectedComponents.length <= 1) {
-      final selectedState = _selectedComponent?.component.state;
-      if (selectedState is! NumberedListComponentState) return;
-      for (final component in components) {
+      if (kind == 'numbered' && _selectedComponents.length <= 1) {
+        final selectedState = _selectedComponent?.component.state;
+        if (selectedState is! NumberedListComponentState) return;
+        for (final component in components) {
+          final state = component.component.state;
+          if (state is NumberedListComponentState &&
+              state.nestingLevel == selectedState.nestingLevel) {
+            state.numberStyle = value;
+          }
+        }
+        return;
+      }
+
+      for (final component in _listStyleSelection) {
         final state = component.component.state;
-        if (state is NumberedListComponentState &&
-            state.nestingLevel == selectedState.nestingLevel) {
+        if (kind == 'bullet' && state is BulletedListComponentState) {
+          state.symbol = value;
+        } else if (kind == 'numbered' && state is NumberedListComponentState) {
           state.numberStyle = value;
         }
       }
-      return;
-    }
-
-    for (final component in _listStyleSelection) {
-      final state = component.component.state;
-      if (kind == 'bullet' && state is BulletedListComponentState) {
-        state.symbol = value;
-      } else if (kind == 'numbered' && state is NumberedListComponentState) {
-        state.numberStyle = value;
-      }
-    }
+    });
   }
 
   String? get selectedPageId => navigation.selectedPageId;
@@ -171,6 +313,7 @@ class EditorVM {
       page.dispose();
     }
     _pagesById.clear();
+    _histories.clear();
     navigation.replaceGroups(
       groups,
       selectedPageId: selectedPageId,
@@ -223,6 +366,7 @@ class EditorVM {
   }
 
   void selectPage(String pageId) {
+    breakHistoryGroup();
     navigation.selectPage(pageId);
     _selectedComponent = null;
     _selectedComponents.clear();
@@ -243,18 +387,23 @@ class EditorVM {
 
   NavigationNode addAssetsFolderBelow() {
     clearSelectedComponent();
-    final folder = navigation.addAssetsFolder(folderId: const Uuid().v4(), placement: .below);
+    final folder = navigation.addAssetsFolder(
+      folderId: const Uuid().v4(),
+      placement: .below,
+    );
     _documentChanged();
     return folder;
   }
 
   NavigationNode addAssetsFolderInside() {
     clearSelectedComponent();
-    final folder = navigation.addAssetsFolder(folderId: const Uuid().v4(), placement: .child);
+    final folder = navigation.addAssetsFolder(
+      folderId: const Uuid().v4(),
+      placement: .child,
+    );
     _documentChanged();
     return folder;
   }
-
 
   void addPageBelowSelected() {
     _addPage(PagePlacement.below);
@@ -264,9 +413,7 @@ class EditorVM {
     if (theme.documentSettingsController.isReadOnly) return;
     final components = <Component>[];
     final focusBarIndexes = <int>{};
-    final blocks = markdown
-        .replaceAll('\r\n', '\n')
-        .split(RegExp(r'\n\s*\n+'));
+    final blocks = markdown.replaceAll('\r\n', '\n').split(RegExp(r'\n\s*\n+'));
     for (final block in blocks) {
       final value = block.trim();
       if (value.isEmpty) continue;
@@ -311,8 +458,10 @@ class EditorVM {
             'checklist',
             task.group(2)!,
           );
-          (component.state as ChecklistComponentState).isChecked =
-              task.group(1)!.trim().isNotEmpty;
+          (component.state as ChecklistComponentState).isChecked = task
+              .group(1)!
+              .trim()
+              .isNotEmpty;
           continue;
         }
         final numbered = RegExp(r'^(\d+)[.)]\s+(.*)$').firstMatch(line);
@@ -433,6 +582,7 @@ class EditorVM {
   void _disposePages(NavigationNode node) {
     final pageId = node.pageId;
     if (pageId != null) {
+      _histories.remove(pageId);
       final page = _pagesById.remove(pageId);
       if (page != null) {
         for (final component in page.components) {
@@ -464,6 +614,7 @@ class EditorVM {
   // MARK: - Components
 
   void selectComponent(ComponentBox component) {
+    if (_selectedComponent != component) breakHistoryGroup();
     final index = components.indexOf(component);
     if (index == -1) {
       return;
@@ -534,6 +685,7 @@ class EditorVM {
   }
 
   void clearSelectedComponent() {
+    breakHistoryGroup();
     for (final component in components) {
       component.isSelected = false;
       component.clearFocus();
@@ -544,143 +696,148 @@ class EditorVM {
   }
 
   ComponentBox createComponentBelow(int index, {TextSelection? selection}) {
-    if (theme.documentSettingsController.isReadOnly) {
-      throw StateError('Cannot add components while read-only');
-    }
-    final page = selectedPage;
-    if (page == null) {
-      throw StateError('No page is selected');
-    }
+    return _transaction(() {
+      if (theme.documentSettingsController.isReadOnly) {
+        throw StateError('Cannot add components while read-only');
+      }
+      final page = selectedPage;
+      if (page == null) {
+        throw StateError('No page is selected');
+      }
 
-    TextComponentState? sourceState;
-    ListItemComponentState? sourceListState;
-    List<Map<String, dynamic>>? prefixDelta;
-    List<dynamic>? trailingDelta;
-    var componentType = 'text';
-    if (selection != null &&
-        selection.isValid &&
-        index >= 0 &&
-        index < page.components.length) {
-      final source = page.components[index];
-      final state = source.component.state;
-      if (source.isTextComponent && state is TextComponentState) {
-        if (state is ListItemComponentState &&
-            selection.isCollapsed &&
-            state.output.trim().isEmpty) {
-          if (state.nestingLevel > 0) {
-            state.nestingLevel--;
+      TextComponentState? sourceState;
+      ListItemComponentState? sourceListState;
+      List<Map<String, dynamic>>? prefixDelta;
+      List<dynamic>? trailingDelta;
+      var componentType = 'text';
+      if (selection != null &&
+          selection.isValid &&
+          index >= 0 &&
+          index < page.components.length) {
+        final source = page.components[index];
+        final state = source.component.state;
+        if (source.isTextComponent && state is TextComponentState) {
+          if (state is ListItemComponentState &&
+              selection.isCollapsed &&
+              state.output.trim().isEmpty) {
+            if (state.nestingLevel > 0) {
+              state.nestingLevel--;
+              selectComponent(source);
+              _documentChanged();
+              return source;
+            }
+            _replaceComponentWithType(source, 'text', delta: state.textDelta);
             selectComponent(source);
             _documentChanged();
             return source;
           }
-          _replaceComponentWithType(source, 'text', delta: state.textDelta);
-          selectComponent(source);
-          _documentChanged();
-          return source;
-        }
-        final sourceDocument = state.controller.document;
-        final maxOffset = sourceDocument.length - 1;
-        final start = selection.start.clamp(0, maxOffset).toInt();
-        final end = selection.end.clamp(start, maxOffset).toInt();
-        final sourceDelta = sourceDocument.toDelta();
-        final prefix = sourceDelta.slice(0, start).toJson();
-        final trailing = sourceDelta.slice(end).toJson();
-        _ensureDeltaEndsWithNewline(prefix);
-        _ensureDeltaEndsWithNewline(trailing);
-        sourceState = state;
-        prefixDelta = prefix;
-        trailingDelta = trailing;
-        if (state is ListItemComponentState) {
-          sourceListState = state;
-          componentType = source.component.def.key;
+          final sourceDocument = state.controller.document;
+          final maxOffset = sourceDocument.length - 1;
+          final start = selection.start.clamp(0, maxOffset).toInt();
+          final end = selection.end.clamp(start, maxOffset).toInt();
+          final sourceDelta = sourceDocument.toDelta();
+          final prefix = sourceDelta.slice(0, start).toJson();
+          final trailing = sourceDelta.slice(end).toJson();
+          _ensureDeltaEndsWithNewline(prefix);
+          _ensureDeltaEndsWithNewline(trailing);
+          sourceState = state;
+          prefixDelta = prefix;
+          trailingDelta = trailing;
+          if (state is ListItemComponentState) {
+            sourceListState = state;
+            componentType = source.component.def.key;
+          }
         }
       }
-    }
 
-    final component = ComponentBox(
-      component: InbuiltComponents.prepareCompoent(
-        const Uuid().v4(),
-        componentType,
-      ),
-      delta: trailingDelta,
-    );
-    final newState = component.component.state;
-    if (sourceListState is BulletedListComponentState &&
-        newState is BulletedListComponentState) {
-      newState
-        ..symbol = sourceListState.symbol
-        ..nestingLevel = sourceListState.nestingLevel;
-    } else if (sourceListState is NumberedListComponentState &&
-        newState is NumberedListComponentState) {
-      newState
-        ..numberStyle = sourceListState.numberStyle
-        ..nestingLevel = sourceListState.nestingLevel;
-    } else if (sourceListState != null && newState is ListItemComponentState) {
-      newState.nestingLevel = sourceListState.nestingLevel;
-    }
-    page.components.insert(index + 1, component);
-    if (sourceState != null && prefixDelta != null) {
-      sourceState.controller.document = Document.fromJson(prefixDelta);
-    }
-    _watchComponent(component);
-    selectComponent(component);
-    _documentChanged();
-    return component;
+      final component = ComponentBox(
+        component: InbuiltComponents.prepareCompoent(
+          const Uuid().v4(),
+          componentType,
+        ),
+        delta: trailingDelta,
+      );
+      final newState = component.component.state;
+      if (sourceListState is BulletedListComponentState &&
+          newState is BulletedListComponentState) {
+        newState
+          ..symbol = sourceListState.symbol
+          ..nestingLevel = sourceListState.nestingLevel;
+      } else if (sourceListState is NumberedListComponentState &&
+          newState is NumberedListComponentState) {
+        newState
+          ..numberStyle = sourceListState.numberStyle
+          ..nestingLevel = sourceListState.nestingLevel;
+      } else if (sourceListState != null &&
+          newState is ListItemComponentState) {
+        newState.nestingLevel = sourceListState.nestingLevel;
+      }
+      page.components.insert(index + 1, component);
+      if (sourceState != null && prefixDelta != null) {
+        sourceState.controller.document = Document.fromJson(prefixDelta);
+      }
+      _watchComponent(component);
+      selectComponent(component);
+      _documentChanged();
+      return component;
+    });
   }
 
   /// Splits [text] on newlines: the first line goes into the component at
   /// [index], each remaining line into a new component below. Returns the last
   /// component, or null when [text] has no newline (default paste applies).
   ComponentBox? pasteTextLines(int index, String text) {
-    final page = selectedPage;
-    if (theme.documentSettingsController.isReadOnly ||
-        page == null ||
-        index < 0 ||
-        index >= page.components.length) {
-      return null;
-    }
-    final lines = text
-        .split(RegExp(r'\r\n|\r|\n'))
-        .where((line) => line.trim().isNotEmpty)
-        .toList();
-    final source = page.components[index];
-    final state = source.component.state;
-    if (lines.length < 2 ||
-        !source.isTextComponent ||
-        state is! TextComponentState) {
-      return null;
-    }
+    return _transaction(() {
+      final page = selectedPage;
+      if (theme.documentSettingsController.isReadOnly ||
+          page == null ||
+          index < 0 ||
+          index >= page.components.length) {
+        return null;
+      }
+      final lines = text
+          .split(RegExp(r'\r\n|\r|\n'))
+          .where((line) => line.trim().isNotEmpty)
+          .toList();
+      final source = page.components[index];
+      final state = source.component.state;
+      if (lines.length < 2 ||
+          !source.isTextComponent ||
+          state is! TextComponentState) {
+        return null;
+      }
 
-    final controller = state.controller;
-    final selection = controller.selection;
-    final start = selection.start.clamp(0, controller.document.length - 1);
-    final end = selection.end.clamp(start, controller.document.length - 1);
-    controller.replaceText(
-      start,
-      end - start,
-      lines.first,
-      TextSelection.collapsed(offset: start + lines.first.length),
-    );
+      final controller = state.controller;
+      final selection = controller.selection;
+      final start = selection.start.clamp(0, controller.document.length - 1);
+      final end = selection.end.clamp(start, controller.document.length - 1);
+      controller.replaceText(
+        start,
+        end - start,
+        lines.first,
+        TextSelection.collapsed(offset: start + lines.first.length),
+      );
 
-    var current = source;
-    var currentIndex = index;
-    var cursor = start + lines.first.length;
-    for (final line in lines.skip(1)) {
-      current = createComponentBelow(
-        currentIndex,
-        selection: TextSelection.collapsed(offset: cursor),
-      );
-      currentIndex++;
-      final newState = current.component.state as TextComponentState;
-      newState.controller.replaceText(
-        0,
-        0,
-        line,
-        TextSelection.collapsed(offset: line.length),
-      );
-      cursor = line.length;
-    }
-    return current;
+      var current = source;
+      var currentIndex = index;
+      var cursor = start + lines.first.length;
+      for (final line in lines.skip(1)) {
+        current = createComponentBelow(
+          currentIndex,
+          selection: TextSelection.collapsed(offset: cursor),
+        );
+        currentIndex++;
+        final newState = current.component.state as TextComponentState;
+        newState.controller.replaceText(
+          0,
+          0,
+          line,
+          TextSelection.collapsed(offset: line.length),
+        );
+        cursor = line.length;
+      }
+      return current;
+    });
   }
 
   void _replaceComponentWithType(
@@ -702,62 +859,64 @@ class EditorVM {
   }
 
   ComponentBox? mergeTextComponentWithPrevious(int index) {
-    if (theme.documentSettingsController.isReadOnly) {
-      return null;
-    }
-    final page = selectedPage;
-    if (page == null || index <= 0 || index >= page.components.length) {
-      return null;
-    }
+    return _transaction(() {
+      if (theme.documentSettingsController.isReadOnly) {
+        return null;
+      }
+      final page = selectedPage;
+      if (page == null || index <= 0 || index >= page.components.length) {
+        return null;
+      }
 
-    final current = page.components[index];
-    if (!current.isTextComponent) {
-      return null;
-    }
+      final current = page.components[index];
+      if (!current.isTextComponent) {
+        return null;
+      }
 
-    final currentState = current.component.state as TextComponentState;
-    final currentDocument = currentState.controller.document;
-    final previous = index > 0 ? page.components[index - 1] : null;
-    final isEmpty = currentDocument.length == 1;
-    if (!isEmpty && (previous == null || !previous.isTextComponent)) {
-      return null;
-    }
+      final currentState = current.component.state as TextComponentState;
+      final currentDocument = currentState.controller.document;
+      final previous = index > 0 ? page.components[index - 1] : null;
+      final isEmpty = currentDocument.length == 1;
+      if (!isEmpty && (previous == null || !previous.isTextComponent)) {
+        return null;
+      }
 
-    TextComponentState? previousState;
-    if (previous?.isTextComponent == true) {
-      previousState = previous!.component.state as TextComponentState;
-    }
-    final previousEndOffset = previousState == null
-        ? null
-        : previousState.controller.document.length - 1;
-    if (!isEmpty && previousState != null) {
-      final mergedDelta = previousState.controller.document.toDelta().concat(
-        currentDocument.toDelta(),
-        trimNewLine: true,
-      );
-      previousState.controller.document = Document.fromJson(
-        mergedDelta.toJson(),
-      );
-    }
-
-    page.components.removeAt(index);
-    _unwatchComponent(current.component.state);
-    current.dispose();
-    if (previous != null) {
-      selectComponent(previous);
-      if (previousState != null && previousEndOffset != null) {
-        previousState.controller.updateSelection(
-          TextSelection.collapsed(offset: previousEndOffset),
-          ChangeSource.local,
+      TextComponentState? previousState;
+      if (previous?.isTextComponent == true) {
+        previousState = previous!.component.state as TextComponentState;
+      }
+      final previousEndOffset = previousState == null
+          ? null
+          : previousState.controller.document.length - 1;
+      if (!isEmpty && previousState != null) {
+        final mergedDelta = previousState.controller.document.toDelta().concat(
+          currentDocument.toDelta(),
+          trimNewLine: true,
+        );
+        previousState.controller.document = Document.fromJson(
+          mergedDelta.toJson(),
         );
       }
-    } else {
-      _selectedComponent = null;
-      _selectedComponents.clear();
-      _anchorIndex = null;
-    }
-    _documentChanged();
-    return previous;
+
+      page.components.removeAt(index);
+      _unwatchComponent(current.component.state);
+      current.dispose();
+      if (previous != null) {
+        selectComponent(previous);
+        if (previousState != null && previousEndOffset != null) {
+          previousState.controller.updateSelection(
+            TextSelection.collapsed(offset: previousEndOffset),
+            ChangeSource.local,
+          );
+        }
+      } else {
+        _selectedComponent = null;
+        _selectedComponents.clear();
+        _anchorIndex = null;
+      }
+      _documentChanged();
+      return previous;
+    });
   }
 
   void _ensureDeltaEndsWithNewline(List<Map<String, dynamic>> delta) {
@@ -768,51 +927,55 @@ class EditorVM {
   }
 
   ComponentBox createComponentBelowType(int index, String type) {
-    if (theme.documentSettingsController.isReadOnly) {
-      throw StateError('Cannot add components while read-only');
-    }
-    final page = selectedPage;
-    if (page == null) {
-      throw StateError('No page is selected');
-    }
-    final component = ComponentBox(
-      component: InbuiltComponents.prepareCompoent(const Uuid().v4(), type),
-    );
-    page.components.insert(index + 1, component);
-    _watchComponent(component);
-    selectComponent(component);
-    _documentChanged();
-    return component;
+    return _transaction(() {
+      if (theme.documentSettingsController.isReadOnly) {
+        throw StateError('Cannot add components while read-only');
+      }
+      final page = selectedPage;
+      if (page == null) {
+        throw StateError('No page is selected');
+      }
+      final component = ComponentBox(
+        component: InbuiltComponents.prepareCompoent(const Uuid().v4(), type),
+      );
+      page.components.insert(index + 1, component);
+      _watchComponent(component);
+      selectComponent(component);
+      _documentChanged();
+      return component;
+    });
   }
 
   void transformSelectedComponent(String type) {
-    if (theme.documentSettingsController.isReadOnly) {
-      return;
-    }
-    final selection = _transformSelection;
-    if (selection.isEmpty || !canTransformSelectedComponent) {
-      return;
-    }
-
-    for (final selected in selection) {
-      final oldComponent = selected.component;
-      final newComponent = InbuiltComponents.prepareCompoent(
-        oldComponent.id,
-        type,
-      );
-      if (newComponent.def.type != ComponentType.text) {
-        newComponent.dispose();
+    _transaction(() {
+      if (theme.documentSettingsController.isReadOnly) {
+        return;
+      }
+      final selection = _transformSelection;
+      if (selection.isEmpty || !canTransformSelectedComponent) {
         return;
       }
 
-      newComponent.initialize(delta: oldComponent.textDelta);
-      newComponent.state.isSelected = oldComponent.state.isSelected;
-      selected.component = newComponent;
-      _unwatchComponent(oldComponent.state);
-      _watchComponent(selected);
-      oldComponent.dispose();
-    }
-    _documentChanged();
+      for (final selected in selection) {
+        final oldComponent = selected.component;
+        final newComponent = InbuiltComponents.prepareCompoent(
+          oldComponent.id,
+          type,
+        );
+        if (newComponent.def.type != ComponentType.text) {
+          newComponent.dispose();
+          return;
+        }
+
+        newComponent.initialize(delta: oldComponent.textDelta);
+        newComponent.state.isSelected = oldComponent.state.isSelected;
+        selected.component = newComponent;
+        _unwatchComponent(oldComponent.state);
+        _watchComponent(selected);
+        oldComponent.dispose();
+      }
+      _documentChanged();
+    });
   }
 
   // MARK: - Copy / paste
@@ -831,59 +994,63 @@ class EditorVM {
   }
 
   List<ComponentBox> pasteComponents(List<ComponentSnapshot> snapshots) {
-    if (theme.documentSettingsController.isReadOnly || snapshots.isEmpty) {
-      return const [];
-    }
-    final page = selectedPage;
-    if (page == null) {
-      return const [];
-    }
-    final reference = _selectedComponent;
-    var insertIndex = reference != null
-        ? page.components.indexOf(reference)
-        : page.components.length - 1;
+    return _transaction(() {
+      if (theme.documentSettingsController.isReadOnly || snapshots.isEmpty) {
+        return const [];
+      }
+      final page = selectedPage;
+      if (page == null) {
+        return const [];
+      }
+      final reference = _selectedComponent;
+      var insertIndex = reference != null
+          ? page.components.indexOf(reference)
+          : page.components.length - 1;
 
-    final pasted = <ComponentBox>[];
-    for (final snapshot in snapshots) {
-      insertIndex++;
-      final box = snapshot.instantiate();
-      page.components.insert(insertIndex, box);
-      _watchComponent(box);
-      pasted.add(box);
-    }
+      final pasted = <ComponentBox>[];
+      for (final snapshot in snapshots) {
+        insertIndex++;
+        final box = snapshot.instantiate();
+        page.components.insert(insertIndex, box);
+        _watchComponent(box);
+        pasted.add(box);
+      }
 
-    selectComponent(pasted.first);
-    if (pasted.length > 1) {
-      selectComponentRange(pasted.last);
-    }
-    _documentChanged();
-    return pasted;
+      selectComponent(pasted.first);
+      if (pasted.length > 1) {
+        selectComponentRange(pasted.last);
+      }
+      _documentChanged();
+      return pasted;
+    });
   }
 
   void deleteSelectedComponent() {
-    if (theme.documentSettingsController.isReadOnly) {
-      return;
-    }
-    final page = selectedPage;
-    if (page == null) {
-      return;
-    }
-    final toDelete = _selectedComponents.isNotEmpty
-        ? List<ComponentBox>.from(_selectedComponents)
-        : (_selectedComponent == null
-              ? <ComponentBox>[]
-              : [_selectedComponent!]);
-    for (final component in toDelete) {
-      if (page.components.remove(component)) {
-        _unwatchComponent(component.component.state);
-        component.isSelected = false;
-        component.dispose();
+    _transaction(() {
+      if (theme.documentSettingsController.isReadOnly) {
+        return;
       }
-    }
-    _selectedComponent = null;
-    _selectedComponents.clear();
-    _anchorIndex = null;
-    _documentChanged();
+      final page = selectedPage;
+      if (page == null) {
+        return;
+      }
+      final toDelete = _selectedComponents.isNotEmpty
+          ? List<ComponentBox>.from(_selectedComponents)
+          : (_selectedComponent == null
+                ? <ComponentBox>[]
+                : [_selectedComponent!]);
+      for (final component in toDelete) {
+        if (page.components.remove(component)) {
+          _unwatchComponent(component.component.state);
+          component.isSelected = false;
+          component.dispose();
+        }
+      }
+      _selectedComponent = null;
+      _selectedComponents.clear();
+      _anchorIndex = null;
+      _documentChanged();
+    });
   }
 
   void dispose() {
@@ -894,6 +1061,7 @@ class EditorVM {
   }
 
   void _watchPage(PageContent page) {
+    _histories.putIfAbsent(page.id, () => EditorHistory(_captureHistory(page)));
     for (final component in page.components) {
       _watchComponent(component);
     }
@@ -902,7 +1070,13 @@ class EditorVM {
   void _watchComponent(ComponentBox component) {
     final state = component.component.state;
     if (_componentListeners.containsKey(state)) return;
-    final listener = _documentChanged;
+    void listener() {
+      _recordHistory(
+        mergeKey: state is TextComponentState ? component.component.id : null,
+      );
+      onDocumentChanged?.call();
+    }
+
     _componentListeners[state] = listener;
     state.addListener(listener);
   }
@@ -921,5 +1095,8 @@ class EditorVM {
     _componentListeners.clear();
   }
 
-  void _documentChanged() => onDocumentChanged?.call();
+  void _documentChanged() {
+    _recordHistory();
+    onDocumentChanged?.call();
+  }
 }

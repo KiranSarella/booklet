@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/code_block_component.dart';
@@ -119,9 +121,9 @@ class ComponentSnapshot {
   }
 
   /// Builds a brand-new [ComponentBox] (with a fresh id) from this snapshot.
-  ComponentBox instantiate() {
+  ComponentBox instantiate({String? id}) {
     final component = InbuiltComponents.prepareCompoent(
-      const Uuid().v4(),
+      id ?? const Uuid().v4(),
       typeKey,
     );
     final state = component.state;
@@ -185,6 +187,7 @@ class ComponentSnapshot {
   };
 
   factory ComponentSnapshot.fromJson(Map<String, dynamic> json) {
+    json = Map<String, dynamic>.from(jsonDecode(jsonEncode(json)) as Map);
     final rawExtra = json['extra'];
     return ComponentSnapshot._(
       typeKey: json['type'] as String,

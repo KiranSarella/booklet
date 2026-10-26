@@ -24,6 +24,7 @@ class EditorController extends ChangeNotifier {
   }) : viewModel = EditorVM(editorTheme),
        assetManagerController = AssetManagerController() {
     viewModel.setDocumentChangedCallback(_scheduleAutoSave);
+    viewModel.onHistoryChanged = notifyListeners;
     assetManagerController.onDocumentChanged = markDocumentChanged;
   }
 
