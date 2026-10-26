@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:booklet/storage/daily_snapshots.dart';
+
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/storage/rich_text_codec.dart';
@@ -57,6 +59,7 @@ class BookletFile {
   }
 
   static Future<BookletManifest> loadManifestAtPath(String packagePath) async {
+    await DailySnapshots.recover(packagePath);
     final manifest = File('$packagePath/$_manifestName');
     final json = jsonDecode(await manifest.readAsString());
     if (json is! Map) {

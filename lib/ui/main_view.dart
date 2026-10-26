@@ -57,6 +57,32 @@ class MainViewState extends State<MainView> {
         children: [
           Column(
             children: [
+              if (widget.controller.examiningSnapshot)
+                MaterialBanner(
+                  content: Text(
+                    'Examining snapshot from ${widget.controller.restoredSnapshotDay}. Your original booklet is safe.',
+                  ),
+                  leading: const Icon(Icons.history),
+                  actions: [
+                    TextButton(
+                      onPressed: widget.controller.snapshotsBusy
+                          ? null
+                          : widget.controller.discardRestoredChanges,
+                      child: const Text('Discard restored changes'),
+                    ),
+                    TextButton(
+                      onPressed:
+                          widget.controller.snapshotsBusy ||
+                              widget
+                                  .controller
+                                  .documentSettingsController
+                                  .isReadOnly
+                          ? null
+                          : widget.controller.keepRestoredChanges,
+                      child: const Text('Keep this version'),
+                    ),
+                  ],
+                ),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -138,7 +164,7 @@ class MainViewState extends State<MainView> {
                 ),
               ),
               DocumentStatusBar(
-                documentPath: widget.controller.documentPath,
+                documentPath: widget.controller.snapshotPackage,
                 pageSettingsController: widget.controller.editorTheme,
                 documentSettingsController:
                     widget.controller.documentSettingsController,
@@ -153,6 +179,12 @@ class MainViewState extends State<MainView> {
               onPressed: _toggleNavigation,
             ),
           ),
+          if (widget.controller.snapshotsBusy) ...[
+            const Positioned.fill(
+              child: ModalBarrier(dismissible: false, color: Color(0x22000000)),
+            ),
+            const Center(child: CircularProgressIndicator()),
+          ],
         ],
       ),
     );

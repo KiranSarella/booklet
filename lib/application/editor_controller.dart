@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show FocusManager;
 import 'package:booklet/application/asset_manager_controller.dart';
 import 'package:booklet/application/component_clipboard_controller.dart';
 import 'package:booklet/application/navigation_clipboard_controller.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
+import 'package:booklet/storage/daily_snapshots.dart';
 import 'package:booklet/ui/detail/editor/editor_vm.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
@@ -50,6 +52,101 @@ class EditorController extends ChangeNotifier {
   bool isLoadingPage = false;
   String? _documentPath;
   int _selectionRequest = 0;
+
+  String? _snapshotPackage;
+  String? restoredSnapshotDay;
+  String? lastRestoredSnapshotDay;
+  List<DailySnapshot> dailySnapshots = [];
+  bool snapshotsBusy = false;
+  String? snapshotError;
+  bool get examiningSnapshot => restoredSnapshotDay != null;
+  String? get snapshotPackage => _snapshotPackage ?? _documentPath;
+
+  Future<void> refreshSnapshots() async {
+    final package = snapshotPackage;
+    lastRestoredSnapshotDay = package == null
+        ? null
+        : await DailySnapshots.lastRestoredDay(package);
+    dailySnapshots = package == null ? [] : await DailySnapshots.list(package);
+    notifyListeners();
+  }
+
+  Future<void> _snapshotAction(Future<void> Function() action) async {
+    if (snapshotsBusy) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    ++_selectionRequest;
+    snapshotsBusy = true;
+    snapshotError = null;
+    notifyListeners();
+    try {
+      await action();
+      await refreshSnapshots();
+    } catch (error) {
+      snapshotError = error.toString();
+    } finally {
+      snapshotsBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> restoreDailySnapshot(String day) => _snapshotAction(() async {
+    final package = snapshotPackage;
+    if (package == null ||
+        examiningSnapshot ||
+        documentSettingsController.isReadOnly) {
+      return;
+    }
+    await flushAutoSave();
+    if (_autoSaveError != null) {
+      throw StateError(
+        'Save failed. Your current changes must be saved before restoring.',
+      );
+    }
+    await DailySnapshots.examine(package, day);
+    _snapshotPackage = package;
+    restoredSnapshotDay = day;
+    await _applyManifest(
+      await BookletFile.loadManifestAtPath(DailySnapshots.working(package)),
+    );
+  });
+
+  Future<void> discardRestoredChanges() => _snapshotAction(() async {
+    final package = _snapshotPackage;
+    if (package == null) return;
+    _autoSaveTimer?.cancel();
+    if (_saveInProgress != null) await _saveInProgress;
+    await _applyManifest(await BookletFile.loadManifestAtPath(package));
+    _snapshotPackage = null;
+    restoredSnapshotDay = null;
+    await DailySnapshots.discard(package);
+  });
+
+  Future<void> keepRestoredChanges() => _snapshotAction(() async {
+    final package = _snapshotPackage;
+    if (package == null || documentSettingsController.isReadOnly) return;
+    await flushAutoSave();
+    if (_autoSaveError != null) {
+      throw StateError('Save failed. Try again before keeping this version.');
+    }
+    await DailySnapshots.keep(package);
+    _snapshotPackage = null;
+    restoredSnapshotDay = null;
+    await _applyManifest(await BookletFile.loadManifestAtPath(package));
+  });
+
+  Future<void> deleteDailySnapshot(String day) => _snapshotAction(() async {
+    final package = snapshotPackage;
+    if (package == null || examiningSnapshot) return;
+    await DailySnapshots.delete(package, day);
+  });
+
+  Future<void> clearDailySnapshots() => _snapshotAction(() async {
+    final package = snapshotPackage;
+    if (package == null || examiningSnapshot) return;
+    for (final entry in await DailySnapshots.list(package)) {
+      await DailySnapshots.delete(package, entry.day);
+    }
+  });
 
   String? get documentPath => _documentPath;
   String? get autoSaveError => _autoSaveError;
@@ -269,6 +366,8 @@ class EditorController extends ChangeNotifier {
   PageContent? get selectedPage => viewModel.selectedPage;
 
   void createBooklet() {
+    if (examiningSnapshot) return;
+    dailySnapshots = [];
     _autoSaveTimer?.cancel();
     _documentPath = null;
     _lastSavedSignature = null;
@@ -281,15 +380,35 @@ class EditorController extends ChangeNotifier {
       return false;
     }
     await flushAutoSave();
-    await _applyManifest(manifest);
+    await _openWithSnapshots(manifest);
     return true;
   }
 
   Future<bool> openBookletAtPath(String packagePath) async {
     await flushAutoSave();
     final manifest = await BookletFile.loadManifestAtPath(packagePath);
-    await _applyManifest(manifest);
+    await _openWithSnapshots(manifest);
     return true;
+  }
+
+  Future<void> _openWithSnapshots(BookletManifest manifest) async {
+    _snapshotPackage = null;
+    restoredSnapshotDay = null;
+    await DailySnapshots.recover(manifest.path);
+    await DailySnapshots.rollDay(manifest.path);
+    final active = await DailySnapshots.activeDay(manifest.path);
+    if (active != null) {
+      _snapshotPackage = manifest.path;
+      restoredSnapshotDay = active;
+      await _applyManifest(
+        await BookletFile.loadManifestAtPath(
+          DailySnapshots.working(manifest.path),
+        ),
+      );
+    } else {
+      await _applyManifest(await BookletFile.loadManifestAtPath(manifest.path));
+    }
+    await refreshSnapshots();
   }
 
   Future<void> _applyManifest(BookletManifest manifest) async {
@@ -403,6 +522,7 @@ class EditorController extends ChangeNotifier {
   Future<bool> saveBookletAs() => _save(saveAs: true);
 
   Future<bool> _save({required bool saveAs}) async {
+    if (examiningSnapshot && saveAs) return false;
     final previousPath = _documentPath;
     var path = saveAs ? null : _documentPath;
     path ??= await BookletFile.chooseSavePath();
@@ -436,6 +556,7 @@ class EditorController extends ChangeNotifier {
     final completion = Completer<void>();
     _saveInProgress = completion.future;
     try {
+      if (!examiningSnapshot) await DailySnapshots.rollDay(path);
       for (final entry in _stagedNavigationSubtrees.entries) {
         await BookletFile.copyStagedNavigationPages(
           path,
@@ -471,6 +592,7 @@ class EditorController extends ChangeNotifier {
     if (path == null) {
       return;
     }
+    if (!examiningSnapshot) await DailySnapshots.rollDay(path);
     for (final page in viewModel.loadedPages) {
       await BookletFile.savePage(path, page);
     }

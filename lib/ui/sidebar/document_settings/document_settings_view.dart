@@ -1,3 +1,4 @@
+import 'package:booklet/ui/sidebar/document_settings/daily_snapshots_section.dart';
 import 'package:flutter/material.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/ui/sidebar/document_settings/document_settings_vm.dart';
@@ -10,7 +11,10 @@ class DocumentSettingsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: viewModel.settingsController,
+      animation: Listenable.merge([
+        viewModel.settingsController,
+        viewModel.editorController,
+      ]),
       builder: (context, _) => SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -97,6 +101,7 @@ class DocumentSettingsView extends StatelessWidget {
                     viewModel.updateAppearanceMode(selection.first),
               ),
             ),
+            DailySnapshotsSection(controller: viewModel.editorController),
           ],
         ),
       ),
