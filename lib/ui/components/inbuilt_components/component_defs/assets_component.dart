@@ -52,6 +52,11 @@ class AssetsComponent implements Component {
             ),
             child: AssetsViewer(
               controller: state.controller,
+              focusNode: state.focusNode,
+              onFocusChange: (focused) {
+                state.isFocused = focused;
+                if (focused) onSelect();
+              },
               isReadOnly: isReadOnly,
               onExpand: () => showDialog<void>(
                 context: context,

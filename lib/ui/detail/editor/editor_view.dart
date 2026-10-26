@@ -51,6 +51,10 @@ class EditorViewState extends State<EditorView> {
       return KeyEventResult.ignored;
     }
     if (HardwareKeyboard.instance.isShiftPressed) {
+      final selected = _viewModel.selectedComponent;
+      if (selected == null || selected.isFocused) {
+        return KeyEventResult.ignored;
+      }
       if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
         setState(() => _viewModel.extendSelectionWithArrowKey(true));
         return KeyEventResult.handled;

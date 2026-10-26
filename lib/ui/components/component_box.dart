@@ -174,6 +174,8 @@ class ComponentBox {
       state.focusNode.unfocus();
     } else if (state is LinkComponentState) {
       state.urlFocusNode.unfocus();
+    } else if (state is AssetsComponentState) {
+      state.focusNode.unfocus();
     }
   }
 

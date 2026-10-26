@@ -508,6 +508,8 @@ class QuoteComponentState extends ComponentState {
 }
 
 class AssetsComponentState extends ComponentState {
+  final FocusNode focusNode = FocusNode(debugLabel: 'assets-component');
+
   AssetsComponentState() {
     controller.selectFolder(folder, null);
     controller.onDocumentChanged = notifyListeners;
@@ -536,6 +538,7 @@ class AssetsComponentState extends ComponentState {
 
   @override
   void dispose() {
+    focusNode.dispose();
     controller.dispose();
     super.dispose();
   }
