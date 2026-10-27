@@ -7,6 +7,7 @@ import 'package:booklet/application/editor_controller.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/detail/editor/editor_vm.dart';
+import 'package:booklet/ui/detail/editor/table_of_contents_button.dart';
 import 'package:booklet/ui/detail/editor/options_dock/opitons_dock.dart';
 import 'package:booklet/ui/detail/editor/page_settings/page_settings_view.dart';
 import 'package:booklet/ui/detail/editor/page_settings/page_settings_vm.dart';
@@ -341,6 +342,19 @@ May this day of your birth be auspicious!
                   ),
                 ),
               ),
+            ),
+          ),
+          Positioned(
+            top: 82,
+            left: 12,
+            child: TableOfContentsButton(
+              components: () => _viewModel.components,
+              onSelected: (component) {
+                if (!_viewModel.components.contains(component)) return;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) _scrollToComponent(component);
+                });
+              },
             ),
           ),
           Positioned(
