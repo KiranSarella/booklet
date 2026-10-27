@@ -14,6 +14,7 @@ class AssetsViewer extends StatefulWidget {
     required this.controller,
     required this.isReadOnly,
     this.onExpand,
+    this.shrinkWrap = false,
     this.focusNode,
     this.onFocusChange,
   });
@@ -21,6 +22,9 @@ class AssetsViewer extends StatefulWidget {
   final AssetManagerController controller;
   final bool isReadOnly;
   final VoidCallback? onExpand;
+
+  /// Sizes the viewer to its assets and delegates scrolling to its parent.
+  final bool shrinkWrap;
   final FocusNode? focusNode;
   final ValueChanged<bool>? onFocusChange;
 
@@ -161,6 +165,9 @@ class _AssetsViewerState extends State<AssetsViewer> {
     }
   }
 
+  Widget _layoutContent(Widget child) =>
+      widget.shrinkWrap ? child : Expanded(child: child);
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -199,6 +206,9 @@ class _AssetsViewerState extends State<AssetsViewer> {
             return KeyEventResult.handled;
           },
           child: Column(
+            mainAxisSize: widget.shrinkWrap
+                ? MainAxisSize.min
+                : MainAxisSize.max,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
@@ -292,16 +302,24 @@ class _AssetsViewerState extends State<AssetsViewer> {
                 ),
               ),
               const Divider(height: 1),
-              Expanded(
-                child: assets.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No assets in this folder',
-                          style: TextStyle(color: colors.onSurfaceVariant),
+              _layoutContent(
+                assets.isEmpty
+                    ? SizedBox(
+                        height: widget.shrinkWrap ? 280 : null,
+                        child: Center(
+                          child: Text(
+                            'No assets in this folder',
+                            style: TextStyle(color: colors.onSurfaceVariant),
+                          ),
                         ),
                       )
                     : widget.controller.layout == AssetLayout.list
                     ? ListView.separated(
+                        shrinkWrap: widget.shrinkWrap,
+                        primary: widget.shrinkWrap ? false : null,
+                        physics: widget.shrinkWrap
+                            ? const NeverScrollableScrollPhysics()
+                            : null,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: assets.length,
                         separatorBuilder: (_, _) => const Divider(height: 1),
@@ -316,6 +334,11 @@ class _AssetsViewerState extends State<AssetsViewer> {
                         ),
                       )
                     : GridView.builder(
+                        shrinkWrap: widget.shrinkWrap,
+                        primary: widget.shrinkWrap ? false : null,
+                        physics: widget.shrinkWrap
+                            ? const NeverScrollableScrollPhysics()
+                            : null,
                         padding: const EdgeInsets.all(20),
                         gridDelegate:
                             const SliverGridDelegateWithMaxCrossAxisExtent(

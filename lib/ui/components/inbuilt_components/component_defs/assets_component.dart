@@ -40,7 +40,7 @@ class AssetsComponent implements Component {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
           child: Container(
             width: double.infinity,
-            height: 360,
+            constraints: const BoxConstraints(minHeight: 360),
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
@@ -51,6 +51,7 @@ class AssetsComponent implements Component {
               ),
             ),
             child: AssetsViewer(
+              shrinkWrap: true,
               controller: state.controller,
               focusNode: state.focusNode,
               onFocusChange: (focused) {
