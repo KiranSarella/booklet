@@ -122,16 +122,16 @@ class _EditorMinimapState extends State<EditorMinimap> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Icon(Icons.map_outlined, size: 16, color: colors.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Minimap',
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                  ],
-                ),
+                // child: Row(
+                //   children: [
+                //     Icon(Icons.map_outlined, size: 16, color: colors.primary),
+                //     const SizedBox(width: 8),
+                //     Text(
+                //       'Minimap',
+                //       style: Theme.of(context).textTheme.labelMedium,
+                //     ),
+                //   ],
+                // ),
               ),
               Expanded(
                 child: Padding(
