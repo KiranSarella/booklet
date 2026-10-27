@@ -7,6 +7,7 @@ import 'package:booklet/application/editor_controller.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/detail/editor/editor_vm.dart';
+import 'package:booklet/ui/detail/editor/editor_minimap.dart';
 import 'package:booklet/ui/detail/editor/table_of_contents_button.dart';
 import 'package:booklet/ui/detail/editor/options_dock/opitons_dock.dart';
 import 'package:booklet/ui/detail/editor/page_settings/page_settings_view.dart';
@@ -24,6 +25,8 @@ class EditorView extends StatefulWidget {
 
 class EditorViewState extends State<EditorView> {
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _viewportKey = GlobalKey();
+  bool _showMinimap = false;
   final _optionsDockKey = GlobalKey<OptionsDockState>();
   final FocusNode _pageFocusNode = FocusNode(debugLabel: 'page-shortcuts');
 
@@ -315,8 +318,14 @@ May this day of your birth be auspicious!
                 color: Theme.of(context).scaffoldBackgroundColor,
                 child: SizedBox.expand(
                   child: SingleChildScrollView(
+                    key: _viewportKey,
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(90),
+                    padding: EdgeInsets.fromLTRB(
+                      _showMinimap ? 210 : 90,
+                      90,
+                      90,
+                      90,
+                    ),
                     child: Container(
                       decoration: BoxDecoration(
                         boxShadow: [
@@ -357,6 +366,30 @@ May this day of your birth be auspicious!
               },
             ),
           ),
+          Positioned(
+            top: 130,
+            left: 12,
+            child: IconButton(
+              tooltip: _showMinimap ? 'Hide minimap' : 'Show minimap',
+              isSelected: _showMinimap,
+              icon: const Icon(Icons.map_outlined),
+              selectedIcon: const Icon(Icons.map),
+              onPressed: () => setState(() => _showMinimap = !_showMinimap),
+            ),
+          ),
+          if (_showMinimap)
+            Positioned(
+              top: 182,
+              bottom: 24,
+              left: 12,
+              width: 172,
+              child: EditorMinimap(
+                components: List.of(_viewModel.components),
+                scrollController: _scrollController,
+                viewportKey: _viewportKey,
+                onNavigate: _scrollToComponent,
+              ),
+            ),
           Positioned(
             top: 12,
             right: 86,
