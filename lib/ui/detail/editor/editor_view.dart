@@ -11,8 +11,6 @@ import 'package:booklet/ui/detail/editor/editor_vm.dart';
 import 'package:booklet/ui/detail/editor/editor_minimap.dart';
 import 'package:booklet/ui/detail/editor/table_of_contents_button.dart';
 import 'package:booklet/ui/detail/editor/options_dock/opitons_dock.dart';
-import 'package:booklet/ui/detail/editor/page_settings/page_settings_view.dart';
-import 'package:booklet/ui/detail/editor/page_settings/page_settings_vm.dart';
 import 'package:booklet/ui/detail/editor/page_view/page_view.dart';
 
 class EditorView extends StatefulWidget {
@@ -157,6 +155,30 @@ class EditorViewState extends State<EditorView> {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
+    final keyboard = HardwareKeyboard.instance;
+    if (node.hasPrimaryFocus &&
+        !keyboard.isControlPressed &&
+        !keyboard.isMetaPressed &&
+        _scrollController.hasClients) {
+      final position = _scrollController.position;
+      double? target;
+      if (event.logicalKey == LogicalKeyboardKey.space &&
+          !keyboard.isAltPressed) {
+        target =
+            position.pixels +
+            (keyboard.isShiftPressed ? -1 : 1) * position.viewportDimension;
+      }
+      if (target != null) {
+        unawaited(
+          _scrollController.animateTo(
+            target.clamp(position.minScrollExtent, position.maxScrollExtent),
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+          ),
+        );
+        return KeyEventResult.handled;
+      }
+    }
     if (HardwareKeyboard.instance.isShiftPressed) {
       final selected = _viewModel.selectedComponent;
       if (selected == null || selected.isFocused) {
@@ -232,6 +254,7 @@ class EditorViewState extends State<EditorView> {
     if (_viewModel.selectedComponent != null) {
       setState(_viewModel.clearSelectedComponent);
     }
+    _pageFocusNode.requestFocus();
   }
 
   EditorVM get viewModel => _viewModel;
@@ -353,9 +376,44 @@ May this day of your birth be auspicious!
   void initState() {
     super.initState();
     FocusManager.instance.addEarlyKeyEventHandler(_handleHistoryKey);
+    FocusManager.instance.addEarlyKeyEventHandler(_handleScrollBoundaryKey);
   }
 
-  void _applyHistory({bool redo = false}) {
+  KeyEventResult _handleScrollBoundaryKey(KeyEvent event) {
+    if ((event is! KeyDownEvent && event is! KeyRepeatEvent) ||
+        (!_pageFocusNode.hasFocus && _viewModel.selectedComponent != null) ||
+        ModalRoute.of(context)?.isCurrent == false ||
+        !_scrollController.hasClients) {
+      return KeyEventResult.ignored;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    if (!keyboard.isAltPressed ||
+        keyboard.isShiftPressed ||
+        keyboard.isControlPressed ||
+        keyboard.isMetaPressed) {
+      return KeyEventResult.ignored;
+    }
+    final position = _scrollController.position;
+    final double target;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      target = position.minScrollExtent;
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      target = position.maxScrollExtent;
+    } else {
+      return KeyEventResult.ignored;
+    }
+    // Handle these before child editors consume Alt+arrow for caret navigation.
+    unawaited(
+      _scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      ),
+    );
+    return KeyEventResult.handled;
+  }
+
+  void applyHistory({bool redo = false}) {
     redo ? _viewModel.redo() : _viewModel.undo();
     _pageFocusNode.requestFocus();
   }
@@ -369,12 +427,12 @@ May this day of your birth be auspicious!
       return KeyEventResult.ignored;
     }
     if (event.logicalKey == LogicalKeyboardKey.keyZ) {
-      _applyHistory(redo: keyboard.isShiftPressed);
+      applyHistory(redo: keyboard.isShiftPressed);
       return KeyEventResult.handled;
     }
     if (keyboard.isControlPressed &&
         event.logicalKey == LogicalKeyboardKey.keyY) {
-      _applyHistory(redo: true);
+      applyHistory(redo: true);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -383,6 +441,7 @@ May this day of your birth be auspicious!
   @override
   void dispose() {
     FocusManager.instance.removeEarlyKeyEventHandler(_handleHistoryKey);
+    FocusManager.instance.removeEarlyKeyEventHandler(_handleScrollBoundaryKey);
     _replaceController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -391,23 +450,11 @@ May this day of your birth be auspicious!
     super.dispose();
   }
 
-  void _showPageSettings() {
-    showDialog<void>(
-      context: context,
-      builder: (context) => PageSettingsDialog(
-        viewModel: PageSettingsVM(
-          pageSettingsController: widget.controller.editorTheme,
-          documentSettingsController:
-              widget.controller.documentSettingsController,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return CallbackShortcuts(
       bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyF, alt: true): _openSearch,
         const SingleActivator(LogicalKeyboardKey.keyF, control: true):
             _openSearch,
         const SingleActivator(LogicalKeyboardKey.keyF, meta: true): _openSearch,
@@ -502,9 +549,18 @@ May this day of your birth be auspicious!
                   onPressed: () => setState(() => _showMinimap = !_showMinimap),
                 ),
               ),
+              Positioned(
+                top: 178,
+                left: 12,
+                child: IconButton(
+                  tooltip: 'Find in page (Alt+F)',
+                  icon: const Icon(Icons.search),
+                  onPressed: _openSearch,
+                ),
+              ),
               if (_showMinimap)
                 Positioned(
-                  top: 182,
+                  top: 230,
                   bottom: 24,
                   left: 12,
                   width: 172,
@@ -515,33 +571,6 @@ May this day of your birth be auspicious!
                     onNavigate: _scrollToComponent,
                   ),
                 ),
-              Positioned(
-                top: 12,
-                right: 86,
-                child: Row(
-                  children: [
-                    IconButton(
-                      tooltip: 'Find in page (Ctrl/Cmd+F)',
-                      icon: const Icon(Icons.search),
-                      onPressed: _openSearch,
-                    ),
-                    IconButton(
-                      tooltip: 'Undo',
-                      icon: const Icon(Icons.undo),
-                      onPressed: _viewModel.canUndo
-                          ? () => _applyHistory()
-                          : null,
-                    ),
-                    IconButton(
-                      tooltip: 'Redo',
-                      icon: const Icon(Icons.redo),
-                      onPressed: _viewModel.canRedo
-                          ? () => _applyHistory(redo: true)
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
               Positioned.fill(
                 child: OptionsDock(
                   key: _optionsDockKey,
@@ -554,7 +583,6 @@ May this day of your birth be auspicious!
                   onComponentsPasted: pasteComponents,
                   onListStyleChanged: (style) =>
                       _viewModel.setSelectedListStyle(style),
-                  onPageSettings: _showPageSettings,
                   hasSelection: _viewModel.selectedComponent != null,
                   hasFocusBar: _viewModel.selectedHasFocusBar,
                   canTransformSelection:

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:booklet/ui/detail/editor/page_settings/page_settings_view.dart';
+import 'package:booklet/ui/detail/editor/page_settings/page_settings_vm.dart';
 import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
@@ -9,9 +11,13 @@ class DocumentStatusBar extends StatelessWidget {
     required this.documentPath,
     required this.pageSettingsController,
     required this.documentSettingsController,
+    this.onUndo,
+    this.onRedo,
   });
 
   final String? documentPath;
+  final VoidCallback? onUndo;
+  final VoidCallback? onRedo;
   final PageSettingsController pageSettingsController;
   final DocumentSettingsController documentSettingsController;
 
@@ -43,6 +49,30 @@ class DocumentStatusBar extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelSmall
                     ?.copyWith(color: colors.onSurfaceVariant),
+              ),
+            ),
+            _StatusAction(
+              tooltip: 'Undo',
+              icon: Icons.undo,
+              onPressed: onUndo,
+            ),
+            _StatusAction(
+              tooltip: 'Redo',
+              icon: Icons.redo,
+              onPressed: onRedo,
+            ),
+            const SizedBox(width: 8),
+            _StatusAction(
+              tooltip: 'Page settings',
+              icon: Icons.palette_outlined,
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (context) => PageSettingsDialog(
+                  viewModel: PageSettingsVM(
+                    pageSettingsController: pageSettingsController,
+                    documentSettingsController: documentSettingsController,
+                  ),
+                ),
               ),
             ),
             _StatusAction(
@@ -103,7 +133,7 @@ class _StatusAction extends StatelessWidget {
   });
   final String tooltip;
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => Tooltip(

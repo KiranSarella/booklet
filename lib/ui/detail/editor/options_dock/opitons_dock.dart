@@ -11,7 +11,6 @@ class OptionsDock extends StatefulWidget {
     required this.onComponentsCopied,
     required this.onComponentsPasted,
     required this.onListStyleChanged,
-    required this.onPageSettings,
     required this.hasSelection,
     required this.hasFocusBar,
     required this.canTransformSelection,
@@ -29,7 +28,6 @@ class OptionsDock extends StatefulWidget {
   final VoidCallback onComponentsCopied;
   final VoidCallback onComponentsPasted;
   final ValueChanged<String> onListStyleChanged;
-  final VoidCallback onPageSettings;
   final bool hasSelection;
   final bool hasFocusBar;
   final bool canTransformSelection;
@@ -191,16 +189,6 @@ class OptionsDockState extends State<OptionsDock> {
                   height: 36,
                 ),
               ],
-              const SizedBox(height: 20),
-              _DockButton(
-                icon: Icons.palette_outlined,
-                color: Colors.indigo,
-                tooltip: 'Page settings',
-                onPressed: () {
-                  widget.onPageSettings();
-                  dismissMenu();
-                },
-              ),
             ],
           ),
         ),

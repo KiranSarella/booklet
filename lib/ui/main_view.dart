@@ -237,6 +237,12 @@ class MainViewState extends State<MainView> {
                     ),
                   ),
                   DocumentStatusBar(
+                    onUndo: _viewModel.canUndo
+                        ? () => _editorKey.currentState?.applyHistory()
+                        : null,
+                    onRedo: _viewModel.canRedo
+                        ? () => _editorKey.currentState?.applyHistory(redo: true)
+                        : null,
                     documentPath: widget.controller.snapshotPackage,
                     pageSettingsController: widget.controller.editorTheme,
                     documentSettingsController:
