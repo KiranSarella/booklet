@@ -35,12 +35,16 @@ class PagesNavigationView extends StatefulWidget {
     required this.canMoveNode,
     required this.onMoveNode,
     required this.onChanged,
+    this.onSearch,
+    this.searchPanel,
   });
 
   static const double minWidth = 200;
   static const double maxWidth = 420;
   static const double defaultWidth = 282;
 
+  final VoidCallback? onSearch;
+  final Widget? searchPanel;
   final PagesNavigationVM controller;
   final double width;
   final bool isReadOnly;
@@ -83,7 +87,6 @@ class _PagesNavigationViewState extends State<PagesNavigationView> {
     widget.onRenameNode(title);
     setState(() => _editingNode = null);
   }
-  
 
   @override
   Widget build(BuildContext context) {
@@ -123,33 +126,40 @@ class _PagesNavigationViewState extends State<PagesNavigationView> {
                     onChanged: widget.onChanged,
                   ),
                 ],
-                // const SizedBox(width: 4),
+                if (widget.onSearch != null)
+                  IconButton(
+                    tooltip: 'Search booklet (Ctrl/Cmd+Shift+F)',
+                    icon: const Icon(Icons.search, size: 20),
+                    onPressed: widget.onSearch,
+                  ),
               ],
             ),
           ),
 
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              children: [
-                for (final group in widget.controller.groups)
-                  _NavigationBranch(
-                    key: ValueKey<NavigationNode>(group),
-                    node: group,
-                    depth: 0,
-                    isReadOnly: widget.isReadOnly,
-                    selectedPageId: widget.controller.selectedPageId,
-                    selectedNode: widget.controller.selectedNode,
-                    onSelected: widget.onPageSelected,
-                    editingNode: _editingNode,
-                    onStartEditing: _startEditing,
-                    onRename: _finishEditing,
-                    canMoveNode: widget.canMoveNode,
-                    onMoveNode: widget.onMoveNode,
-                    onChanged: () => setState(() {}),
-                  ),
-              ],
-            ),
+            child:
+                widget.searchPanel ??
+                ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  children: [
+                    for (final group in widget.controller.groups)
+                      _NavigationBranch(
+                        key: ValueKey<NavigationNode>(group),
+                        node: group,
+                        depth: 0,
+                        isReadOnly: widget.isReadOnly,
+                        selectedPageId: widget.controller.selectedPageId,
+                        selectedNode: widget.controller.selectedNode,
+                        onSelected: widget.onPageSelected,
+                        editingNode: _editingNode,
+                        onStartEditing: _startEditing,
+                        onRename: _finishEditing,
+                        canMoveNode: widget.canMoveNode,
+                        onMoveNode: widget.onMoveNode,
+                        onChanged: () => setState(() {}),
+                      ),
+                  ],
+                ),
           ),
         ],
       ),

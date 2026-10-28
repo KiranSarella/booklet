@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 import 'dart:async';
 
 import 'package:booklet/ui/document_status_bar.dart';
@@ -26,6 +28,8 @@ class MainView extends StatefulWidget {
 }
 
 class MainViewState extends State<MainView> {
+  final _sidebarKey = GlobalKey<BaseSidebarViewState>();
+  int _searchNavigation = 0;
   final _editorKey = GlobalKey<EditorViewState>();
   double _navigationWidth = PagesNavigationView.defaultWidth;
   bool _isNavigationVisible = true;
@@ -38,6 +42,45 @@ class MainViewState extends State<MainView> {
     setState(() => _isNavigationVisible = !_isNavigationVisible);
   }
 
+  void _openBookletSearch() {
+    setState(() => _isNavigationVisible = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _sidebarKey.currentState?.openSearch();
+    });
+  }
+
+  Future<void> _openSearchResult(
+    String pageId,
+    String query,
+    int index,
+    bool caseSensitive,
+  ) async {
+    final request = ++_searchNavigation;
+    try {
+      await widget.controller.selectPage(pageId);
+      if (!mounted ||
+          request != _searchNavigation ||
+          _viewModel.selectedPageId != pageId) {
+        return;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && request == _searchNavigation && index >= 0) {
+          _editorKey.currentState?.revealBookletMatch(
+            query,
+            index,
+            caseSensitive: caseSensitive,
+          );
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open search result.')),
+        );
+      }
+    }
+  }
+
   void _resizeNavigation(double delta) {
     setState(() {
       _navigationWidth = (_navigationWidth + delta)
@@ -48,145 +91,180 @@ class MainViewState extends State<MainView> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        widget.controller,
-        widget.controller.documentSettingsController,
-      ]),
-      builder: (context, _) => Stack(
-        children: [
-          Column(
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(
+          LogicalKeyboardKey.keyF,
+          control: true,
+          shift: true,
+        ): _openBookletSearch,
+        const SingleActivator(LogicalKeyboardKey.keyF, meta: true, shift: true):
+            _openBookletSearch,
+      },
+      child: Focus(
+        autofocus: true,
+        child: ListenableBuilder(
+          listenable: Listenable.merge([
+            widget.controller,
+            widget.controller.documentSettingsController,
+          ]),
+          builder: (context, _) => Stack(
             children: [
-              if (widget.controller.examiningSnapshot)
-                MaterialBanner(
-                  content: Text(
-                    'Examining snapshot from ${widget.controller.restoredSnapshotDay}. Your original booklet is safe.',
+              Column(
+                children: [
+                  if (widget.controller.examiningSnapshot)
+                    MaterialBanner(
+                      content: Text(
+                        'Examining snapshot from ${widget.controller.restoredSnapshotDay}. Your original booklet is safe.',
+                      ),
+                      leading: const Icon(Icons.history),
+                      actions: [
+                        TextButton(
+                          onPressed: widget.controller.snapshotsBusy
+                              ? null
+                              : widget.controller.discardRestoredChanges,
+                          child: const Text('Discard restored changes'),
+                        ),
+                        TextButton(
+                          onPressed:
+                              widget.controller.snapshotsBusy ||
+                                  widget
+                                      .controller
+                                      .documentSettingsController
+                                      .isReadOnly
+                              ? null
+                              : widget.controller.keepRestoredChanges,
+                          child: const Text('Keep this version'),
+                        ),
+                      ],
+                    ),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_isNavigationVisible) ...[
+                          BaseSidebarView(
+                            key: _sidebarKey,
+                            controller: widget.controller,
+                            onSearchResult: _openSearchResult,
+                            width: _navigationWidth,
+                            documentSettingsViewModel: DocumentSettingsVM(
+                              settingsController:
+                                  widget.controller.documentSettingsController,
+                              editorController: widget.controller,
+                            ),
+                            pagesNavigation: (searchPanel, onSearch) =>
+                                PagesNavigationView(
+                                  searchPanel: searchPanel,
+                                  onSearch: onSearch,
+                                  controller: _viewModel.navigation,
+                                  width: _navigationWidth,
+                                  isReadOnly: widget
+                                      .controller
+                                      .documentSettingsController
+                                      .isReadOnly,
+                                  onPageSelected: widget.controller.selectNode,
+                                  onCreateGroup: () =>
+                                      setState(_viewModel.addGroup),
+                                  onAddPageBelow: () =>
+                                      setState(_viewModel.addPageBelowSelected),
+                                  onAddChildPage: () =>
+                                      setState(_viewModel.addChildPageSelected),
+                                  onAddAssetsFolderBelow: () => setState(
+                                    widget.controller.addAssetsFolderBelow,
+                                  ),
+                                  onAddAssetsFolderInside: () => setState(
+                                    widget.controller.addAssetsFolderInside,
+                                  ),
+                                  onRenameNode: (title) => setState(
+                                    () => _viewModel.renameSelectedNode(title),
+                                  ),
+                                  onDeleteNode: () => unawaited(
+                                    widget.controller.deleteSelectedNode(),
+                                  ),
+                                  onDuplicateNode: () => unawaited(
+                                    widget.controller
+                                        .duplicateSelectedNavigationNode(),
+                                  ),
+                                  onCopyNode: () => unawaited(
+                                    widget.controller
+                                        .copySelectedNavigationNode(),
+                                  ),
+                                  onPasteNode: () => unawaited(
+                                    widget.controller
+                                        .pasteSelectedNavigationNode(),
+                                  ),
+                                  canPasteNode:
+                                      widget.controller.canPasteComponents,
+                                  canMoveNode:
+                                      (source, target, {required into}) =>
+                                          _viewModel.navigation.canMoveNode(
+                                            source,
+                                            target,
+                                            into: into,
+                                          ),
+                                  onMoveNode: (source, target, before, into) {
+                                    final moved = _viewModel.navigation
+                                        .moveNode(
+                                          source,
+                                          target,
+                                          before: before,
+                                          into: into,
+                                        );
+                                    if (moved) {
+                                      widget.controller.markDocumentChanged();
+                                    }
+                                    setState(() {});
+                                  },
+                                  onChanged: () => setState(() {}),
+                                ),
+                          ),
+                          _NavigationResizeHandle(
+                            onDragUpdate: _resizeNavigation,
+                          ),
+                        ],
+                        Expanded(
+                          child: BaseDetailView(
+                            controller: widget.controller,
+                            editorKey: _editorKey,
+                            isReadOnly: widget
+                                .controller
+                                .documentSettingsController
+                                .isReadOnly,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  leading: const Icon(Icons.history),
-                  actions: [
-                    TextButton(
-                      onPressed: widget.controller.snapshotsBusy
-                          ? null
-                          : widget.controller.discardRestoredChanges,
-                      child: const Text('Discard restored changes'),
-                    ),
-                    TextButton(
-                      onPressed:
-                          widget.controller.snapshotsBusy ||
-                              widget
-                                  .controller
-                                  .documentSettingsController
-                                  .isReadOnly
-                          ? null
-                          : widget.controller.keepRestoredChanges,
-                      child: const Text('Keep this version'),
-                    ),
-                  ],
-                ),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_isNavigationVisible) ...[
-                      BaseSidebarView(
-                        width: _navigationWidth,
-                        documentSettingsViewModel: DocumentSettingsVM(
-                          settingsController:
-                              widget.controller.documentSettingsController,
-                          editorController: widget.controller,
-                        ),
-                        pagesNavigation: PagesNavigationView(
-                          controller: _viewModel.navigation,
-                          width: _navigationWidth,
-                          isReadOnly: widget
-                              .controller
-                              .documentSettingsController
-                              .isReadOnly,
-                          onPageSelected: widget.controller.selectNode,
-                          onCreateGroup: () => setState(_viewModel.addGroup),
-                          onAddPageBelow: () =>
-                              setState(_viewModel.addPageBelowSelected),
-                          onAddChildPage: () =>
-                              setState(_viewModel.addChildPageSelected),
-                          onAddAssetsFolderBelow: () =>
-                              setState(widget.controller.addAssetsFolderBelow),
-                          onAddAssetsFolderInside: () =>
-                              setState(widget.controller.addAssetsFolderInside),
-                          onRenameNode: (title) => setState(
-                            () => _viewModel.renameSelectedNode(title),
-                          ),
-                          onDeleteNode: () =>
-                              unawaited(widget.controller.deleteSelectedNode()),
-                          onDuplicateNode: () => unawaited(
-                            widget.controller.duplicateSelectedNavigationNode(),
-                          ),
-                          onCopyNode: () => unawaited(
-                            widget.controller.copySelectedNavigationNode(),
-                          ),
-                          onPasteNode: () => unawaited(
-                            widget.controller.pasteSelectedNavigationNode(),
-                          ),
-                          canPasteNode: widget.controller.canPasteComponents,
-                          canMoveNode: (source, target, {required into}) =>
-                              _viewModel.navigation.canMoveNode(
-                                source,
-                                target,
-                                into: into,
-                              ),
-                          onMoveNode: (source, target, before, into) {
-                            final moved = _viewModel.navigation.moveNode(
-                              source,
-                              target,
-                              before: before,
-                              into: into,
-                            );
-                            if (moved) {
-                              widget.controller.markDocumentChanged();
-                            }
-                            setState(() {});
-                          },
-                          onChanged: () => setState(() {}),
-                        ),
-                      ),
-                      _NavigationResizeHandle(onDragUpdate: _resizeNavigation),
-                    ],
-                    Expanded(
-                      child: BaseDetailView(
-                        controller: widget.controller,
-                        editorKey: _editorKey,
-                        isReadOnly: widget
-                            .controller
-                            .documentSettingsController
-                            .isReadOnly,
-                      ),
-                    ),
-                  ],
+                  DocumentStatusBar(
+                    documentPath: widget.controller.snapshotPackage,
+                    pageSettingsController: widget.controller.editorTheme,
+                    documentSettingsController:
+                        widget.controller.documentSettingsController,
+                  ),
+                ],
+              ),
+              Positioned(
+                top: 12,
+                left: _isNavigationVisible ? _navigationWidth + 20 : 12,
+                child: _NavigationToggleButton(
+                  isNavigationVisible: _isNavigationVisible,
+                  onPressed: _toggleNavigation,
                 ),
               ),
-              DocumentStatusBar(
-                documentPath: widget.controller.snapshotPackage,
-                pageSettingsController: widget.controller.editorTheme,
-                documentSettingsController:
-                    widget.controller.documentSettingsController,
-              ),
+              if (widget.controller.snapshotsBusy ||
+                  widget.controller.trashBusy) ...[
+                const Positioned.fill(
+                  child: ModalBarrier(
+                    dismissible: false,
+                    color: Color(0x22000000),
+                  ),
+                ),
+                const Center(child: CircularProgressIndicator()),
+              ],
             ],
           ),
-          Positioned(
-            top: 12,
-            left: _isNavigationVisible ? _navigationWidth + 20 : 12,
-            child: _NavigationToggleButton(
-              isNavigationVisible: _isNavigationVisible,
-              onPressed: _toggleNavigation,
-            ),
-          ),
-          if (widget.controller.snapshotsBusy ||
-              widget.controller.trashBusy) ...[
-            const Positioned.fill(
-              child: ModalBarrier(dismissible: false, color: Color(0x22000000)),
-            ),
-            const Center(child: CircularProgressIndicator()),
-          ],
-        ],
+        ),
       ),
     );
   }

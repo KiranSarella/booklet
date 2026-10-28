@@ -70,6 +70,28 @@ class EditorViewState extends State<EditorView> {
     );
   }
 
+  void revealBookletMatch(
+    String query,
+    int index, {
+    bool caseSensitive = false,
+  }) {
+    _clearSearchSelection();
+    final matches = findEditorMatches(
+      _viewModel.components,
+      query,
+      caseSensitive: caseSensitive,
+    );
+    if (index < 0 || index >= matches.length) return;
+    final match = matches[index];
+    match.select();
+    _activeSearchMatch = match;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _viewModel.components.contains(match.component)) {
+        _scrollToComponent(match.component);
+      }
+    });
+  }
+
   void _openSearch() {
     setState(() => _showSearch = true);
     _searchFocusNode.requestFocus();

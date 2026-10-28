@@ -1,3 +1,7 @@
+import 'package:booklet/application/editor_controller.dart';
+
+import 'booklet_search_view.dart';
+
 import 'package:flutter/material.dart';
 import 'package:booklet/ui/sidebar/document_settings/document_settings_view.dart';
 import 'package:booklet/ui/sidebar/document_settings/document_settings_vm.dart';
@@ -15,19 +19,36 @@ class BaseSidebarView extends StatefulWidget {
   const BaseSidebarView({
     super.key,
     required this.width,
+    required this.controller,
+    required this.onSearchResult,
     required this.pagesNavigation,
     required this.documentSettingsViewModel,
   });
 
+  final EditorController controller;
+  final void Function(String, String, int, bool) onSearchResult;
   final double width;
-  final Widget pagesNavigation;
+  final Widget Function(Widget? searchPanel, VoidCallback onSearch)
+  pagesNavigation;
   final DocumentSettingsVM documentSettingsViewModel;
 
   @override
-  State<BaseSidebarView> createState() => _BaseSidebarViewState();
+  State<BaseSidebarView> createState() => BaseSidebarViewState();
 }
 
-class _BaseSidebarViewState extends State<BaseSidebarView> {
+class BaseSidebarViewState extends State<BaseSidebarView> {
+  bool _searching = false;
+  final _searchKey = GlobalKey<BookletSearchViewState>();
+  void openSearch() {
+    setState(() {
+      _section = SidebarSection.pages;
+      _searching = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchKey.currentState?.focusSearch();
+    });
+  }
+
   SidebarSection _section = SidebarSection.pages;
 
   @override
@@ -40,7 +61,8 @@ class _BaseSidebarViewState extends State<BaseSidebarView> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-            child: Row(
+            child: Wrap(
+              spacing: 4,
               children: [
                 for (final section in SidebarSection.values) ...[
                   _SectionButton(
@@ -49,7 +71,6 @@ class _BaseSidebarViewState extends State<BaseSidebarView> {
                     selected: section == _section,
                     onPressed: () => setState(() => _section = section),
                   ),
-                  const SizedBox(width: 4),
                 ],
               ],
             ),
@@ -57,7 +78,17 @@ class _BaseSidebarViewState extends State<BaseSidebarView> {
           const Divider(height: 1),
           Expanded(
             child: switch (_section) {
-              SidebarSection.pages => widget.pagesNavigation,
+              SidebarSection.pages => widget.pagesNavigation(
+                _searching
+                    ? BookletSearchView(
+                        key: _searchKey,
+                        controller: widget.controller,
+                        onResult: widget.onSearchResult,
+                        onClose: () => setState(() => _searching = false),
+                      )
+                    : null,
+                openSearch,
+              ),
               SidebarSection.settings => DocumentSettingsView(
                 viewModel: widget.documentSettingsViewModel,
               ),

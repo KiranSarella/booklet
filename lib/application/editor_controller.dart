@@ -1,3 +1,5 @@
+import 'package:booklet/ui/detail/editor/editor_search.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -527,6 +529,122 @@ class EditorController extends ChangeNotifier {
     await refreshDeletedItems();
   }
 
+  /// Searches loaded content first, including edits not yet saved to disk.
+  Future<List<BookletSearchPage>> searchBooklet(
+    String query, {
+    bool caseSensitive = false,
+  }) async {
+    if (query.isEmpty) return [];
+    final roots = viewModel.navigation.groups.toList();
+    final package = _documentPath;
+    final sources = Map<String, String>.of(_navigationPageSources);
+    final results = <BookletSearchPage>[];
+    Future<void> visit(NavigationNode node, List<String> ancestors) async {
+      if (node.isPage && node.pageId != null) {
+        final id = node.pageId!;
+        var page = viewModel.loadedPages.where((p) => p.id == id).firstOrNull;
+        final temporary = page == null;
+        final source = sources[id] ?? package;
+        if (page == null && source != null) {
+          page = await BookletFile.loadPage(source, id, editorTheme);
+        }
+        try {
+          final matches = page == null
+              ? <EditorSearchMatch>[]
+              : findEditorMatches(
+                  page.components,
+                  query,
+                  caseSensitive: caseSensitive,
+                );
+          final titleMatch = caseSensitive
+              ? node.title.contains(query)
+              : node.title.toLowerCase().contains(query.toLowerCase());
+          if (matches.isNotEmpty || titleMatch) {
+            results.add(
+              BookletSearchPage(id, node.title, ancestors.join(' › '), [
+                for (final match in matches)
+                  BookletSearchHit(match.text, match.start, match.end),
+              ]),
+            );
+          }
+        } finally {
+          if (temporary) page?.dispose();
+        }
+      }
+      for (final child in node.children.toList()) {
+        await visit(child, [...ancestors, node.title]);
+      }
+    }
+
+    for (final root in roots) {
+      await visit(root, []);
+    }
+    return results;
+  }
+
+  /// Replaces content matches only; navigation titles are left intact.
+  Future<int> replaceBookletMatches(
+    String query,
+    String replacement, {
+    bool caseSensitive = false,
+    bool all = false,
+  }) async {
+    if (query.isEmpty || documentSettingsController.isReadOnly) return 0;
+    final results = await searchBooklet(query, caseSensitive: caseSensitive);
+    var count = 0;
+    for (final result in results.where((page) => page.hits.isNotEmpty)) {
+      if (documentSettingsController.isReadOnly) break;
+      final id = result.pageId;
+      if (id == viewModel.selectedPageId) {
+        count += viewModel.replaceSearchMatches(
+          query,
+          replacement,
+          caseSensitive: caseSensitive,
+          matchIndex: all ? null : 0,
+        );
+      } else {
+        var page = viewModel.loadedPages
+            .where((page) => page.id == id)
+            .firstOrNull;
+        final temporary = page == null;
+        final source = _navigationPageSources[id] ?? _documentPath;
+        if (page == null && source != null) {
+          page = await BookletFile.loadPage(source, id, editorTheme);
+        }
+        if (page == null) continue;
+        try {
+          final matches = findEditorMatches(
+            page.components,
+            query,
+            caseSensitive: caseSensitive,
+          );
+          final selected = all ? matches : matches.take(1).toList();
+          if (temporary &&
+              source != null &&
+              selected.isNotEmpty &&
+              !examiningSnapshot) {
+            await DailySnapshots.rollDay(source);
+          }
+          for (final match in selected.reversed) {
+            match.replace(replacement);
+          }
+          if (temporary && source != null) {
+            await BookletFile.savePage(source, page);
+          }
+          count += selected.length;
+        } finally {
+          if (temporary) page.dispose();
+        }
+      }
+      if (!all && count > 0) break;
+    }
+    if (count > 0) {
+      markDocumentChanged();
+      notifyListeners();
+    }
+    return count;
+  }
+
   Future<void> selectPage(String pageId, {bool saveCurrentPage = true}) async {
     if (viewModel.selectedPageId == pageId && viewModel.selectedPage != null) {
       return;
@@ -773,4 +891,19 @@ class EditorController extends ChangeNotifier {
     viewModel.dispose();
     super.dispose();
   }
+}
+
+class BookletSearchPage {
+  const BookletSearchPage(this.pageId, this.title, this.breadcrumb, this.hits);
+  final String pageId;
+  final String title;
+  final String breadcrumb;
+  final List<BookletSearchHit> hits;
+}
+
+class BookletSearchHit {
+  const BookletSearchHit(this.text, this.start, this.end);
+  final String text;
+  final int start;
+  final int end;
 }

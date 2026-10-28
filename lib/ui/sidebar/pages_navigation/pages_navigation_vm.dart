@@ -75,7 +75,6 @@ class PagesNavigationVM {
     selectNode(folder);
     return folder;
   }
-  
 
   NavigationNode? renamePage(String pageId, String title) {
     final page = _findNode((node) => node.pageId == pageId);

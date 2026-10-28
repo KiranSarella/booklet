@@ -10,9 +10,15 @@ class EditorSearchMatch {
     this.component,
     this.select,
     this.replace,
-    this.clearSelection,
-  );
+    this.clearSelection, {
+    this.text = '',
+    this.start = 0,
+    this.end = 0,
+  });
 
+  final String text;
+  final int start;
+  final int end;
   final ComponentBox component;
   final VoidCallback select;
   final VoidCallback clearSelection;
@@ -52,6 +58,9 @@ List<EditorSearchMatch> findEditorMatches(
                 clearSelection();
               }
             },
+            text: text,
+            start: match.start,
+            end: match.end,
           ),
         );
       }

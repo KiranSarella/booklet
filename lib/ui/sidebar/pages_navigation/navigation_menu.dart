@@ -185,6 +185,12 @@ class NavigationMoreMenu extends StatelessWidget {
   }
 }
 
-enum NavigationAddAction { createGroup, addBelow, addChild, addAssetsFolderBelow, addAssetsFolderInside }
+enum NavigationAddAction {
+  createGroup,
+  addBelow,
+  addChild,
+  addAssetsFolderBelow,
+  addAssetsFolderInside,
+}
 
 enum NavigationMoreAction { duplicate, copy, paste, rename, delete }
