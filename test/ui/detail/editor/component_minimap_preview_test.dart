@@ -71,7 +71,10 @@ void main() {
     expect(find.byIcon(Icons.code), findsOneWidget);
     expect(find.byIcon(Icons.folder_outlined), findsOneWidget);
     expect(find.byIcon(Icons.music_note), findsOneWidget);
-    expect(find.byIcon(Icons.integration_instructions_outlined), findsOneWidget);
+    expect(
+      find.byIcon(Icons.integration_instructions_outlined),
+      findsOneWidget,
+    );
     expect(
       tester.widgetList<DecoratedBox>(find.byType(DecoratedBox)).any((widget) {
         final decoration = widget.decoration;
@@ -82,6 +85,53 @@ void main() {
       isTrue,
     );
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
+    theme.dispose();
+    settings.dispose();
+  });
+
+  testWidgets('compressed headings paint entirely inside their preview', (
+    tester,
+  ) async {
+    final settings = DocumentSettingsController();
+    final theme = PageSettingsController(settings);
+    final controller = EditorController(theme, settings);
+    for (final kind in ['title', 'heading', 'subheading', 'inline_heading']) {
+      final box = controller.viewModel.createComponentBelowType(0, kind);
+      (box.component.state as TextComponentState).controller.document.insert(
+        0,
+        'A long heading that must fit in the minimap',
+      );
+      for (final height in [3.0, 6.0, 12.0]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Center(
+              child: SizedBox(
+                width: 150,
+                height: height,
+                child: ComponentMinimapPreview(box: box),
+              ),
+            ),
+          ),
+        );
+        final preview = tester.renderObject<RenderBox>(
+          find.byType(ComponentMinimapPreview),
+        );
+        final text = tester.renderObject<RenderBox>(
+          find.text('A long heading that must fit in the minimap'),
+        );
+        final painted = MatrixUtils.transformRect(
+          text.getTransformTo(preview),
+          Offset.zero & text.size,
+        );
+        expect(painted.top, greaterThanOrEqualTo(-0.001));
+        expect(painted.bottom, lessThanOrEqualTo(height + 0.001));
+        expect(painted.left, greaterThanOrEqualTo(-0.001));
+        expect(painted.right, lessThanOrEqualTo(150.001));
+        expect(tester.takeException(), isNull);
+      }
+    }
     await tester.pumpWidget(const SizedBox.shrink());
     controller.dispose();
     theme.dispose();

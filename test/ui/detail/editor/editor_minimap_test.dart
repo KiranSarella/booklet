@@ -5,6 +5,8 @@ import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/detail/editor/editor_minimap.dart';
 import 'package:booklet/ui/detail/editor/editor_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:booklet/ui/detail/editor/component_minimap_preview.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -39,6 +41,31 @@ void main() {
       final selection = controller.viewModel.selectedComponent;
       final minimap = tester.widget<EditorMinimap>(find.byType(EditorMinimap));
       final before = minimap.scrollController.offset;
+      // Long documents extend beyond the minimap window.
+      final firstHeading = find.descendant(
+        of: find.byType(EditorMinimap),
+        matching: find.text('Section 0'),
+      );
+      final headingRow = find.ancestor(
+        of: firstHeading,
+        matching: find.byType(ComponentMinimapPreview),
+      );
+      expect(tester.getSize(headingRow).height, greaterThanOrEqualTo(22));
+      final mapCenter = tester.getCenter(find.byType(EditorMinimap));
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: mapCenter,
+          scrollDelta: const Offset(0, 10000),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(minimap.scrollController.offset, greaterThan(before));
+      expect(
+        tester
+            .getRect(find.bySemanticsLabel('Scroll to Section 17'))
+            .overlaps(tester.getRect(find.byType(EditorMinimap))),
+        isTrue,
+      );
       await tester.tap(find.bySemanticsLabel('Scroll to Section 17'));
       await tester.pumpAndSettle();
       expect(minimap.scrollController.offset, greaterThan(before));

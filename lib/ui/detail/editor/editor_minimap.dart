@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/detail/editor/component_minimap_preview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 
 /// A lightweight outline of the rendered page, without mounting editors twice.
 class EditorMinimap extends StatefulWidget {
@@ -28,6 +30,7 @@ class _EditorMinimapState extends State<EditorMinimap> {
   List<Rect> _bounds = [];
   double _extent = 1;
   bool _measurementScheduled = false;
+  double? _dragWindowOffset;
   final List<StreamSubscription<dynamic>> _textSubscriptions = [];
 
   @override
@@ -140,11 +143,113 @@ class _EditorMinimapState extends State<EditorMinimap> {
                       ? const Center(child: Text('No components'))
                       : LayoutBuilder(
                           builder: (context, constraints) {
-                            final scale = constraints.maxHeight / _extent;
+                            // Preserve readable rows instead of squeezing the
+                            // whole document into the available height.
+                            final miniatureBounds = <Rect>[];
+                            var documentBottom = 0.0;
+                            var miniatureBottom = 0.0;
+                            for (
+                              var i = 0;
+                              i < _bounds.length &&
+                                  i < widget.components.length;
+                              i++
+                            ) {
+                              final bounds = _bounds[i];
+                              if (bounds == Rect.zero) {
+                                miniatureBounds.add(Rect.zero);
+                                continue;
+                              }
+                              final heading =
+                                  [
+                                    'title',
+                                    'heading',
+                                    'subheading',
+                                    'inline_heading',
+                                  ].contains(
+                                    widget.components[i].component.def.key,
+                                  );
+                              final top =
+                                  miniatureBottom +
+                                  math.max(0.0, bounds.top - documentBottom) *
+                                      0.25;
+                              final height = math.max(
+                                heading ? 22.0 : 6.0,
+                                bounds.height * 0.25,
+                              );
+                              miniatureBounds.add(
+                                Rect.fromLTWH(0, top, 1, height),
+                              );
+                              documentBottom = bounds.bottom;
+                              miniatureBottom = top + height;
+                            }
+                            final miniatureExtent =
+                                miniatureBottom +
+                                math.max(0.0, _extent - documentBottom) * 0.25;
+
+                            // Translate between document and minimap coordinates,
+                            // including rows expanded to keep headings readable.
+                            double translate(
+                              double value, {
+                              bool inverse = false,
+                            }) {
+                              var sourceBottom = 0.0;
+                              var targetBottom = 0.0;
+                              for (var i = 0; i < miniatureBounds.length; i++) {
+                                if (_bounds[i] == Rect.zero) continue;
+                                final source = inverse
+                                    ? miniatureBounds[i]
+                                    : _bounds[i];
+                                final target = inverse
+                                    ? _bounds[i]
+                                    : miniatureBounds[i];
+                                if (value < source.top) {
+                                  final gap = source.top - sourceBottom;
+                                  return targetBottom +
+                                      (gap > 0
+                                          ? (value - sourceBottom) /
+                                                gap *
+                                                (target.top - targetBottom)
+                                          : 0);
+                                }
+                                if (value <= source.bottom) {
+                                  return target.top +
+                                      (value - source.top) /
+                                          math.max(source.height, 0.001) *
+                                          target.height;
+                                }
+                                sourceBottom = source.bottom;
+                                targetBottom = target.bottom;
+                              }
+                              return targetBottom +
+                                  (value - sourceBottom) * (inverse ? 4 : 0.25);
+                            }
+
+                            final viewportTop = translate(
+                              position?.pixels ?? 0,
+                            );
+                            final viewportBottom = translate(
+                              (position?.pixels ?? 0) +
+                                  (position?.viewportDimension ?? _extent),
+                            );
+                            final overflow = math.max(
+                              0.0,
+                              miniatureExtent - constraints.maxHeight,
+                            );
+                            final progress =
+                                position == null ||
+                                    position.maxScrollExtent <= 0
+                                ? 0.0
+                                : (position.pixels / position.maxScrollExtent)
+                                      .clamp(0.0, 1.0);
+                            final windowOffset = overflow * progress;
                             void scrub(Offset offset) {
                               if (position == null) return;
+                              final documentOffset = translate(
+                                offset.dy + (_dragWindowOffset ?? windowOffset),
+                                inverse: true,
+                              );
                               widget.scrollController.jumpTo(
-                                (offset.dy / scale -
+                                (documentOffset -
                                         position.viewportDimension / 2)
                                     .clamp(
                                       position.minScrollExtent,
@@ -153,66 +258,88 @@ class _EditorMinimapState extends State<EditorMinimap> {
                               );
                             }
 
-                            return GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTapDown: (event) => scrub(event.localPosition),
-                              onVerticalDragUpdate: (event) =>
-                                  scrub(event.localPosition),
-                              child: Stack(
-                                clipBehavior: Clip.hardEdge,
-                                children: [
-                                  Positioned.fill(
-                                    child: ColoredBox(color: colors.surface),
-                                  ),
-                                  for (
-                                    var i = 0;
-                                    i < widget.components.length &&
-                                        i < _bounds.length;
-                                    i++
-                                  )
-                                    if (_bounds[i] != Rect.zero)
-                                      Positioned(
-                                        top: _bounds[i].top * scale,
-                                        height: (_bounds[i].height * scale)
-                                            .clamp(3.0, constraints.maxHeight),
-                                        left: 6,
-                                        right: 6,
-                                        child: _MinimapBlock(
-                                          box: widget.components[i],
-                                          onTap: () => widget.onNavigate(
-                                            widget.components[i],
-                                          ),
-                                        ),
-                                      ),
-                                  if (position != null)
-                                    Positioned(
-                                      top:
-                                          position.pixels.clamp(0, _extent) *
-                                          scale,
-                                      height:
-                                          position.viewportDimension * scale,
-                                      left: 0,
-                                      right: 0,
-                                      child: IgnorePointer(
-                                        child: DecoratedBox(
-                                          decoration: BoxDecoration(
-                                            color: colors.primary.withValues(
-                                              alpha: 0.08,
-                                            ),
-                                            border: Border.all(
-                                              color: colors.primary.withValues(
-                                                alpha: 0.55,
+                            return Listener(
+                              onPointerSignal: (event) {
+                                if (event is PointerScrollEvent &&
+                                    position != null) {
+                                  GestureBinding.instance.pointerSignalResolver
+                                      .register(
+                                        event,
+                                        (_) => widget.scrollController.jumpTo(
+                                          (position.pixels +
+                                                  event.scrollDelta.dy * 4)
+                                              .clamp(
+                                                position.minScrollExtent,
+                                                position.maxScrollExtent,
                                               ),
-                                              width: 1.5,
+                                        ),
+                                      );
+                                }
+                              },
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTapDown: (event) =>
+                                    scrub(event.localPosition),
+                                onVerticalDragStart: (_) =>
+                                    _dragWindowOffset = windowOffset,
+                                onVerticalDragEnd: (_) =>
+                                    _dragWindowOffset = null,
+                                onVerticalDragCancel: () =>
+                                    _dragWindowOffset = null,
+                                onVerticalDragUpdate: (event) =>
+                                    scrub(event.localPosition),
+                                child: Stack(
+                                  clipBehavior: Clip.hardEdge,
+                                  children: [
+                                    Positioned.fill(
+                                      child: ColoredBox(color: colors.surface),
+                                    ),
+                                    for (
+                                      var i = 0;
+                                      i < widget.components.length &&
+                                          i < _bounds.length;
+                                      i++
+                                    )
+                                      if (_bounds[i] != Rect.zero)
+                                        Positioned(
+                                          top:
+                                              miniatureBounds[i].top -
+                                              windowOffset,
+                                          height: miniatureBounds[i].height,
+                                          left: 6,
+                                          right: 6,
+                                          child: _MinimapBlock(
+                                            box: widget.components[i],
+                                            onTap: () => widget.onNavigate(
+                                              widget.components[i],
                                             ),
-                                            borderRadius: BorderRadius.circular(
-                                              4,
+                                          ),
+                                        ),
+                                    if (position != null)
+                                      Positioned(
+                                        top: viewportTop - windowOffset,
+                                        height: viewportBottom - viewportTop,
+                                        left: 0,
+                                        right: 0,
+                                        child: IgnorePointer(
+                                          child: DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              color: colors.primary.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                              border: Border.all(
+                                                color: colors.primary
+                                                    .withValues(alpha: 0.55),
+                                                width: 1.5,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                ],
+                                  ],
+                                ),
                               ),
                             );
                           },

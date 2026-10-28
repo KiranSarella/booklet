@@ -25,21 +25,33 @@ class ComponentMinimapPreview extends StatelessWidget {
     if (['title', 'heading', 'subheading', 'inline_heading'].contains(kind)) {
       preview = Align(
         alignment: kind == 'title' ? Alignment.center : Alignment.centerLeft,
-        child: Text(
-          text,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: switch (kind) {
-              'title' => 11,
-              'heading' => 9,
-              _ => 8,
-            },
-            height: 1,
-            fontWeight: kind == 'inline_heading'
-                ? FontWeight.w600
-                : FontWeight.w800,
-            color: colors.onSurface,
+        child: LayoutBuilder(
+          builder: (context, constraints) => FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: kind == 'title'
+                ? Alignment.center
+                : Alignment.centerLeft,
+            child: SizedBox(
+              width: constraints.maxWidth,
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: kind == 'title' ? TextAlign.center : TextAlign.start,
+                style: TextStyle(
+                  fontSize: switch (kind) {
+                    'title' => 14,
+                    'heading' => 12,
+                    _ => 11,
+                  },
+                  height: 1,
+                  fontWeight: kind == 'inline_heading'
+                      ? FontWeight.w600
+                      : FontWeight.w800,
+                  color: colors.onSurface,
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -260,24 +272,32 @@ class _MiniatureLines extends CustomPainter {
         ),
         textDirection: TextDirection.ltr,
       )..layout();
+      final markerScale = math.min(1.0, size.height / painter.height);
+      canvas.save();
+      canvas.scale(markerScale);
+      final markerWidth = painter.width * markerScale;
       if (quote) {
         canvas.save();
-        canvas.translate(left + painter.width / 2, painter.height / 2);
+        canvas.translate(
+          left / markerScale + painter.width / 2,
+          painter.height / 2,
+        );
         canvas.rotate(math.pi);
         painter.paint(canvas, Offset(-painter.width / 2, -painter.height / 2));
         canvas.restore();
         painter.paint(
           canvas,
           Offset(
-            size.width - painter.width,
-            math.max(0, size.height - painter.height),
+            (size.width - markerWidth) / markerScale,
+            math.max(0, size.height / markerScale - painter.height),
           ),
         );
-        right = painter.width + 3;
+        right = markerWidth + 3;
       } else {
-        painter.paint(canvas, Offset(left, 0));
+        painter.paint(canvas, Offset(left / markerScale, 0));
       }
-      left += painter.width + 3;
+      canvas.restore();
+      left += markerWidth + 3;
       painter.dispose();
     }
     final width = (size.width - left - right).clamp(0.0, size.width);
