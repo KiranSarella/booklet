@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:booklet/ui/detail/editor/editor_search.dart';
+
 import 'package:booklet/ui/detail/editor/editor_history.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/business/components_business/component_def.dart';
@@ -54,6 +56,32 @@ class EditorVM {
   bool get canRedo =>
       !theme.documentSettingsController.isReadOnly &&
       (_history?.canRedo ?? false);
+
+  /// Replace from a fresh search snapshot; reverse order preserves text offsets.
+  int replaceSearchMatches(
+    String query,
+    String replacement, {
+    bool caseSensitive = false,
+    int? matchIndex,
+  }) {
+    if (theme.documentSettingsController.isReadOnly) return 0;
+    final matches = findEditorMatches(
+      components,
+      query,
+      caseSensitive: caseSensitive,
+    );
+    if (matches.isEmpty) return 0;
+    return _transaction(() {
+      if (matchIndex != null) {
+        matches[matchIndex % matches.length].replace(replacement);
+        return 1;
+      }
+      for (final match in matches.reversed) {
+        match.replace(replacement);
+      }
+      return matches.length;
+    });
+  }
 
   void breakHistoryGroup() => _history?.breakGroup();
 

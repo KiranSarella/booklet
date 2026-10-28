@@ -7,7 +7,6 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/detail/editor/editor_vm.dart';
-import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_test/flutter_test.dart';
 

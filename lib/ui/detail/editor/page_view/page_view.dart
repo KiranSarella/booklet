@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 class PageView extends StatelessWidget {
   const PageView({
     super.key,
+    this.searchComponents = const {},
+    this.activeSearchComponent,
     required this.editorTheme,
     required this.page,
     required this.onSelectComponent,
@@ -18,6 +20,8 @@ class PageView extends StatelessWidget {
     required this.onMoveToAdjacentTextComponent,
   });
 
+  final Set<ComponentBox> searchComponents;
+  final ComponentBox? activeSearchComponent;
   final PageSettingsController editorTheme;
   final PageContent? page;
   final ValueChanged<ComponentBox> onSelectComponent;
@@ -61,15 +65,25 @@ class PageView extends StatelessWidget {
     return Padding(
       key: component.componentKey,
       padding: const EdgeInsets.only(bottom: 6),
-      child: component.buildUI(
-        theme: editorTheme,
-        onSelect: () => onSelectComponent(component),
-        onSelectRange: () => onSelectComponentRange(component),
-        onCreateBelow: (selection) => onCreateEntryBelow(index, selection),
-        onBackspaceAtStart: () => onBackspaceAtStart(index),
-        onMoveToAdjacentTextComponent: (moveDown) =>
-            onMoveToAdjacentTextComponent(index, moveDown),
-        onPasteText: (text) => onPasteText(index, text),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: searchComponents.contains(component)
+              ? Colors.amber.withValues(
+                  alpha: component == activeSearchComponent ? 0.24 : 0.10,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: component.buildUI(
+          theme: editorTheme,
+          onSelect: () => onSelectComponent(component),
+          onSelectRange: () => onSelectComponentRange(component),
+          onCreateBelow: (selection) => onCreateEntryBelow(index, selection),
+          onBackspaceAtStart: () => onBackspaceAtStart(index),
+          onMoveToAdjacentTextComponent: (moveDown) =>
+              onMoveToAdjacentTextComponent(index, moveDown),
+          onPasteText: (text) => onPasteText(index, text),
+        ),
       ),
     );
   }

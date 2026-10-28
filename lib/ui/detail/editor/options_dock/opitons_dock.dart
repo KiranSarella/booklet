@@ -101,7 +101,7 @@ class OptionsDockState extends State<OptionsDock> {
           ),
         ],
         Positioned(
-          top: 12,
+          top: 82,
           right: 12,
           child: Column(
             mainAxisSize: MainAxisSize.min,
