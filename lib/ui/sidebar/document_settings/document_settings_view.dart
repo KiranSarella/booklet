@@ -2,6 +2,7 @@ import 'package:booklet/ui/sidebar/document_settings/document_information_sectio
 import 'package:booklet/ui/sidebar/document_settings/deleted_items_section.dart';
 import 'package:booklet/ui/sidebar/document_settings/daily_snapshots_section.dart';
 import 'package:flutter/material.dart';
+import 'package:booklet/ui/sidebar/document_settings/html_import_dialog.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/ui/sidebar/document_settings/document_settings_vm.dart';
 
@@ -36,7 +37,15 @@ class DocumentSettingsView extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: null,
+                onPressed: viewModel.settingsController.isReadOnly
+                    ? null
+                    : () => showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => HtmlImportDialog(
+                          controller: viewModel.editorController,
+                        ),
+                      ),
                 icon: const Icon(Icons.code),
                 label: const Text('HTML'),
               ),

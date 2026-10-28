@@ -1,3 +1,4 @@
+import 'package:booklet/importing/html_importer.dart';
 import 'package:booklet/ui/detail/editor/editor_search.dart';
 
 import 'dart:async';
@@ -238,6 +239,14 @@ class EditorController extends ChangeNotifier {
   bool get isAutoSaving => _isAutoSaving;
 
   bool get canPasteComponents => !documentSettingsController.isReadOnly;
+
+  Future<void> importHtml(Uri source) async {
+    if (documentSettingsController.isReadOnly) return;
+    final result = await HtmlImporter.load(source);
+    if (documentSettingsController.isReadOnly) return;
+    viewModel.importHtml(result);
+    notifyListeners();
+  }
 
   Future<void> importMarkdown() async {
     if (documentSettingsController.isReadOnly) return;

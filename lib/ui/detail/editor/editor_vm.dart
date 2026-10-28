@@ -1,3 +1,6 @@
+import 'package:booklet/importing/html_importer.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/code_block_component.dart';
+
 import 'dart:convert';
 
 import 'package:booklet/ui/detail/editor/editor_search.dart';
@@ -435,6 +438,52 @@ class EditorVM {
 
   void addPageBelowSelected() {
     _addPage(PagePlacement.below);
+  }
+
+  void importHtml(HtmlImportResult result) {
+    if (theme.documentSettingsController.isReadOnly) return;
+    final components = <Component>[];
+    for (final block in result.blocks) {
+      final component = InbuiltComponents.prepareCompoent(
+        const Uuid().v4(),
+        block.kind,
+      );
+      final state = component.state;
+      if (state is TextComponentState && block.delta != null) {
+        state.controller.document = Document.fromJson(block.delta!);
+      }
+      if (state is ListItemComponentState) state.nestingLevel = block.depth;
+      if (state is NumberedListComponentState) {
+        state.sequenceNumber = block.number ?? 1;
+      }
+      final mediaUri = Uri.tryParse(block.source ?? '');
+      final mediaPath = mediaUri?.scheme == 'file'
+          ? mediaUri!.toFilePath()
+          : block.source;
+      if (state is ImageComponentState) state.mediaPath = mediaPath;
+      if (state is VideoComponentState) state.mediaPath = mediaPath;
+      if (state is AudioComponentState) state.mediaPath = mediaPath;
+      if (state is LinkComponentState) state.setValues(url: block.source ?? '');
+      if (state is CodeBlockComponentState) {
+        state.controller.text = block.source ?? '';
+        state.setLanguage(block.language ?? 'plaintext');
+      }
+      components.add(component);
+    }
+    final page = _createPage(result.title, components);
+    for (var i = 0; i < result.blocks.length; i++) {
+      page.components[i].hasFocusBar = result.blocks[i].focusBar;
+    }
+    clearSelectedComponent();
+    navigation.addPage(
+      pageId: page.id,
+      title: page.title,
+      placement: PagePlacement.below,
+    );
+    _pagesById[page.id] = page;
+    _watchPage(page);
+    navigation.selectPage(page.id);
+    _documentChanged();
   }
 
   void importMarkdown(String markdown, {required String fileName}) {
