@@ -1,3 +1,4 @@
+import 'package:booklet/importing/pdf_importer.dart';
 import 'package:booklet/importing/html_importer.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/code_block_component.dart';
 
@@ -438,6 +439,25 @@ class EditorVM {
 
   void addPageBelowSelected() {
     _addPage(PagePlacement.below);
+  }
+
+  void importPdf(PdfImportResult result) {
+    importHtml(
+      HtmlImportResult(
+        result.title,
+        result.blocks.isNotEmpty
+            ? result.blocks
+            : [
+                for (final page in result.pages)
+                  HtmlImportBlock(
+                    'text',
+                    delta: [
+                      {'insert': '$page\n'},
+                    ],
+                  ),
+              ],
+      ),
+    );
   }
 
   void importHtml(HtmlImportResult result) {

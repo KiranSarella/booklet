@@ -1,3 +1,4 @@
+import 'package:booklet/ui/sidebar/document_settings/pdf_import_dialog.dart';
 import 'package:booklet/ui/sidebar/document_settings/document_information_section.dart';
 import 'package:booklet/ui/sidebar/document_settings/deleted_items_section.dart';
 import 'package:booklet/ui/sidebar/document_settings/daily_snapshots_section.dart';
@@ -48,6 +49,23 @@ class DocumentSettingsView extends StatelessWidget {
                       ),
                 icon: const Icon(Icons.code),
                 label: const Text('HTML'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: viewModel.settingsController.isReadOnly
+                    ? null
+                    : () => showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => PdfImportDialog(
+                          controller: viewModel.editorController,
+                        ),
+                      ),
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('PDF'),
               ),
             ),
             const SizedBox(height: 20),

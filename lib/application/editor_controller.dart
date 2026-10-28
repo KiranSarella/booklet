@@ -1,3 +1,4 @@
+import 'package:booklet/importing/pdf_importer.dart';
 import 'package:booklet/importing/html_importer.dart';
 import 'package:booklet/ui/detail/editor/editor_search.dart';
 
@@ -239,6 +240,14 @@ class EditorController extends ChangeNotifier {
   bool get isAutoSaving => _isAutoSaving;
 
   bool get canPasteComponents => !documentSettingsController.isReadOnly;
+
+  Future<void> importPdf(String path) async {
+    if (documentSettingsController.isReadOnly) return;
+    final result = await PdfImporter.load(path);
+    if (documentSettingsController.isReadOnly) return;
+    viewModel.importPdf(result);
+    notifyListeners();
+  }
 
   Future<void> importHtml(Uri source) async {
     if (documentSettingsController.isReadOnly) return;
