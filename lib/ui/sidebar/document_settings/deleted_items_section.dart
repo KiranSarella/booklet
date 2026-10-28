@@ -59,85 +59,93 @@ class _DeletedItemsSectionState extends State<DeletedItemsSection> {
         controller.trashBusy ||
         controller.snapshotsBusy ||
         controller.documentSettingsController.isReadOnly;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        Text(
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: ExpansionTile(
+        key: const PageStorageKey<String>('deleted_items'),
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(top: 8),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        shape: const Border(),
+        collapsedShape: const Border(),
+        title: Text(
           'Deleted pages and groups',
           style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Deleted items are kept for 30 days. Restored items appear at the top level with “(restored)” in their names.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        if (controller.trashError != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              controller.trashError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+        children: [
+          Text(
+            'Deleted items are kept for 30 days. Restored items appear at the top level with “(restored)” in their names.',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-        if (controller.deletedItems.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text('No deleted pages or groups.'),
-          ),
-        for (final item in controller.deletedItems) ...[
-          const Divider(),
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            selected: item.id == selected?.id,
-            selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+          if (controller.trashError != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                controller.trashError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
-            onTap: disabled
-                ? null
-                : () => setState(() => _selectedId = item.id),
-            leading: Icon(
-              item.type == 'group'
-                  ? Icons.view_list_outlined
-                  : item.type == 'assetsFolder'
-                  ? Icons.folder_outlined
-                  : Icons.notes,
-              size: 18,
+          if (controller.deletedItems.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text('No deleted pages or groups.'),
             ),
-            title: Text(
-              item.title,
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            subtitle: Text(
-              'Deleted ${MaterialLocalizations.of(context).formatMediumDate(item.deletedAt.toLocal())} · ${(item.expiresAt.difference(DateTime.now().toUtc()).inSeconds / 86400).ceil().clamp(0, 30)} days left',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            trailing: item.id == selected?.id
-                ? const Icon(Icons.check_circle_outline, size: 18)
-                : null,
-          ),
-        ],
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: [
-            TextButton(
-              onPressed: disabled || selected == null
+          for (final item in controller.deletedItems) ...[
+            const Divider(),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+              selected: item.id == selected?.id,
+              selectedTileColor: Theme.of(context)
+                  .colorScheme
+                  .secondaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              onTap: disabled
                   ? null
-                  : () => controller.restoreDeletedItem(selected.id),
-              child: const Text('Restore'),
-            ),
-            TextButton(
-              onPressed: disabled || selected == null
-                  ? null
-                  : () => _delete(context, selected.id, selected.title),
-              child: const Text('Permanently delete'),
+                  : () => setState(() => _selectedId = item.id),
+              leading: Icon(
+                item.type == 'group'
+                    ? Icons.view_list_outlined
+                    : item.type == 'assetsFolder'
+                    ? Icons.folder_outlined
+                    : Icons.notes,
+                size: 18,
+              ),
+              title: Text(
+                item.title,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              subtitle: Text(
+                'Deleted ${MaterialLocalizations.of(context).formatMediumDate(item.deletedAt.toLocal())} · ${(item.expiresAt.difference(DateTime.now().toUtc()).inSeconds / 86400).ceil().clamp(0, 30)} days left',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              trailing: item.id == selected?.id
+                  ? const Icon(Icons.check_circle_outline, size: 18)
+                  : null,
             ),
           ],
-        ),
-        if (controller.trashBusy) const LinearProgressIndicator(),
-      ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              TextButton(
+                onPressed: disabled || selected == null
+                    ? null
+                    : () => controller.restoreDeletedItem(selected.id),
+                child: const Text('Restore'),
+              ),
+              TextButton(
+                onPressed: disabled || selected == null
+                    ? null
+                    : () => _delete(context, selected.id, selected.title),
+                child: const Text('Permanently delete'),
+              ),
+            ],
+          ),
+          if (controller.trashBusy) const LinearProgressIndicator(),
+        ],
+      ),
     );
   }
 }

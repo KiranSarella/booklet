@@ -46,97 +46,107 @@ class DailySnapshotsSection extends StatelessWidget {
     final busy = controller.snapshotsBusy;
     final examining = controller.examiningSnapshot;
     final entries = controller.dailySnapshots;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        Text('Daily snapshots', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        Text(
-          controller.snapshotPackage == null
-              ? 'Save this booklet to enable daily snapshots.'
-              : 'Keeps the last saved version from each previous active day. Up to 6 days, including media.',
-          style: Theme.of(context).textTheme.bodySmall,
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: ExpansionTile(
+        key: const PageStorageKey<String>('daily_snapshots'),
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(top: 8),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        shape: const Border(),
+        collapsedShape: const Border(),
+        title: Text(
+          'Daily snapshots',
+          style: Theme.of(context).textTheme.titleSmall,
         ),
-        if (controller.snapshotError != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              controller.snapshotError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-        if (examining) ...[
-          const SizedBox(height: 12),
-          const Text('Restored copy open. Your original is safe.'),
-          const SizedBox(height: 8),
-          FilledButton(
-            onPressed: busy || controller.documentSettingsController.isReadOnly
-                ? null
-                : controller.keepRestoredChanges,
-            child: const Text('Keep this version'),
-          ),
-          TextButton(
-            onPressed: busy ? null : controller.discardRestoredChanges,
-            child: const Text('Discard restored changes'),
-          ),
-        ],
-        if (entries.isEmpty && controller.snapshotPackage != null)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text('No daily snapshots yet.'),
-          ),
-        for (final snapshot in entries) ...[
-          const Divider(),
-          Text(snapshot.day, style: Theme.of(context).textTheme.labelLarge),
+        children: [
           Text(
-            _size(snapshot.bytes),
+            controller.snapshotPackage == null
+                ? 'Save this booklet to enable daily snapshots.'
+                : 'Keeps the last saved version from each previous active day. Up to 6 days, including media.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          if (controller.restoredSnapshotDay == snapshot.day)
-            const Chip(
-              avatar: Icon(Icons.restore, size: 16),
-              label: Text('Restored · examining'),
-            )
-          else if (controller.lastRestoredSnapshotDay == snapshot.day)
-            const Chip(
-              avatar: Icon(Icons.check_circle_outline, size: 16),
-              label: Text('Restored'),
+          if (controller.snapshotError != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                controller.snapshotError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
-          Wrap(
-            spacing: 8,
-            children: [
-              TextButton(
-                onPressed:
-                    busy ||
-                        examining ||
-                        controller.documentSettingsController.isReadOnly
-                    ? null
-                    : () => controller.restoreDailySnapshot(snapshot.day),
-                child: const Text('Restore'),
+          if (examining) ...[
+            const SizedBox(height: 12),
+            const Text('Restored copy open. Your original is safe.'),
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed:
+                  busy || controller.documentSettingsController.isReadOnly
+                  ? null
+                  : controller.keepRestoredChanges,
+              child: const Text('Keep this version'),
+            ),
+            TextButton(
+              onPressed: busy ? null : controller.discardRestoredChanges,
+              child: const Text('Discard restored changes'),
+            ),
+          ],
+          if (entries.isEmpty && controller.snapshotPackage != null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text('No daily snapshots yet.'),
+            ),
+          for (final snapshot in entries) ...[
+            const Divider(),
+            Text(snapshot.day, style: Theme.of(context).textTheme.labelLarge),
+            Text(
+              _size(snapshot.bytes),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (controller.restoredSnapshotDay == snapshot.day)
+              const Chip(
+                avatar: Icon(Icons.restore, size: 16),
+                label: Text('Restored · examining'),
+              )
+            else if (controller.lastRestoredSnapshotDay == snapshot.day)
+              const Chip(
+                avatar: Icon(Icons.check_circle_outline, size: 16),
+                label: Text('Restored'),
               ),
-              IconButton(
-                tooltip: 'Delete snapshot',
-                icon: const Icon(Icons.delete_outline),
-                onPressed: busy || examining
-                    ? null
-                    : () => _delete(context, day: snapshot.day),
-              ),
-            ],
-          ),
+            Wrap(
+              spacing: 8,
+              children: [
+                TextButton(
+                  onPressed:
+                      busy ||
+                          examining ||
+                          controller.documentSettingsController.isReadOnly
+                      ? null
+                      : () => controller.restoreDailySnapshot(snapshot.day),
+                  child: const Text('Restore'),
+                ),
+                IconButton(
+                  tooltip: 'Delete snapshot',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: busy || examining
+                      ? null
+                      : () => _delete(context, day: snapshot.day),
+                ),
+              ],
+            ),
+          ],
+          if (entries.isNotEmpty) ...[
+            Text(
+              '${_size(entries.fold<int>(0, (total, entry) => total + entry.bytes))} stored',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            TextButton(
+              onPressed: busy || examining ? null : () => _delete(context),
+              child: const Text('Clear all snapshots'),
+            ),
+          ],
+          if (busy) const LinearProgressIndicator(),
         ],
-        if (entries.isNotEmpty) ...[
-          Text(
-            '${_size(entries.fold<int>(0, (total, entry) => total + entry.bytes))} stored',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          TextButton(
-            onPressed: busy || examining ? null : () => _delete(context),
-            child: const Text('Clear all snapshots'),
-          ),
-        ],
-        if (busy) const LinearProgressIndicator(),
-      ],
+      ),
     );
   }
 }

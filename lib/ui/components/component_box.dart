@@ -83,17 +83,22 @@ class ComponentBox {
         onSelectRange: onSelectRange,
         isReadOnly: isReadOnly,
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: focused
-                ? Colors.grey.shade400
-                : (selected ? Colors.indigo : Colors.transparent),
-            width: (focused || selected) ? 1.8 : 0,
+      child: CustomPaint(
+        foregroundPainter: selected
+            ? const _RainbowBorderPainter()
+            : null,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: focused && !selected
+                  ? Colors.grey.shade400
+                  : Colors.transparent,
+              width: (focused || selected) ? 1.8 : 0,
+            ),
           ),
+          child: child,
         ),
-        child: child,
       ),
     );
   }
@@ -193,4 +198,40 @@ class ComponentBox {
   void dispose() {
     component.dispose();
   }
+}
+
+class _RainbowBorderPainter extends CustomPainter {
+  const _RainbowBorderPainter();
+
+  static const _gradient = LinearGradient(
+    colors: [
+      Colors.red,
+      Colors.orange,
+      // Colors.yellow,
+      Colors.green,
+      Colors.blue,
+      Colors.indigo,
+      Colors.purple,
+    ],
+  );
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const width = 1.8;
+    final rect = Offset.zero & size;
+    final border = RRect.fromRectAndRadius(
+      rect.deflate(width / 2),
+      const Radius.circular(16 - width / 2),
+    );
+    canvas.drawRRect(
+      border,
+      Paint()
+        ..shader = _gradient.createShader(rect)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _RainbowBorderPainter oldDelegate) => false;
 }

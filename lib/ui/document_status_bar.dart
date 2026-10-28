@@ -61,20 +61,7 @@ class DocumentStatusBar extends StatelessWidget {
               icon: Icons.redo,
               onPressed: onRedo,
             ),
-            const SizedBox(width: 8),
-            _StatusAction(
-              tooltip: 'Page settings',
-              icon: Icons.palette_outlined,
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (context) => PageSettingsDialog(
-                  viewModel: PageSettingsVM(
-                    pageSettingsController: pageSettingsController,
-                    documentSettingsController: documentSettingsController,
-                  ),
-                ),
-              ),
-            ),
+            const SizedBox(width: 18),
             _StatusAction(
               tooltip: 'Decrease page font size',
               icon: Icons.remove,
@@ -90,7 +77,21 @@ class DocumentStatusBar extends StatelessWidget {
               icon: Icons.add,
               onPressed: pageSettingsController.increaseFontSize,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 18),
+            _StatusAction(
+              tooltip: 'Page settings',
+              icon: Icons.palette_outlined,
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (context) => PageSettingsDialog(
+                  viewModel: PageSettingsVM(
+                    pageSettingsController: pageSettingsController,
+                    documentSettingsController: documentSettingsController,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
             _StatusAction(
               tooltip: 'Switch page appearance',
               icon:
@@ -103,7 +104,7 @@ class DocumentStatusBar extends StatelessWidget {
                     : EditorAppearanceMode.light,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             _StatusAction(
               tooltip: 'Switch document appearance',
               icon:

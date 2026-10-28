@@ -636,7 +636,17 @@ class BookletFile {
       groups,
       sourcePackagePath: sourcePackagePath,
     );
+    final previousManifest = File(
+      '${sourcePackagePath ?? packagePath}/$_manifestName',
+    );
+    final existed = await previousManifest.exists();
+    final previous = existed
+        ? jsonDecode(await previousManifest.readAsString()) as Map
+        : const <String, dynamic>{};
+    final now = DateTime.now().toUtc().toIso8601String();
     final json = const JsonEncoder.withIndent('  ').convert({
+      'createdAt': previous['createdAt'] ?? now,
+      'updatedAt': now,
       'version': 1,
       'selectedPageId': selectedPageId,
       'selectedAssetFolderId': selectedAssetFolderId,

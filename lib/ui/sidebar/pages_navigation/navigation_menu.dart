@@ -68,23 +68,23 @@ class NavigationAddMenu extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        PopupMenuItem(
-          value: NavigationAddAction.addAssetsFolderBelow,
-          child: ListTile(
-            leading: Icon(Icons.create_new_folder_outlined),
-            title: Text('Add assets folder below'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem(
-          value: NavigationAddAction.addAssetsFolderInside,
-          enabled: canAddChildPage,
-          child: ListTile(
-            leading: Icon(Icons.create_new_folder_outlined),
-            title: Text('Add assets folder inside'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
+        // PopupMenuItem(
+        //   value: NavigationAddAction.addAssetsFolderBelow,
+        //   child: ListTile(
+        //     leading: Icon(Icons.create_new_folder_outlined),
+        //     title: Text('Add assets folder below'),
+        //     contentPadding: EdgeInsets.zero,
+        //   ),
+        // ),
+        // PopupMenuItem(
+        //   value: NavigationAddAction.addAssetsFolderInside,
+        //   enabled: canAddChildPage,
+        //   child: ListTile(
+        //     leading: Icon(Icons.create_new_folder_outlined),
+        //     title: Text('Add assets folder inside'),
+        //     contentPadding: EdgeInsets.zero,
+        //   ),
+        // ),
       ],
     );
   }
