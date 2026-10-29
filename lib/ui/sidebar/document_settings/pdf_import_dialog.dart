@@ -59,7 +59,7 @@ class _PdfImportDialogState extends State<PdfImportDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Import into a new editable page with inferred headings, paragraphs, bold and italic text, and embedded images. Layout and reading order are reconstructed and may need adjustment.',
+              'Import editable headings, paragraphs, bold and italic text, and embedded images. Multi-page PDFs become a group with a page per detected chapter or top-level heading; original PDF pages are used when no chapters are detected. Layout and reading order are reconstructed and may need adjustment.',
             ),
             const SizedBox(height: 12),
             const Text(

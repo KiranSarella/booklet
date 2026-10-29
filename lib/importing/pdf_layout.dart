@@ -113,8 +113,7 @@ class PdfLayout {
           gapBefore > body * .65 &&
           gapAfter > body * .5;
       final kind = short && (size >= body * 1.18 || boldHeading)
-          ? (firstPage &&
-                    (size >= body * 1.65 || (lineIndex == 0 && boldHeading))
+          ? (size >= body * 1.65 || (firstPage && lineIndex == 0 && boldHeading)
                 ? 'title'
                 : size >= body * 1.4
                 ? 'heading'

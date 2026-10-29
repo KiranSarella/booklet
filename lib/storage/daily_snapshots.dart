@@ -10,6 +10,10 @@ class DailySnapshot {
 /// Snapshots contain complete packages, including media. The live package is
 /// untouched while a restored version is being examined.
 class DailySnapshots {
+  static final _backupId = RegExp(
+    r'^\d{4}-\d{2}-\d{2}(?:_\d{2}-\d{2}-\d{2}-\d{6}(?:-\d+)?)?$',
+  );
+
   static String root(String package) => '$package/.daily_snapshots';
   static String working(String package) => '${root(package)}/working';
   static String day(DateTime date) =>
@@ -50,8 +54,7 @@ class DailySnapshots {
     final snapshots = <DailySnapshot>[];
     await for (final entry in directory.list()) {
       final name = entry.uri.pathSegments.where((s) => s.isNotEmpty).last;
-      if (entry is! Directory ||
-          !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(name)) {
+      if (entry is! Directory || !_backupId.hasMatch(name)) {
         continue;
       }
       if (!await File('${entry.path}/content.json').exists()) continue;
@@ -68,39 +71,35 @@ class DailySnapshots {
     return snapshots;
   }
 
-  /// Called before writing: preserve yesterday's final saved package.
-  static Future<void> rollDay(String package, {DateTime? now}) async {
-    final manifest = File('$package/content.json');
-    if (!await manifest.exists()) return;
-    final today = day(now ?? DateTime.now());
-    final marker = File('${root(package)}/last_day');
-    final previous = await marker.exists()
-        ? (await marker.readAsString()).trim()
-        : day((await manifest.stat()).modified);
-    if (previous.compareTo(today) < 0) {
-      final destination = Directory('${root(package)}/$previous');
-      if (!await destination.exists()) {
-        final staged = Directory('${root(package)}/capturing');
-        if (await staged.exists()) await staged.delete(recursive: true);
-        await copyPackage(package, staged.path, includeDeletedItems: false);
-        await staged.rename(destination.path);
-      }
-      final entries = await list(package);
-      for (final entry in entries.skip(6)) {
-        await delete(package, entry.day);
-      }
+  /// Creates a complete manual backup without pruning earlier backups.
+  static Future<String> create(String package, {DateTime? now}) async {
+    if (!await File('$package/content.json').exists()) {
+      throw StateError('Save this booklet before creating a backup.');
     }
-    if (previous.compareTo(today) > 0) return;
-    if (!await marker.exists() || previous != today) {
-      await marker.parent.create(recursive: true);
-      final staged = File('${marker.path}.tmp');
-      await staged.writeAsString(today, flush: true);
-      await staged.rename(marker.path);
+    final date = now ?? DateTime.now();
+    String pad(int value) => value.toString().padLeft(2, '0');
+    final base =
+        '${day(date)}_${pad(date.hour)}-${pad(date.minute)}-'
+        '${pad(date.second)}-${(date.millisecond * 1000 + date.microsecond).toString().padLeft(6, '0')}';
+    var id = base;
+    var suffix = 1;
+    while (await Directory('${root(package)}/$id').exists()) {
+      id = '$base-${suffix++}';
     }
+    await Directory(root(package)).create(recursive: true);
+    final staged = await Directory(root(package)).createTemp('capturing_');
+    try {
+      await copyPackage(package, staged.path, includeDeletedItems: false);
+      await staged.rename('${root(package)}/$id');
+    } catch (_) {
+      if (await staged.exists()) await staged.delete(recursive: true);
+      rethrow;
+    }
+    return id;
   }
 
   static Future<void> delete(String package, String snapshotDay) async {
-    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(snapshotDay)) {
+    if (!_backupId.hasMatch(snapshotDay)) {
       throw ArgumentError('Invalid snapshot day');
     }
     final directory = Directory('${root(package)}/$snapshotDay');
@@ -146,7 +145,6 @@ class DailySnapshots {
 
   /// Keep a recovery copy until all replacement files have been written.
   static Future<void> keep(String package) async {
-    await rollDay(package);
     final backup = Directory('${root(package)}/before_keep');
     if (await backup.exists()) {
       throw StateError('A previous restore needs recovery.');

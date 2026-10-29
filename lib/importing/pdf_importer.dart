@@ -6,13 +6,21 @@ import 'package:path_provider/path_provider.dart';
 import 'html_importer.dart';
 import 'pdf_layout.dart';
 import 'pdf_native_extractor.dart';
+import 'pdf_sections.dart';
+export 'pdf_sections.dart' show PdfImportSection;
 
 class PdfImportResult {
-  const PdfImportResult(this.title, this.pages, {this.blocks = const []});
+  const PdfImportResult(
+    this.title,
+    this.pages, {
+    this.blocks = const [],
+    this.sections = const [],
+  });
 
   final String title;
   final List<String> pages;
   final List<HtmlImportBlock> blocks;
+  final List<PdfImportSection> sections;
 }
 
 /// Reconstructs editable content from PDF text geometry and embedded images.
@@ -58,6 +66,7 @@ class PdfImporter {
   }) async {
     final body = PdfLayout.bodySize(pages);
     final blocks = <HtmlImportBlock>[];
+    final pageBlocks = <List<HtmlImportBlock>>[];
     Directory? images;
     try {
       for (var i = 0; i < pages.length; i++) {
@@ -87,9 +96,12 @@ class PdfImporter {
             ),
           );
         }
-        blocks.addAll(
-          PdfLayout.paragraphs(PdfLayout.readingOrder(positioned, body), body),
+        final content = PdfLayout.paragraphs(
+          PdfLayout.readingOrder(positioned, body),
+          body,
         );
+        pageBlocks.add(content);
+        blocks.addAll(content);
       }
       if (blocks.isEmpty) {
         throw const FormatException('This PDF has no extractable content.');
@@ -98,9 +110,12 @@ class PdfImporter {
       final title = titleBlock == null
           ? _fileTitle(fileName)
           : titleBlock.delta!.map((op) => op['insert'] as String).join().trim();
-      return PdfImportResult(title, [
-        for (final page in pages) page.glyphs.map((g) => g.text).join(),
-      ], blocks: blocks);
+      return PdfImportResult(
+        title,
+        [for (final page in pages) page.glyphs.map((g) => g.text).join()],
+        blocks: blocks,
+        sections: PdfSections.split(title, pageBlocks),
+      );
     } catch (_) {
       if (images != null) await images.delete(recursive: true);
       rethrow;

@@ -176,6 +176,22 @@ class EditorController extends ChangeNotifier {
     }
   }
 
+  Future<void> createManualBackup() => _snapshotAction(() async {
+    final package = snapshotPackage;
+    if (package == null ||
+        examiningSnapshot ||
+        documentSettingsController.isReadOnly) {
+      return;
+    }
+    await flushAutoSave();
+    if (_autoSaveError != null) {
+      throw StateError(
+        'Save failed. Your changes must be saved before backing up.',
+      );
+    }
+    await DailySnapshots.create(package);
+  });
+
   Future<void> restoreDailySnapshot(String day) => _snapshotAction(() async {
     final package = snapshotPackage;
     if (package == null ||
@@ -505,7 +521,6 @@ class EditorController extends ChangeNotifier {
     _snapshotPackage = null;
     restoredSnapshotDay = null;
     await DailySnapshots.recover(manifest.path);
-    await DailySnapshots.rollDay(manifest.path);
     final active = await DailySnapshots.activeDay(manifest.path);
     if (active != null) {
       _snapshotPackage = manifest.path;
@@ -637,12 +652,6 @@ class EditorController extends ChangeNotifier {
             caseSensitive: caseSensitive,
           );
           final selected = all ? matches : matches.take(1).toList();
-          if (temporary &&
-              source != null &&
-              selected.isNotEmpty &&
-              !examiningSnapshot) {
-            await DailySnapshots.rollDay(source);
-          }
           for (final match in selected.reversed) {
             match.replace(replacement);
           }
@@ -734,7 +743,7 @@ class EditorController extends ChangeNotifier {
   Future<void> deleteSelectedNode() => _trashAction(() async {
     final node = viewModel.navigation.selectedNode;
     if (node == null) return;
-    // Flush staged pages and preserve the previous day's snapshot first.
+    // Flush staged pages before deleting.
     await flushAutoSave();
     if (_autoSaveError != null) {
       throw StateError('Save failed. The item has not been deleted.');
@@ -833,7 +842,6 @@ class EditorController extends ChangeNotifier {
     final completion = Completer<void>();
     _saveInProgress = completion.future;
     try {
-      if (!examiningSnapshot) await DailySnapshots.rollDay(path);
       for (final entry in _stagedNavigationSubtrees.entries) {
         await BookletFile.copyStagedNavigationPages(
           path,
@@ -878,7 +886,6 @@ class EditorController extends ChangeNotifier {
     if (path == null) {
       return;
     }
-    if (!examiningSnapshot) await DailySnapshots.rollDay(path);
     for (final page in viewModel.loadedPages) {
       await BookletFile.savePage(path, page);
     }

@@ -43,15 +43,18 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
     return Padding(
       padding: EdgeInsets.only(left: listState.nestingLevel * 24.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 52,
-            child: _EditableListNumber(
-              state: listState,
-              color: theme.styleColor,
-              fontSize: theme.baseFontSize,
-              fontFamily: theme.bodyFontFamily,
+          Padding(
+            padding: EdgeInsets.only(top: editorPadding.top),
+            child: SizedBox(
+              width: 52,
+              child: _EditableListNumber(
+                state: listState,
+                color: theme.styleColor,
+                fontSize: theme.baseFontSize,
+                fontFamily: theme.bodyFontFamily,
+              ),
             ),
           ),
           Expanded(
@@ -161,6 +164,7 @@ class _EditableListNumberState extends State<_EditableListNumber> {
         fontFamily: widget.fontFamily,
         color: widget.color,
         fontSize: widget.fontSize,
+        height: 1.5,
       ),
       decoration: const InputDecoration(
         isDense: true,

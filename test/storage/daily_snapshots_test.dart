@@ -18,39 +18,43 @@ void main() {
     await package.delete(recursive: true);
   });
 
-  test('rollover captures previous saved day once, includes media, skips idle days', () async {
-    await DailySnapshots.rollDay(package.path, now: DateTime(2026, 10, 26));
-    final snapshots = await DailySnapshots.list(package.path);
-    expect(snapshots.map((s) => s.day), ['2026-10-24']);
-    expect(snapshots.single.bytes, 11);
-    final saved = '${DailySnapshots.root(package.path)}/2026-10-24';
-    expect(await File('$saved/media/photo.png').readAsBytes(), [1, 2, 3]);
-    expect(await Directory('$saved/.daily_snapshots').exists(), false);
-    await File('${package.path}/content.json').writeAsString('edited');
-    await DailySnapshots.rollDay(package.path, now: DateTime(2026, 10, 26));
-    expect(await File('$saved/content.json').readAsString(), 'original');
-    expect((await DailySnapshots.list(package.path)).length, 1);
-  });
-
   test(
-    'retention keeps six latest days; delete frees stored package',
+    'manual backups include media and preserve multiple copies per day',
     () async {
-      for (var d = 25; d <= 31; d++) {
-        await DailySnapshots.rollDay(package.path, now: DateTime(2026, 10, d));
-      }
-      final entries = await DailySnapshots.list(package.path);
-      expect(entries.length, 6);
-      expect(entries.first.day, '2026-10-30');
-      expect(entries.last.day, '2026-10-25');
-      await DailySnapshots.delete(package.path, entries.first.day);
-      expect((await DailySnapshots.list(package.path)).length, 5);
+      final first = await DailySnapshots.create(
+        package.path,
+        now: DateTime(2026, 10, 26),
+      );
+      await File('${package.path}/content.json').writeAsString('edited');
+      final second = await DailySnapshots.create(
+        package.path,
+        now: DateTime(2026, 10, 26),
+      );
+      expect(second, isNot(first));
+      final saved = '${DailySnapshots.root(package.path)}/$first';
+      expect(await File('$saved/content.json').readAsString(), 'original');
+      expect(await File('$saved/media/photo.png').readAsBytes(), [1, 2, 3]);
+      expect(await Directory('$saved/.daily_snapshots').exists(), false);
+      expect((await DailySnapshots.list(package.path)).length, 2);
+      await DailySnapshots.delete(package.path, first);
+      expect((await DailySnapshots.list(package.path)).single.day, second);
     },
   );
+
+  test('manual backups are retained until explicitly deleted', () async {
+    for (var d = 1; d <= 8; d++) {
+      await DailySnapshots.create(package.path, now: DateTime(2026, 10, d));
+    }
+    expect((await DailySnapshots.list(package.path)).length, 8);
+  });
 
   test(
     'examining and discarding leave original untouched, including media',
     () async {
-      await DailySnapshots.rollDay(package.path, now: DateTime(2026, 10, 26));
+      await DailySnapshots.copyPackage(
+        package.path,
+        '${DailySnapshots.root(package.path)}/2026-10-24',
+      );
       await File('${package.path}/content.json').writeAsString('current');
       await DailySnapshots.examine(package.path, '2026-10-24');
       expect(await DailySnapshots.activeDay(package.path), '2026-10-24');
@@ -74,7 +78,10 @@ void main() {
   );
 
   test('keep adopts examined changes and replaces removed files', () async {
-    await DailySnapshots.rollDay(package.path, now: DateTime(2026, 10, 26));
+    await DailySnapshots.copyPackage(
+      package.path,
+      '${DailySnapshots.root(package.path)}/2026-10-24',
+    );
     await File('${package.path}/extra.txt').writeAsString('new file');
     await DailySnapshots.examine(package.path, '2026-10-24');
     await File('${DailySnapshots.working(package.path)}/content.json')

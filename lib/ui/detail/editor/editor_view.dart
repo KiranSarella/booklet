@@ -156,6 +156,22 @@ class EditorViewState extends State<EditorView> {
       return KeyEventResult.ignored;
     }
     final keyboard = HardwareKeyboard.instance;
+    final selected = _viewModel.selectedComponent;
+    if (event is KeyDownEvent &&
+        node.hasPrimaryFocus &&
+        (event.logicalKey == LogicalKeyboardKey.enter ||
+            event.logicalKey == LogicalKeyboardKey.numpadEnter) &&
+        !keyboard.isControlPressed &&
+        !keyboard.isMetaPressed &&
+        !keyboard.isAltPressed &&
+        !keyboard.isShiftPressed &&
+        !widget.controller.documentSettingsController.isReadOnly &&
+        selected != null &&
+        selected.isTextComponent &&
+        !selected.isFocused) {
+      selected.requestFocus();
+      return KeyEventResult.handled;
+    }
     if (node.hasPrimaryFocus &&
         !keyboard.isControlPressed &&
         !keyboard.isMetaPressed &&

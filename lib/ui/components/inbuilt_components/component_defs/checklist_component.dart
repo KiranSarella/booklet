@@ -43,15 +43,23 @@ class ChecklistComponent with TextComponentStateOwner implements Component {
     return Padding(
       padding: EdgeInsets.only(left: listState.nestingLevel * 24.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Checkbox(
-            value: listState.isChecked,
-            onChanged: theme.documentSettingsController.isReadOnly
-                ? null
-                : (checked) => listState.isChecked = checked ?? false,
-            visualDensity: VisualDensity.compact,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          Padding(
+            padding: EdgeInsets.only(top: editorPadding.top),
+            child: SizedBox(
+              height: theme.baseFontSize * textStyle.height!,
+              child: Center(
+                child: Checkbox(
+                  value: listState.isChecked,
+                  onChanged: theme.documentSettingsController.isReadOnly
+                      ? null
+                      : (checked) => listState.isChecked = checked ?? false,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ),
           ),
           Expanded(
             child: AutoHeightRichText2(

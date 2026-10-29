@@ -167,7 +167,10 @@ void main() {
     await Directory(DailySnapshots.root(package.path)).create(recursive: true);
     await File('${DailySnapshots.root(package.path)}/last_day')
         .writeAsString('2000-01-01');
-    await DailySnapshots.rollDay(package.path);
+    await DailySnapshots.copyPackage(
+      package.path,
+      '${DailySnapshots.root(package.path)}/2000-01-01',
+    );
     await editor.refreshSnapshots();
     await editor.deleteSelectedNode();
     final id = editor.deletedItems.single.id;
@@ -202,6 +205,8 @@ void main() {
       ),
     );
     expect(find.text('Deleted pages and groups'), findsOneWidget);
+    await tester.tap(find.text('Deleted pages and groups'));
+    await tester.pumpAndSettle();
     expect(find.text('Parent'), findsOneWidget);
     expect(find.text('Restore'), findsOneWidget);
     expect(find.text('Permanently delete'), findsOneWidget);

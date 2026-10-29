@@ -180,7 +180,7 @@ class _DocumentInformationSectionState
             },
           ),
           Text(
-            'Size includes media, daily snapshots, and deleted items.',
+            'Size includes media, backups, and deleted items.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),

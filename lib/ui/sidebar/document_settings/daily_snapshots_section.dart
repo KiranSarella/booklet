@@ -14,12 +14,10 @@ class DailySnapshotsSection extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          day == null
-              ? 'Clear all daily snapshots?'
-              : 'Delete snapshot from $day?',
+          day == null ? 'Clear all backups?' : 'Delete backup from $day?',
         ),
         content: const Text(
-          'This frees storage. Deleted snapshots cannot be restored. Your current booklet is kept.',
+          'This frees storage. Deleted backups cannot be restored. Your current booklet is kept.',
         ),
         actions: [
           TextButton(
@@ -55,16 +53,25 @@ class DailySnapshotsSection extends StatelessWidget {
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         shape: const Border(),
         collapsedShape: const Border(),
-        title: Text(
-          'Daily snapshots',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
+        title: Text('Backups', style: Theme.of(context).textTheme.titleSmall),
         children: [
           Text(
             controller.snapshotPackage == null
-                ? 'Save this booklet to enable daily snapshots.'
-                : 'Keeps the last saved version from each previous active day. Up to 6 days, including media.',
+                ? 'Save this booklet to create backups.'
+                : 'Backups are created only when requested and include media. Stored inside this booklet; each copy increases its size.',
             style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed:
+                busy ||
+                    examining ||
+                    controller.snapshotPackage == null ||
+                    controller.documentSettingsController.isReadOnly
+                ? null
+                : controller.createManualBackup,
+            icon: const Icon(Icons.backup_outlined),
+            label: const Text('Back up now'),
           ),
           if (controller.snapshotError != null)
             Padding(
@@ -93,11 +100,19 @@ class DailySnapshotsSection extends StatelessWidget {
           if (entries.isEmpty && controller.snapshotPackage != null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text('No daily snapshots yet.'),
+              child: Text('No backups yet.'),
             ),
           for (final snapshot in entries) ...[
             const Divider(),
-            Text(snapshot.day, style: Theme.of(context).textTheme.labelLarge),
+            Text(
+              snapshot.day
+                  .replaceFirst('_', ' ')
+                  .replaceFirstMapped(
+                    RegExp(r' (\d{2})-(\d{2})-(\d{2})-\d{6}'),
+                    (match) => ' ${match[1]}:${match[2]}:${match[3]}',
+                  ),
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
             Text(
               _size(snapshot.bytes),
               style: Theme.of(context).textTheme.bodySmall,
@@ -125,7 +140,7 @@ class DailySnapshotsSection extends StatelessWidget {
                   child: const Text('Restore'),
                 ),
                 IconButton(
-                  tooltip: 'Delete snapshot',
+                  tooltip: 'Delete backup',
                   icon: const Icon(Icons.delete_outline),
                   onPressed: busy || examining
                       ? null
@@ -141,7 +156,7 @@ class DailySnapshotsSection extends StatelessWidget {
             ),
             TextButton(
               onPressed: busy || examining ? null : () => _delete(context),
-              child: const Text('Clear all snapshots'),
+              child: const Text('Clear all backups'),
             ),
           ],
           if (busy) const LinearProgressIndicator(),

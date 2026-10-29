@@ -43,17 +43,22 @@ class BulletedListComponent with TextComponentStateOwner implements Component {
     return Padding(
       padding: EdgeInsets.only(left: listState.nestingLevel * 24.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 32,
-            child: Center(
-              child: Text(
-                listState.symbol,
-                style: TextStyle(
-                  fontFamily: theme.bodyFontFamily,
-                  color: theme.styleColor,
-                  fontSize: theme.baseFontSize,
+          Padding(
+            padding: EdgeInsets.only(top: editorPadding.top),
+            child: SizedBox(
+              height: theme.baseFontSize * textStyle.height!,
+              width: 32,
+              child: Center(
+                child: Text(
+                  listState.symbol,
+                  style: TextStyle(
+                    fontFamily: theme.bodyFontFamily,
+                    color: theme.styleColor,
+                    fontSize: theme.baseFontSize,
+                    height: textStyle.height,
+                  ),
                 ),
               ),
             ),

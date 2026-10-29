@@ -88,27 +88,38 @@ void main() {
     vm.importPdf(result);
     expect(vm.components.first.component.def.key, 'title');
     final package = '${directory.path}/saved.booklet';
-    await BookletFile.savePage(package, vm.selectedPage!);
-    // The saved document must own its images, independent of the import cache.
+    final importedGroup = vm.navigation.groups.last;
+    expect(importedGroup.isGroup, isTrue);
+    expect(importedGroup.title, result.title);
+    final importedPages = vm.loadedPages
+        .where(
+          (page) =>
+              importedGroup.children.any((node) => node.pageId == page.id),
+        )
+        .toList();
+    for (final page in importedPages) {
+      await BookletFile.savePage(package, page);
+    }
+    // Saved pages must own their images, independent of the import cache.
     for (final block in images) {
       await File(block.source!).delete();
     }
-    final restored = await BookletFile.loadPage(
-      package,
-      vm.selectedPage!.id,
-      theme,
-    );
-    addTearDown(restored.dispose);
-    final restoredImages = restored.components
-        .map((c) => c.component.state)
-        .whereType<ImageComponentState>();
-    expect(restoredImages.length, 2);
-    for (final state in restoredImages) {
-      expect(
-        image.decodePng(await File(state.mediaPath!).readAsBytes()),
-        isNotNull,
-      );
+    var restoredImageCount = 0;
+    for (final page in importedPages) {
+      final restored = await BookletFile.loadPage(package, page.id, theme);
+      addTearDown(restored.dispose);
+      final restoredImages = restored.components
+          .map((c) => c.component.state)
+          .whereType<ImageComponentState>();
+      restoredImageCount += restoredImages.length;
+      for (final state in restoredImages) {
+        expect(
+          image.decodePng(await File(state.mediaPath!).readAsBytes()),
+          isNotNull,
+        );
+      }
     }
+    expect(restoredImageCount, 2);
   });
 
   test('recognizes isolated bold headings at body size and inserts positioned spaces', () {

@@ -10,6 +10,45 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets(
+    'Enter focuses a selected text component without inserting text',
+    (tester) async {
+      final settings = DocumentSettingsController();
+      final theme = PageSettingsController(settings);
+      final controller = EditorController(theme, settings);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [FlutterQuillLocalizations.delegate],
+          home: Scaffold(body: EditorView(controller: controller)),
+        ),
+      );
+      final editor = tester.state<EditorViewState>(find.byType(EditorView));
+      final component = controller.viewModel.components.firstWhere(
+        (component) => component.isTextComponent,
+      );
+      final state = component.component.state as TextComponentState;
+      final before = state.controller.document.toPlainText();
+      for (final key in [
+        LogicalKeyboardKey.enter,
+        LogicalKeyboardKey.numpadEnter,
+      ]) {
+        editor.clearSelectionAndFocus();
+        await tester.pump();
+        editor.selectComponent(component);
+        await tester.pump();
+        expect(state.focusNode.hasFocus, isFalse);
+        await tester.sendKeyEvent(key);
+        await tester.pump();
+        expect(state.focusNode.hasFocus, isTrue);
+        expect(state.controller.document.toPlainText(), before);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      controller.dispose();
+      theme.dispose();
+      settings.dispose();
+    },
+  );
+
   testWidgets('Alt+arrows scroll without selection or page focus', (
     tester,
   ) async {

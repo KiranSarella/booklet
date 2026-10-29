@@ -84,16 +84,14 @@ class ComponentBox {
         isReadOnly: isReadOnly,
       ),
       child: CustomPaint(
-        foregroundPainter: selected
+        foregroundPainter: selected && !focused
             ? const _RainbowBorderPainter()
             : null,
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: focused && !selected
-                  ? Colors.grey.shade400
-                  : Colors.transparent,
+              color: focused ? Colors.grey.shade400 : Colors.transparent,
               width: (focused || selected) ? 1.8 : 0,
             ),
           ),

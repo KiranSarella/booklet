@@ -51,6 +51,10 @@ void main() {
     await Directory(DailySnapshots.root(package.path)).create();
     await File('${DailySnapshots.root(package.path)}/last_day')
         .writeAsString('2000-01-01');
+    await DailySnapshots.copyPackage(
+      package.path,
+      '${DailySnapshots.root(package.path)}/2000-01-01',
+    );
     await editor.openBookletAtPath(package.path);
   });
   tearDown(() async {
@@ -68,6 +72,20 @@ void main() {
     text,
     const TextSelection.collapsed(offset: 0),
   );
+
+  test('opening and autosaving do not create backups; manual backup saves latest content', () async {
+    await editor.clearDailySnapshots();
+    await editor.openBookletAtPath(package.path);
+    expect(editor.dailySnapshots, isEmpty);
+    setText('latest');
+    await editor.flushAutoSave();
+    expect(await DailySnapshots.list(package.path), isEmpty);
+    await editor.createManualBackup();
+    expect(editor.snapshotError, null);
+    final id = editor.dailySnapshots.single.day;
+    await editor.restoreDailySnapshot(id);
+    expect(state().output, 'latest\n');
+  });
 
   test('restore isolates autosave, discard returns original, keep survives reopening', () async {
     expect(editor.dailySnapshots.single.day, '2000-01-01');
@@ -129,7 +147,10 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Daily snapshots'), findsOneWidget);
+    expect(find.text('Backups'), findsOneWidget);
+    await tester.ensureVisible(find.text('Backups'));
+    await tester.tap(find.text('Backups'));
+    await tester.pumpAndSettle();
     expect(find.text('Restored · examining'), findsOneWidget);
     expect(find.text('Discard restored changes'), findsOneWidget);
     expect(find.text('Keep this version'), findsOneWidget);

@@ -442,6 +442,25 @@ class EditorVM {
   }
 
   void importPdf(PdfImportResult result) {
+    if (theme.documentSettingsController.isReadOnly) return;
+    if (result.pages.length > 1 && result.sections.isNotEmpty) {
+      final pages = [
+        for (final section in result.sections)
+          _createImportedPage(HtmlImportResult(section.title, section.blocks)),
+      ];
+      clearSelectedComponent();
+      final group = navigation.addGroup(title: result.title);
+      for (final page in pages) {
+        group.children.add(
+          NavigationNode.page(title: page.title, pageId: page.id),
+        );
+        _pagesById[page.id] = page;
+        _watchPage(page);
+      }
+      navigation.selectPage(pages.first.id);
+      _documentChanged();
+      return;
+    }
     importHtml(
       HtmlImportResult(
         result.title,
@@ -460,8 +479,7 @@ class EditorVM {
     );
   }
 
-  void importHtml(HtmlImportResult result) {
-    if (theme.documentSettingsController.isReadOnly) return;
+  PageContent _createImportedPage(HtmlImportResult result) {
     final components = <Component>[];
     for (final block in result.blocks) {
       final component = InbuiltComponents.prepareCompoent(
@@ -494,6 +512,12 @@ class EditorVM {
     for (var i = 0; i < result.blocks.length; i++) {
       page.components[i].hasFocusBar = result.blocks[i].focusBar;
     }
+    return page;
+  }
+
+  void importHtml(HtmlImportResult result) {
+    if (theme.documentSettingsController.isReadOnly) return;
+    final page = _createImportedPage(result);
     clearSelectedComponent();
     navigation.addPage(
       pageId: page.id,
