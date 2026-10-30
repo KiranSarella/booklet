@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:booklet/ui/components/drawing/drawing_document.dart';
+
 import 'package:booklet/storage/daily_snapshots.dart';
 
 import 'package:booklet/business/page_content.dart';
@@ -560,6 +562,9 @@ class BookletFile {
           );
           _resolveComponentAssets(packagePath, componentState);
         }
+        if (componentState is DrawingComponentState) {
+          componentState.restore(componentJson);
+        }
         if (componentState is ImageComponentState) {
           final mediaPath = componentJson['mediaPath'] as String?;
           componentState.mediaPath = _resolvePackageMediaPath(
@@ -703,6 +708,14 @@ class BookletFile {
           'assets': state.output,
         });
         _resolveComponentAssets(packagePath, state);
+        continue;
+      }
+      if (state is DrawingComponentState) {
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': 'drawing',
+          ...state.toJson(),
+        });
         continue;
       }
       if (state is ImageComponentState) {

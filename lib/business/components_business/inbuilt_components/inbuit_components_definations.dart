@@ -290,3 +290,12 @@ class AssetsComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.media;
 }
+
+class DrawingComponentDef extends ComponentDef {
+  @override
+  String get key => 'drawing';
+  @override
+  String get name => 'Drawing';
+  @override
+  ComponentType get type => ComponentType.media;
+}

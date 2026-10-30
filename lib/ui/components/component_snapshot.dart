@@ -1,3 +1,5 @@
+import 'package:booklet/ui/components/drawing/drawing_document.dart';
+
 import 'dart:convert';
 
 import 'package:booklet/ui/components/component_box.dart';
@@ -48,6 +50,12 @@ class ComponentSnapshot {
       return ComponentSnapshot._(
         typeKey: component.def.key,
         extra: {'assets': state.output},
+      );
+    }
+    if (state is DrawingComponentState) {
+      return ComponentSnapshot._(
+        typeKey: component.def.key,
+        extra: state.toJson(),
       );
     }
     if (state is ImageComponentState) {
@@ -135,6 +143,8 @@ class ComponentSnapshot {
       if (authorDelta != null) {
         state.author.controller.document = Document.fromJson(authorDelta);
       }
+    } else if (state is DrawingComponentState) {
+      state.restore(extra);
     } else if (state is ImageComponentState) {
       state.mediaPath = extra['mediaPath'] as String?;
       state.imageSize = extra['imageSize'] as String?;

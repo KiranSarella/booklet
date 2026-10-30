@@ -1,3 +1,5 @@
+import 'package:booklet/ui/components/drawing/drawing_document.dart';
+
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -55,6 +57,10 @@ class ComponentMinimapPreview extends StatelessWidget {
           ),
         ),
       );
+    } else if (state is DrawingComponentState) {
+      preview = state.preview == null
+          ? const Icon(Icons.draw_outlined)
+          : Image.memory(state.preview!, fit: BoxFit.contain);
     } else if (state is ImageComponentState) {
       preview = _image(state.mediaPath, Icons.image_outlined);
     } else if (state is VideoComponentState) {
