@@ -6,7 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:booklet/ui/components/component_state.dart';
 
-enum DrawingTool { pen, line, rectangle, ellipse, circle, text }
+enum DrawingTool { pen, line, rectangle, ellipse, circle, text, image }
 
 enum DrawingBrush { pencil, marker, highlighter, spray }
 
@@ -27,6 +27,7 @@ class DrawingElement {
     this.brush = DrawingBrush.pencil,
     this.fontFamily = 'sans-serif',
     this.shadow = false,
+    this.imageData,
   }) : points = List.unmodifiable(points);
   final DrawingTool tool;
   final List<Offset> points;
@@ -34,6 +35,9 @@ class DrawingElement {
   final DrawingBrush brush;
   final String fontFamily;
   final bool shadow;
+
+  /// Embedded PNG bytes, so drawings are independent of source file paths.
+  final String? imageData;
 
   DrawingElement copyWith({
     List<Offset>? points,
@@ -51,6 +55,7 @@ class DrawingElement {
     DrawingBrush? brush,
   }) => DrawingElement(
     tool: tool,
+    imageData: imageData,
     points: points ?? this.points,
     color: color ?? this.color,
     fillColor: fillColor ?? this.fillColor,
@@ -81,7 +86,7 @@ class DrawingElement {
 
   bool hitTest(Offset point, double tolerance) {
     if (!bounds.inflate(tolerance + width / 2).contains(point)) return false;
-    if (tool == DrawingTool.text) return true;
+    if (tool == DrawingTool.text || tool == DrawingTool.image) return true;
     if (tool == DrawingTool.rectangle && filled) return true;
     if (tool == DrawingTool.pen || tool == DrawingTool.line) {
       if (points.length == 1) {
@@ -176,6 +181,7 @@ class DrawingElement {
     'brush': brush.name,
     'fontFamily': fontFamily,
     'shadow': shadow,
+    if (imageData != null) 'imageData': imageData,
     'width': width,
     'text': text,
     'fontSize': fontSize,
@@ -195,6 +201,7 @@ class DrawingElement {
     brush: DrawingBrush.values.byName(json['brush'] as String? ?? 'pencil'),
     fontFamily: json['fontFamily'] as String? ?? 'sans-serif',
     shadow: json['shadow'] == true,
+    imageData: json['imageData'] as String?,
     width: (json['width'] as num).toDouble(),
     text: json['text'] as String? ?? '',
     fontSize: (json['fontSize'] as num? ?? 36).toDouble(),
@@ -262,10 +269,16 @@ class DrawingPainter extends CustomPainter {
     this.backgroundColor = Colors.white,
     this.selectedIndex,
     this.documentSize = canvasSize,
+    this.selectedIndices = const {},
+    this.selectionRect,
+    this.images = const {},
   });
   final Color backgroundColor;
   final Size documentSize;
   final int? selectedIndex;
+  final Set<int> selectedIndices;
+  final Rect? selectionRect;
+  final Map<String, ui.Image> images;
   static const canvasSize = Size(1200, 800);
   final List<DrawingElement> elements;
   @override
@@ -354,6 +367,21 @@ class DrawingPainter extends CustomPainter {
               canvas.drawOval(rect, paint);
             }
           }
+        case DrawingTool.image:
+          final image = images[e.imageData];
+          if (image != null) {
+            canvas.drawImageRect(
+              image,
+              Rect.fromLTWH(
+                0,
+                0,
+                image.width.toDouble(),
+                image.height.toDouble(),
+              ),
+              Rect.fromPoints(start, end),
+              Paint()..filterQuality = FilterQuality.medium,
+            );
+          }
         case DrawingTool.text:
           DrawingElement.textPainter(e).paint(canvas, start);
           if (e.outlined) {
@@ -361,21 +389,38 @@ class DrawingPainter extends CustomPainter {
           }
       }
     }
-    if (selectedIndex != null && selectedIndex! < elements.length) {
-      final rect = elements[selectedIndex!].bounds.inflate(8);
+    final selected = {...selectedIndices, ?selectedIndex};
+    for (final index in selected) {
+      if (index < 0 || index >= elements.length) continue;
+      final rect = elements[index].bounds.inflate(8);
       final screenScale = documentSize.width / size.width;
       final paint = Paint()
         ..color = Colors.blue
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5 * screenScale;
       canvas.drawRect(rect, paint);
+      if (selected.length == 1) {
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: rect.bottomRight,
+            width: 12 * screenScale,
+            height: 12 * screenScale,
+          ),
+          Paint()..color = Colors.blue,
+        );
+      }
+    }
+    if (selectionRect != null) {
       canvas.drawRect(
-        Rect.fromCenter(
-          center: rect.bottomRight,
-          width: 12 * screenScale,
-          height: 12 * screenScale,
-        ),
-        Paint()..color = Colors.blue,
+        selectionRect!,
+        Paint()..color = Colors.blue.withValues(alpha: .12),
+      );
+      canvas.drawRect(
+        selectionRect!,
+        Paint()
+          ..color = Colors.blue
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
       );
     }
     canvas.restore();
@@ -389,11 +434,46 @@ class DrawingPainter extends CustomPainter {
     Color backgroundColor = Colors.white,
     Size canvasSize = DrawingPainter.canvasSize,
   }) async {
+    final decoded = <String, ui.Image>{};
+    try {
+      for (final e in elements) {
+        final data = e.imageData;
+        if (e.tool == DrawingTool.image &&
+            data != null &&
+            !decoded.containsKey(data)) {
+          final codec = await ui.instantiateImageCodec(base64Decode(data));
+          try {
+            decoded[data] = (await codec.getNextFrame()).image;
+          } finally {
+            codec.dispose();
+          }
+        }
+      }
+      return await _render(
+        elements,
+        backgroundColor: backgroundColor,
+        canvasSize: canvasSize,
+        images: decoded,
+      );
+    } finally {
+      for (final image in decoded.values) {
+        image.dispose();
+      }
+    }
+  }
+
+  static Future<Uint8List> _render(
+    List<DrawingElement> elements, {
+    required Color backgroundColor,
+    required Size canvasSize,
+    required Map<String, ui.Image> images,
+  }) async {
     final recorder = ui.PictureRecorder();
     DrawingPainter(
       elements,
       backgroundColor: backgroundColor,
       documentSize: canvasSize,
+      images: images,
     ).paint(Canvas(recorder), canvasSize);
     final picture = recorder.endRecording();
     final image = await picture.toImage(

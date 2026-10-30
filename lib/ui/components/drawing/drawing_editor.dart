@@ -1,3 +1,8 @@
+import 'dart:convert';
+import 'dart:ui' as ui;
+
+import 'package:file_selector/file_selector.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -11,8 +16,9 @@ typedef _Draft = ({List<DrawingElement> elements, Color background, Size size});
 
 /// Changes remain local until Save commits the drawing and its image preview.
 class DrawingEditor extends StatefulWidget {
-  const DrawingEditor({super.key, required this.state});
+  const DrawingEditor({super.key, required this.state, this.pickImage});
   final DrawingComponentState state;
+  final Future<XFile?> Function()? pickImage;
   @override
   State<DrawingEditor> createState() => _DrawingEditorState();
 }
@@ -26,6 +32,9 @@ class _DrawingEditorState extends State<DrawingEditor> {
   bool _pan = false;
   @override
   void dispose() {
+    for (final image in _images.values) {
+      image.dispose();
+    }
     _transform.dispose();
     super.dispose();
   }
@@ -46,6 +55,44 @@ class _DrawingEditorState extends State<DrawingEditor> {
       _shadow = false;
   bool _saving = false, _allowPop = false;
   int? _selected;
+  final Set<int> _selectedIndices = {};
+  Rect? _marquee;
+  Offset? _marqueeStart;
+  final Map<String, ui.Image> _images = {};
+  bool _importing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImages();
+  }
+
+  Future<void> _loadImages() async {
+    for (final data
+        in _elements.map((e) => e.imageData).whereType<String>().toSet()) {
+      try {
+        final codec = await ui.instantiateImageCodec(base64Decode(data));
+        late ui.Image image;
+        try {
+          image = (await codec.getNextFrame()).image;
+        } finally {
+          codec.dispose();
+        }
+        if (!mounted) {
+          image.dispose();
+          return;
+        }
+        setState(() => _images[data] = image);
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('An image could not be loaded.')),
+          );
+        }
+      }
+    }
+  }
+
   Offset? _dragStart, _pointerDown;
   _Draft? _dragDraft;
   bool _resizing = false;
@@ -94,6 +141,7 @@ class _DrawingEditorState extends State<DrawingEditor> {
     _background = draft.background;
     _canvasSize = draft.size;
     _selected = null;
+    _selectedIndices.clear();
   }
 
   void _undoAction() => setState(() {
@@ -110,6 +158,9 @@ class _DrawingEditorState extends State<DrawingEditor> {
   );
   void _select(int? index) {
     _selected = index;
+    _selectedIndices
+      ..clear()
+      ..addAll(index == null ? const <int>[] : [index]);
     if (index == null) return;
     final e = _elements[index];
     _stroke = e.color;
@@ -154,10 +205,14 @@ class _DrawingEditorState extends State<DrawingEditor> {
   }
 
   void _delete() {
-    final index = _selected;
-    if (index == null) return;
+    if (_selectedIndices.isEmpty) return;
+    final indices = Set.of(_selectedIndices);
     _selected = null;
-    _commit(List.of(_elements)..removeAt(index));
+    _selectedIndices.clear();
+    _commit([
+      for (var i = 0; i < _elements.length; i++)
+        if (!indices.contains(i)) _elements[i],
+    ]);
   }
 
   void _start(Offset p, double tolerance) {
@@ -166,7 +221,14 @@ class _DrawingEditorState extends State<DrawingEditor> {
       _resizing =
           e != null &&
           (p - e.bounds.inflate(8).bottomRight).distance < tolerance * 2;
-      if (!_resizing) _select(_hit(p, tolerance));
+      if (!_resizing) {
+        final hit = _hit(p, tolerance);
+        if (hit == null || !_selectedIndices.contains(hit)) _select(hit);
+        if (hit == null) {
+          _marqueeStart = p;
+          _marquee = Rect.fromPoints(p, p);
+        }
+      }
       _dragStart = p;
       _dragDraft = _draft;
     } else if (_tool != DrawingTool.text) {
@@ -178,23 +240,43 @@ class _DrawingEditorState extends State<DrawingEditor> {
   void _update(Offset p) {
     setState(() {
       if (_section == _Section.select) {
-        if (_selected == null || _dragDraft == null || _dragStart == null) {
+        if (_marqueeStart != null) {
+          _marquee = Rect.fromPoints(_marqueeStart!, p);
+          _selectedIndices
+            ..clear()
+            ..addAll([
+              for (var i = 0; i < _elements.length; i++)
+                if (_marquee!.overlaps(_elements[i].bounds.inflate(1))) i,
+            ]);
+          _selected = _selectedIndices.length == 1
+              ? _selectedIndices.single
+              : null;
           return;
         }
-        final original = _dragDraft!.elements[_selected!];
+        if (_selectedIndices.isEmpty ||
+            _dragDraft == null ||
+            _dragStart == null) {
+          return;
+        }
         final delta = p - _dragStart!;
-        final bounds = original.bounds;
-        var sx = bounds.width < 1
-            ? 1.0
-            : ((bounds.width + delta.dx) / bounds.width).clamp(.05, 20.0);
-        final sy = bounds.height < 1
-            ? 1.0
-            : ((bounds.height + delta.dy) / bounds.height).clamp(.05, 20.0);
-        if (original.tool == DrawingTool.circle) sx = sy;
         _elements = List.of(_elements);
-        _elements[_selected!] = _resizing
-            ? original.resized(sx, sy)
-            : original.translated(delta);
+        for (final index in _selectedIndices) {
+          final original = _dragDraft!.elements[index];
+          final bounds = original.bounds;
+          var sx = bounds.width < 1
+              ? 1.0
+              : ((bounds.width + delta.dx) / bounds.width).clamp(.05, 20.0);
+          final sy = bounds.height < 1
+              ? 1.0
+              : ((bounds.height + delta.dy) / bounds.height).clamp(.05, 20.0);
+          if (original.tool == DrawingTool.circle ||
+              original.tool == DrawingTool.image) {
+            sx = sy;
+          }
+          _elements[index] = _resizing
+              ? original.resized(sx, sy)
+              : original.translated(delta);
+        }
       } else if (_points.isNotEmpty) {
         if (_tool == DrawingTool.circle) {
           final delta = p - _points.first;
@@ -217,19 +299,106 @@ class _DrawingEditorState extends State<DrawingEditor> {
 
   void _end() {
     if (_section == _Section.select) {
-      if (_selected != null &&
+      if (_marqueeStart == null &&
           _dragDraft != null &&
-          _elements[_selected!] != _dragDraft!.elements[_selected!]) {
+          _selectedIndices.any(
+            (i) => _elements[i] != _dragDraft!.elements[i],
+          )) {
         _undo.add(_dragDraft!);
         _redo.clear();
-        _select(_selected);
       }
+      if (_selectedIndices.length == 1) _select(_selectedIndices.single);
+      _marqueeStart = null;
+      _marquee = null;
       _dragStart = null;
       _dragDraft = null;
     } else if (_points.isNotEmpty) {
       _commit([..._elements, _element(_points)]);
     }
     setState(() => _points = []);
+  }
+
+  Future<void> _addImage() async {
+    setState(() => _importing = true);
+    ui.Image? decoded;
+    try {
+      final file =
+          await (widget.pickImage?.call() ??
+              openFile(
+                acceptedTypeGroups: const [
+                  XTypeGroup(
+                    label: 'Images',
+                    extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'],
+                    mimeTypes: [
+                      'image/png',
+                      'image/jpeg',
+                      'image/webp',
+                      'image/gif',
+                      'image/bmp',
+                    ],
+                  ),
+                ],
+              ));
+      if (file == null || !mounted) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      final codec = await ui.instantiateImageCodec(
+        bytes,
+        targetWidth: 2048,
+        allowUpscaling: false,
+      );
+      try {
+        decoded = (await codec.getNextFrame()).image;
+      } finally {
+        codec.dispose();
+      }
+      final png = await decoded.toByteData(format: ui.ImageByteFormat.png);
+      if (png == null) throw StateError('Could not read image');
+      if (!mounted) return;
+      final data = base64Encode(
+        png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes),
+      );
+      final scale = math.min(
+        1.0,
+        math.min(
+          _canvasSize.width * .6 / decoded.width,
+          _canvasSize.height * .6 / decoded.height,
+        ),
+      );
+      final size = Size(decoded.width * scale, decoded.height * scale);
+      final origin = Offset(
+        (_canvasSize.width - size.width) / 2,
+        (_canvasSize.height - size.height) / 2,
+      );
+      if (!_images.containsKey(data)) {
+        _images[data] = decoded;
+        decoded = null;
+      }
+      _commit([
+        ..._elements,
+        DrawingElement(
+          tool: DrawingTool.image,
+          imageData: data,
+          points: [origin, origin + Offset(size.width, size.height)],
+        ),
+      ]);
+      setState(() {
+        _section = _Section.select;
+        _pan = false;
+        _select(_elements.length - 1);
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not add this image. Try a PNG or JPEG file.'),
+          ),
+        );
+      }
+    } finally {
+      decoded?.dispose();
+      if (mounted) setState(() => _importing = false);
+    }
   }
 
   Future<void> _close() async {
@@ -383,6 +552,7 @@ class _DrawingEditorState extends State<DrawingEditor> {
   void _changeSection(_Section section) => setState(() {
     _section = section;
     _selected = null;
+    _selectedIndices.clear();
     _points = [];
     _tool = switch (section) {
       _Section.text => DrawingTool.text,
@@ -399,6 +569,7 @@ class _DrawingEditorState extends State<DrawingEditor> {
             DrawingTool.pen,
             DrawingTool.text,
             DrawingTool.line,
+            DrawingTool.image,
           ].contains(e.tool)
         : _section == _Section.shapes && _tool != DrawingTool.line;
     return Column(
@@ -469,7 +640,8 @@ class _DrawingEditorState extends State<DrawingEditor> {
                     if (v != null) _style(() => _brush = v);
                   },
                 ),
-              if (_section != _Section.select || e != null) ...[
+              if ((_section != _Section.select || e != null) &&
+                  e?.tool != DrawingTool.image) ...[
                 _colorButton(
                   'Stroke',
                   _stroke,
@@ -545,8 +717,10 @@ class _DrawingEditorState extends State<DrawingEditor> {
                   _toggle('Shadow', _shadow, (v) => _shadow = v),
                 ],
               ],
-              if (e != null) ...[
-                if (text)
+              if (_selectedIndices.isNotEmpty) ...[
+                if (_selectedIndices.length > 1)
+                  Text('${_selectedIndices.length} selected'),
+                if (text && e != null)
                   TextButton.icon(
                     onPressed: () => _text(e.points.first, index: _selected),
                     icon: const Icon(Icons.edit),
@@ -671,6 +845,8 @@ class _DrawingEditorState extends State<DrawingEditor> {
                             onPanCancel: () => setState(() {
                               if (_dragDraft != null) _restore(_dragDraft!);
                               _dragDraft = null;
+                              _marqueeStart = null;
+                              _marquee = null;
                               _points = [];
                             }),
                             child: CustomPaint(
@@ -682,6 +858,9 @@ class _DrawingEditorState extends State<DrawingEditor> {
                                 ],
                                 backgroundColor: _background,
                                 selectedIndex: _selected,
+                                selectedIndices: Set.of(_selectedIndices),
+                                selectionRect: _marquee,
+                                images: _images,
                                 documentSize: _canvasSize,
                               ),
                             ),
@@ -769,30 +948,37 @@ class _DrawingEditorState extends State<DrawingEditor> {
         ),
         actions: [
           IconButton(
-            visualDensity: VisualDensity.compact,
+            visualDensity: const VisualDensity(horizontal: -4, vertical: -2),
+            onPressed: _saving || _importing ? null : _addImage,
+            tooltip: 'Add image',
+            icon: const Icon(Icons.add_photo_alternate_outlined),
+          ),
+          IconButton(
+            visualDensity: const VisualDensity(horizontal: -4, vertical: -2),
             onPressed: _saving || _undo.isEmpty ? null : _undoAction,
             tooltip: 'Undo',
             icon: const Icon(Icons.undo),
           ),
           IconButton(
-            visualDensity: VisualDensity.compact,
+            visualDensity: const VisualDensity(horizontal: -4, vertical: -2),
             onPressed: _saving || _redo.isEmpty ? null : _redoAction,
             tooltip: 'Redo',
             icon: const Icon(Icons.redo),
           ),
           IconButton(
-            visualDensity: VisualDensity.compact,
+            visualDensity: const VisualDensity(horizontal: -4, vertical: -2),
             onPressed: _saving || _elements.isEmpty
                 ? null
                 : () {
                     _selected = null;
+                    _selectedIndices.clear();
                     _commit([]);
                   },
             tooltip: 'Clear',
             icon: const Icon(Icons.delete_sweep_outlined),
           ),
           IconButton(
-            visualDensity: VisualDensity.compact,
+            visualDensity: const VisualDensity(horizontal: -4, vertical: -2),
             onPressed: _saving
                 ? null
                 : () => _color(
@@ -807,7 +993,7 @@ class _DrawingEditorState extends State<DrawingEditor> {
             ),
           ),
           TextButton.icon(
-            onPressed: _saving ? null : _save,
+            onPressed: _saving || _importing ? null : _save,
             icon: _saving
                 ? const SizedBox.square(
                     dimension: 18,
@@ -835,7 +1021,7 @@ class _DrawingEditorState extends State<DrawingEditor> {
                 Padding(
                   padding: const EdgeInsets.all(8),
                   child: Text(switch (_section) {
-                    _Section.select => 'Select an object, drag to move, or drag its blue corner to resize.',
+                    _Section.select => 'Drag on empty canvas to select multiple objects. Drag selected objects to move; use the blue corner to resize one.',
                     _Section.text => 'Tap the canvas to add text. Use Select to edit existing text.',
                     _ => 'Drag on the canvas to draw. Save to update the page preview.',
                   }, textAlign: TextAlign.center),

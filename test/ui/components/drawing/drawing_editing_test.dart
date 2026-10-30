@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:file_selector/file_selector.dart';
+import 'package:image/image.dart' as image;
 import 'package:booklet/ui/components/drawing/drawing_document.dart';
 import 'package:booklet/ui/components/drawing/drawing_editor.dart';
 import 'package:flutter/material.dart';
@@ -262,4 +266,193 @@ void main() {
       state.dispose();
     },
   );
+  testWidgets(
+    'marquee selects multiple objects for group move, delete and undo',
+    (tester) async {
+      final originals = [
+        DrawingElement(
+          tool: DrawingTool.rectangle,
+          points: const [Offset(200, 200), Offset(300, 300)],
+          filled: true,
+        ),
+        DrawingElement(
+          tool: DrawingTool.ellipse,
+          points: const [Offset(400, 200), Offset(500, 300)],
+          filled: true,
+        ),
+        DrawingElement(
+          tool: DrawingTool.rectangle,
+          points: const [Offset(900, 500), Offset(1000, 600)],
+          filled: true,
+        ),
+      ];
+      final state = DrawingComponentState()
+        ..restore({'elements': originals.map((e) => e.toJson()).toList()});
+      await tester.pumpWidget(MaterialApp(home: DrawingEditor(state: state)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Select'));
+      await tester.pumpAndSettle();
+      await tester.dragFrom(
+        screen(tester, const Offset(150, 150)),
+        screen(tester, const Offset(550, 350)) -
+            screen(tester, const Offset(150, 150)),
+      );
+      await tester.pumpAndSettle();
+      expect(painter(tester).selectedIndices, {0, 1});
+      expect(find.text('2 selected'), findsOneWidget);
+      await tester.dragFrom(
+        screen(tester, const Offset(250, 250)),
+        const Offset(30, 20),
+      );
+      await tester.pumpAndSettle();
+      expect(painter(tester).elements[0].bounds.left, greaterThan(200));
+      expect(painter(tester).elements[1].bounds.left, greaterThan(400));
+      expect(painter(tester).elements[2].bounds.left, 900);
+      await tester.tap(find.byTooltip('Delete selected'));
+      await tester.pumpAndSettle();
+      expect(painter(tester).elements, hasLength(1));
+      expect(painter(tester).elements.single.bounds.left, 900);
+      await tester.tap(find.byTooltip('Undo'));
+      await tester.pumpAndSettle();
+      expect(painter(tester).elements, hasLength(3));
+      await tester.tap(find.byTooltip('Undo'));
+      await tester.pumpAndSettle();
+      expect(painter(tester).elements[0].bounds.left, 200);
+      expect(state.elements, hasLength(3));
+      await tester.pumpWidget(const SizedBox());
+      state.dispose();
+    },
+  );
+
+  testWidgets(
+    'image import embeds bytes, supports resizing, saves and restores pixels',
+    (tester) async {
+      final source = image.Image(width: 200, height: 100);
+      image.fill(source, color: image.ColorRgba8(255, 0, 0, 255));
+      final bytes = image.encodePng(source);
+      final state = DrawingComponentState();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => DrawingEditor(
+                      state: state,
+                      pickImage: () async => XFile.fromData(
+                        bytes,
+                        name: 'red.png',
+                        mimeType: 'image/png',
+                      ),
+                    ),
+                  ),
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        await tester.tap(find.byTooltip('Add image'));
+        for (var i = 0; i < 100; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+          await tester.pump();
+          if (painter(tester).elements.isNotEmpty) break;
+        }
+      });
+      await tester.pumpAndSettle();
+      final imported = painter(tester).elements.single;
+      expect(imported.tool, DrawingTool.image);
+      expect(base64Decode(imported.imageData!), isNotEmpty);
+      expect(painter(tester).images, hasLength(1));
+      expect(painter(tester).selectedIndex, 0);
+      await tester.dragFrom(
+        screen(tester, imported.bounds.inflate(8).bottomRight),
+        const Offset(35, 35),
+      );
+      await tester.pumpAndSettle();
+      final bounds = painter(tester).elements.single.bounds;
+      expect(bounds.width, greaterThan(imported.bounds.width));
+      expect(bounds.width / bounds.height, closeTo(2, .01));
+      await tester.runAsync(() async {
+        await tester.tap(find.text('Save'));
+        for (var i = 0; i < 100 && state.preview == null; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+        }
+      });
+      await tester.pumpAndSettle();
+      expect(state.elements.single.tool, DrawingTool.image);
+      final png = image.decodePng(state.preview!)!;
+      expect(
+        png
+            .getPixel(bounds.center.dx.toInt(), bounds.center.dy.toInt())
+            .r
+            .toInt(),
+        255,
+      );
+      expect(
+        png
+            .getPixel(bounds.center.dx.toInt(), bounds.center.dy.toInt())
+            .g
+            .toInt(),
+        0,
+      );
+      final restored = DrawingComponentState()
+        ..restore(
+          jsonDecode(jsonEncode(state.toJson())) as Map<String, dynamic>,
+        );
+      expect(
+        restored.elements.single.imageData,
+        state.elements.single.imageData,
+      );
+      final restoredPng = await tester.runAsync(
+        () => DrawingPainter.render(restored.elements),
+      );
+      expect(
+        image
+            .decodePng(restoredPng!)!
+            .getPixel(bounds.center.dx.toInt(), bounds.center.dy.toInt())
+            .g
+            .toInt(),
+        0,
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: DrawingEditor(state: restored)),
+      );
+      await tester.runAsync(() async {
+        for (var i = 0; i < 100; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+          await tester.pump();
+          if (painter(tester).images.isNotEmpty) break;
+        }
+      });
+      expect(painter(tester).images, hasLength(1));
+      await tester.pumpWidget(const SizedBox());
+      restored.dispose();
+      state.dispose();
+    },
+  );
+
+  testWidgets('cancelling image picker leaves the drawing untouched', (
+    tester,
+  ) async {
+    final state = DrawingComponentState();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DrawingEditor(state: state, pickImage: () async => null),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Add image'));
+    await tester.pumpAndSettle();
+    expect(painter(tester).elements, isEmpty);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
 }
