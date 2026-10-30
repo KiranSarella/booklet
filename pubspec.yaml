@@ -41,3 +41,21 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/fonts/Bangers-OFL.txt
+    - assets/fonts/Pacifico-OFL.txt
+    - assets/fonts/CourierPrime-OFL.txt
+    - assets/fonts/ComicNeue-OFL.txt
+  fonts:
+    - family: Bangers
+      fonts:
+        - asset: assets/fonts/Bangers.ttf
+    - family: Pacifico
+      fonts:
+        - asset: assets/fonts/Pacifico.ttf
+    - family: CourierPrime
+      fonts:
+        - asset: assets/fonts/CourierPrime.ttf
+    - family: ComicNeue
+      fonts:
+        - asset: assets/fonts/ComicNeue.ttf

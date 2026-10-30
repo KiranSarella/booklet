@@ -57,7 +57,7 @@ class DrawingComponent implements Component {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 720),
                 child: AspectRatio(
-                  aspectRatio: 1.5,
+                  aspectRatio: state.canvasSize.aspectRatio,
                   child: state.preview == null
                       ? Container(
                           color: Theme.of(context)

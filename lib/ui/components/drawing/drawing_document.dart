@@ -1,11 +1,14 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:booklet/ui/components/component_state.dart';
 
-enum DrawingTool { pen, line, rectangle, ellipse, text }
+enum DrawingTool { pen, line, rectangle, ellipse, circle, text }
+
+enum DrawingBrush { pencil, marker, highlighter, spray }
 
 /// Coordinates are stored in a fixed canvas space, independent of screen size.
 class DrawingElement {
@@ -20,10 +23,144 @@ class DrawingElement {
     this.italic = false,
     this.filled = false,
     this.outlined = false,
+    this.fillColor = Colors.white,
+    this.brush = DrawingBrush.pencil,
+    this.fontFamily = 'sans-serif',
+    this.shadow = false,
   }) : points = List.unmodifiable(points);
   final DrawingTool tool;
   final List<Offset> points;
-  final Color color;
+  final Color color, fillColor;
+  final DrawingBrush brush;
+  final String fontFamily;
+  final bool shadow;
+
+  DrawingElement copyWith({
+    List<Offset>? points,
+    Color? color,
+    Color? fillColor,
+    double? width,
+    String? text,
+    double? fontSize,
+    bool? bold,
+    bool? italic,
+    bool? filled,
+    bool? outlined,
+    bool? shadow,
+    String? fontFamily,
+    DrawingBrush? brush,
+  }) => DrawingElement(
+    tool: tool,
+    points: points ?? this.points,
+    color: color ?? this.color,
+    fillColor: fillColor ?? this.fillColor,
+    width: width ?? this.width,
+    text: text ?? this.text,
+    fontSize: fontSize ?? this.fontSize,
+    bold: bold ?? this.bold,
+    italic: italic ?? this.italic,
+    filled: filled ?? this.filled,
+    outlined: outlined ?? this.outlined,
+    shadow: shadow ?? this.shadow,
+    fontFamily: fontFamily ?? this.fontFamily,
+    brush: brush ?? this.brush,
+  );
+
+  Rect get bounds {
+    if (points.isEmpty) return Rect.zero;
+    if (tool == DrawingTool.text) {
+      final painter = textPainter(this);
+      return points.first & painter.size;
+    }
+    var rect = Rect.fromPoints(points.first, points.last);
+    for (final p in points) {
+      rect = rect.expandToInclude(Rect.fromLTWH(p.dx, p.dy, 0, 0));
+    }
+    return rect;
+  }
+
+  bool hitTest(Offset point, double tolerance) {
+    if (!bounds.inflate(tolerance + width / 2).contains(point)) return false;
+    if (tool == DrawingTool.text) return true;
+    if (tool == DrawingTool.rectangle && filled) return true;
+    if (tool == DrawingTool.pen || tool == DrawingTool.line) {
+      if (points.length == 1) {
+        return (point - points.first).distance <= tolerance + width / 2;
+      }
+      for (var i = 1; i < points.length; i++) {
+        final a = points[i - 1], delta = points[i] - a;
+        final t = delta.distanceSquared == 0
+            ? 0.0
+            : (((point - a).dx * delta.dx + (point - a).dy * delta.dy) /
+                      delta.distanceSquared)
+                  .clamp(0.0, 1.0);
+        if ((point - (a + delta * t)).distance <= tolerance + width / 2) {
+          return true;
+        }
+      }
+      return false;
+    }
+    if (tool == DrawingTool.ellipse || tool == DrawingTool.circle) {
+      final r = bounds;
+      if (r.width == 0 || r.height == 0) return true;
+      final x = (point.dx - r.center.dx) / (r.width / 2);
+      final y = (point.dy - r.center.dy) / (r.height / 2);
+      if (filled) return x * x + y * y <= 1;
+      return ((math.sqrt(x * x + y * y) - 1).abs() *
+              math.min(r.width, r.height) /
+              2) <=
+          tolerance + width / 2;
+    }
+    return !bounds.deflate(tolerance + width / 2).contains(point);
+  }
+
+  DrawingElement translated(Offset delta) =>
+      copyWith(points: [for (final p in points) p + delta]);
+  DrawingElement resized(double scaleX, double scaleY) {
+    final origin = bounds.topLeft;
+    return copyWith(
+      points: [
+        for (final p in points)
+          origin +
+              Offset((p.dx - origin.dx) * scaleX, (p.dy - origin.dy) * scaleY),
+      ],
+      fontSize: tool == DrawingTool.text
+          ? (fontSize * scaleY).clamp(8, 400)
+          : fontSize,
+    );
+  }
+
+  static TextPainter textPainter(DrawingElement e, {bool outline = false}) =>
+      TextPainter(
+        text: TextSpan(
+          text: e.text,
+          style: TextStyle(
+            fontFamily: e.fontFamily,
+            fontFamilyFallback: const ['Arial', 'sans-serif'],
+            fontSize: e.fontSize,
+            fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
+            fontStyle: e.italic ? FontStyle.italic : FontStyle.normal,
+            color: outline ? null : e.fillColor,
+            foreground: outline
+                ? (Paint()
+                    ..color = e.color
+                    ..style = PaintingStyle.stroke
+                    ..strokeWidth = e.width.clamp(1, 6))
+                : null,
+            shadows: !outline && e.shadow
+                ? const [
+                    Shadow(
+                      color: Color(0x88000000),
+                      offset: Offset(4, 4),
+                      blurRadius: 3,
+                    ),
+                  ]
+                : null,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: 1200);
+
   final double width;
   final String text;
   final double fontSize;
@@ -35,6 +172,10 @@ class DrawingElement {
       for (final p in points) [p.dx, p.dy],
     ],
     'color': color.toARGB32(),
+    'fillColor': fillColor.toARGB32(),
+    'brush': brush.name,
+    'fontFamily': fontFamily,
+    'shadow': shadow,
     'width': width,
     'text': text,
     'fontSize': fontSize,
@@ -50,6 +191,10 @@ class DrawingElement {
         Offset((p[0] as num).toDouble(), (p[1] as num).toDouble()),
     ],
     color: Color(json['color'] as int),
+    fillColor: Color(json['fillColor'] as int? ?? (json['color'] as int)),
+    brush: DrawingBrush.values.byName(json['brush'] as String? ?? 'pencil'),
+    fontFamily: json['fontFamily'] as String? ?? 'sans-serif',
+    shadow: json['shadow'] == true,
     width: (json['width'] as num).toDouble(),
     text: json['text'] as String? ?? '',
     fontSize: (json['fontSize'] as num? ?? 36).toDouble(),
@@ -63,19 +208,38 @@ class DrawingElement {
 class DrawingComponentState extends ComponentState {
   List<DrawingElement> _elements = const [];
   Uint8List? _preview;
+  Color backgroundColor = Colors.white;
+  Size canvasSize = DrawingPainter.canvasSize;
   List<DrawingElement> get elements => _elements;
   Uint8List? get preview => _preview;
-  void save(List<DrawingElement> elements, Uint8List preview) {
+  void save(
+    List<DrawingElement> elements,
+    Uint8List preview, {
+    Color backgroundColor = Colors.white,
+    Size canvasSize = DrawingPainter.canvasSize,
+  }) {
+    this.backgroundColor = backgroundColor;
+    this.canvasSize = canvasSize;
     _elements = List.unmodifiable(elements);
     _preview = Uint8List.fromList(preview);
     notifyListeners();
   }
 
   Map<String, dynamic> toJson() => {
+    'canvasWidth': canvasSize.width,
+    'canvasHeight': canvasSize.height,
+    'backgroundColor': backgroundColor.toARGB32(),
     'elements': [for (final e in _elements) e.toJson()],
     if (_preview != null) 'preview': base64Encode(_preview!),
   };
   void restore(Map<String, dynamic> json) {
+    backgroundColor = Color(json['backgroundColor'] as int? ?? 0xFFFFFFFF);
+    final width = (json['canvasWidth'] as num? ?? 1200).toDouble();
+    final height = (json['canvasHeight'] as num? ?? 800).toDouble();
+    canvasSize = Size(
+      width.isFinite ? width.clamp(64, 4096) : 1200,
+      height.isFinite ? height.clamp(64, 4096) : 800,
+    );
     _elements = List.unmodifiable([
       for (final e in json['elements'] as List? ?? [])
         DrawingElement.fromJson(Map<String, dynamic>.from(e as Map)),
@@ -93,18 +257,26 @@ class DrawingComponentState extends ComponentState {
 }
 
 class DrawingPainter extends CustomPainter {
-  DrawingPainter(this.elements);
+  DrawingPainter(
+    this.elements, {
+    this.backgroundColor = Colors.white,
+    this.selectedIndex,
+    this.documentSize = canvasSize,
+  });
+  final Color backgroundColor;
+  final Size documentSize;
+  final int? selectedIndex;
   static const canvasSize = Size(1200, 800);
   final List<DrawingElement> elements;
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.scale(
-      size.width / canvasSize.width,
-      size.height / canvasSize.height,
+      size.width / documentSize.width,
+      size.height / documentSize.height,
     );
-    canvas.clipRect(Offset.zero & canvasSize);
-    canvas.drawColor(Colors.white, BlendMode.src);
+    canvas.clipRect(Offset.zero & documentSize);
+    canvas.drawColor(backgroundColor, BlendMode.src);
     for (final e in elements) {
       if (e.points.isEmpty) continue;
       final paint = Paint()
@@ -112,51 +284,99 @@ class DrawingPainter extends CustomPainter {
         ..strokeWidth = e.width
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..style = e.filled ? PaintingStyle.fill : PaintingStyle.stroke;
-      final start = e.points.first;
-      final end = e.points.last;
+        ..style = PaintingStyle.stroke;
+      final start = e.points.first, end = e.points.last;
       switch (e.tool) {
         case DrawingTool.pen:
-          if (e.points.length == 1) {
-            canvas.drawCircle(start, e.width / 2, Paint()..color = e.color);
-          } else {
-            final path = Path()..moveTo(start.dx, start.dy);
-            for (final p in e.points.skip(1)) {
-              path.lineTo(p.dx, p.dy);
+          if (e.brush == DrawingBrush.spray) {
+            final random = math.Random(42);
+            for (final p in e.points) {
+              for (var i = 0; i < 12; i++) {
+                final angle = random.nextDouble() * math.pi * 2;
+                final radius = math.sqrt(random.nextDouble()) * e.width * 2;
+                canvas.drawCircle(
+                  p +
+                      Offset(
+                        math.cos(angle) * radius,
+                        math.sin(angle) * radius,
+                      ),
+                  0.9,
+                  Paint()..color = e.color,
+                );
+              }
             }
-            canvas.drawPath(path, paint..style = PaintingStyle.stroke);
+          } else {
+            if (e.brush == DrawingBrush.highlighter) {
+              canvas.saveLayer(
+                null,
+                Paint()..color = Colors.white.withValues(alpha: .35),
+              );
+            }
+            paint.strokeWidth = e.brush == DrawingBrush.pencil
+                ? e.width
+                : e.width * 3;
+            paint.strokeCap = e.brush == DrawingBrush.highlighter
+                ? StrokeCap.square
+                : StrokeCap.round;
+            if (e.points.length == 1) {
+              canvas.drawCircle(
+                start,
+                paint.strokeWidth / 2,
+                Paint()..color = e.color,
+              );
+            } else {
+              final path = Path()..moveTo(start.dx, start.dy);
+              for (final p in e.points.skip(1)) {
+                path.lineTo(p.dx, p.dy);
+              }
+              canvas.drawPath(path, paint);
+            }
+            if (e.brush == DrawingBrush.highlighter) canvas.restore();
           }
         case DrawingTool.line:
           canvas.drawLine(start, end, paint);
         case DrawingTool.rectangle:
-          canvas.drawRect(Rect.fromPoints(start, end), paint);
         case DrawingTool.ellipse:
-          canvas.drawOval(Rect.fromPoints(start, end), paint);
+        case DrawingTool.circle:
+          final rect = Rect.fromPoints(start, end);
+          if (e.filled) {
+            final fill = Paint()..color = e.fillColor;
+            if (e.tool == DrawingTool.rectangle) {
+              canvas.drawRect(rect, fill);
+            } else {
+              canvas.drawOval(rect, fill);
+            }
+          }
+          if (e.width > 0) {
+            if (e.tool == DrawingTool.rectangle) {
+              canvas.drawRect(rect, paint);
+            } else {
+              canvas.drawOval(rect, paint);
+            }
+          }
         case DrawingTool.text:
-          final style = TextStyle(
-            fontSize: e.fontSize,
-            fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
-            fontStyle: e.italic ? FontStyle.italic : FontStyle.normal,
-            color: e.outlined ? null : e.color,
-            foreground: e.outlined
-                ? (Paint()
-                    ..color = e.color
-                    ..style = PaintingStyle.stroke
-                    ..strokeWidth = 1.5)
-                : null,
-          );
-          final text =
-              TextPainter(
-                text: TextSpan(text: e.text, style: style),
-                textDirection: TextDirection.ltr,
-              )..layout(
-                maxWidth: (canvasSize.width - start.dx).clamp(
-                  1,
-                  canvasSize.width,
-                ),
-              );
-          text.paint(canvas, start);
+          DrawingElement.textPainter(e).paint(canvas, start);
+          if (e.outlined) {
+            DrawingElement.textPainter(e, outline: true).paint(canvas, start);
+          }
       }
+    }
+    if (selectedIndex != null && selectedIndex! < elements.length) {
+      final rect = elements[selectedIndex!].bounds.inflate(8);
+      final screenScale = documentSize.width / size.width;
+      final paint = Paint()
+        ..color = Colors.blue
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5 * screenScale;
+      canvas.drawRect(rect, paint);
+      canvas.drawRect(
+        Rect.fromCenter(
+          center: rect.bottomRight,
+          width: 12 * screenScale,
+          height: 12 * screenScale,
+        ),
+        Paint()..color = Colors.blue,
+      );
     }
     canvas.restore();
   }
@@ -164,9 +384,17 @@ class DrawingPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant DrawingPainter oldDelegate) => true;
 
-  static Future<Uint8List> render(List<DrawingElement> elements) async {
+  static Future<Uint8List> render(
+    List<DrawingElement> elements, {
+    Color backgroundColor = Colors.white,
+    Size canvasSize = DrawingPainter.canvasSize,
+  }) async {
     final recorder = ui.PictureRecorder();
-    DrawingPainter(elements).paint(Canvas(recorder), canvasSize);
+    DrawingPainter(
+      elements,
+      backgroundColor: backgroundColor,
+      documentSize: canvasSize,
+    ).paint(Canvas(recorder), canvasSize);
     final picture = recorder.endRecording();
     final image = await picture.toImage(
       canvasSize.width.toInt(),

@@ -5,6 +5,8 @@ import 'package:booklet/business/page_content.dart';
 
 import 'dart:convert';
 
+import 'package:image/image.dart' as image;
+
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/components/component_box.dart';
@@ -31,6 +33,10 @@ void main() {
             tool: tool,
             points: const [Offset(20, 20), Offset(200, 100)],
             text: 'Word art',
+            fillColor: Colors.yellow,
+            fontFamily: 'Bangers',
+            shadow: true,
+            brush: DrawingBrush.marker,
             color: Colors.purple,
             bold: true,
             italic: true,
@@ -39,10 +45,12 @@ void main() {
           ),
       ];
       final bytes = await tester.runAsync(
-        () => DrawingPainter.render(elements),
+        () => DrawingPainter.render(elements, backgroundColor: Colors.teal),
       );
       expect(bytes!.take(8), [137, 80, 78, 71, 13, 10, 26, 10]);
-      component.state.save(elements, bytes);
+      final png = image.decodePng(bytes)!;
+      expect(png.getPixel(1190, 790).g.toInt(), 150);
+      component.state.save(elements, bytes, backgroundColor: Colors.teal);
       final json = jsonDecode(
         jsonEncode(
           ComponentSnapshot.capture(ComponentBox(component: component))
@@ -126,7 +134,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(DrawingEditor), findsOneWidget);
     expect(find.text('Freehand'), findsOneWidget);
-    expect(find.text('Rectangle'), findsOneWidget);
+    expect(find.text('Shapes'), findsOneWidget);
     expect(find.text('Text'), findsOneWidget);
     expect(component.state.elements, isEmpty);
     await tester.tap(find.byTooltip('Close drawing'));
@@ -211,6 +219,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: DrawingEditor(state: state)));
     await tester.tap(find.text('Text'));
     await tester.pump();
+    await tester.ensureVisible(find.text('Bold'));
     await tester.tap(find.text('Bold'));
     await tester.pump();
     final canvas = find.byWidgetPredicate(
@@ -252,6 +261,11 @@ void main() {
     );
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Canvas size'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1024 × 1024'));
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
     final canvas = find.byWidgetPredicate(
       (w) => w is CustomPaint && w.painter is DrawingPainter,
     );
@@ -266,6 +280,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(state.elements, hasLength(1));
     expect(state.preview, isNotNull);
+    expect(state.canvasSize, const Size(1024, 1024));
+    final png = image.decodePng(state.preview!)!;
+    expect(png.width, 1024);
+    expect(png.height, 1024);
     expect(find.byType(DrawingEditor), findsNothing);
     state.dispose();
   });
