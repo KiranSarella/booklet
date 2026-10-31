@@ -1,3 +1,5 @@
+import 'package:booklet/ui/components/table/table_document.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -562,6 +564,9 @@ class BookletFile {
           );
           _resolveComponentAssets(packagePath, componentState);
         }
+        if (componentState is TableComponentState) {
+          componentState.restore(componentJson);
+        }
         if (componentState is DrawingComponentState) {
           componentState.restore(componentJson);
         }
@@ -708,6 +713,14 @@ class BookletFile {
           'assets': state.output,
         });
         _resolveComponentAssets(packagePath, state);
+        continue;
+      }
+      if (state is TableComponentState) {
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': 'table',
+          ...state.toJson(),
+        });
         continue;
       }
       if (state is DrawingComponentState) {

@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/inbuilt_components/component_defs/table_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/drawing_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/assets_component.dart';
 import 'package:booklet/ui/components/component.dart';
@@ -62,6 +63,8 @@ class InbuiltComponents {
         return QuoteComponent(id: id);
       case 'assets':
         return AssetsComponent(id: id);
+      case 'table':
+        return TableComponent(id: id);
       case 'drawing':
         return DrawingComponent(id: id);
       case 'image':
@@ -104,6 +107,7 @@ class InbuiltComponents {
       AssetsComponentDef(),
       ImageComponentDef(),
       DrawingComponentDef(),
+      TableComponentDef(),
       VideoComponentDef(),
       AudioComponentDef(),
       EmbedComponentDef(),

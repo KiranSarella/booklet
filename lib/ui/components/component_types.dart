@@ -31,6 +31,8 @@ class ComponentTypes {
         return '📍 Location';
       case 'assets':
         return 'Assets';
+      case 'table':
+        return 'Table';
       case 'drawing':
         return 'Drawing';
       case 'image':
@@ -72,6 +74,8 @@ class ComponentTypes {
         return 'location';
       case 'Assets':
         return 'assets';
+      case 'Table':
+        return 'table';
       case 'Drawing':
         return 'drawing';
       case 'Image':

@@ -299,3 +299,12 @@ class DrawingComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.media;
 }
+
+class TableComponentDef extends ComponentDef {
+  @override
+  String get key => 'table';
+  @override
+  String get name => 'Table';
+  @override
+  ComponentType get type => ComponentType.media;
+}

@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/table/table_document.dart';
 import 'package:booklet/ui/components/drawing/drawing_document.dart';
 
 import 'dart:convert';
@@ -50,6 +51,12 @@ class ComponentSnapshot {
       return ComponentSnapshot._(
         typeKey: component.def.key,
         extra: {'assets': state.output},
+      );
+    }
+    if (state is TableComponentState) {
+      return ComponentSnapshot._(
+        typeKey: component.def.key,
+        extra: state.toJson(),
       );
     }
     if (state is DrawingComponentState) {
@@ -143,6 +150,8 @@ class ComponentSnapshot {
       if (authorDelta != null) {
         state.author.controller.document = Document.fromJson(authorDelta);
       }
+    } else if (state is TableComponentState) {
+      state.restore(extra);
     } else if (state is DrawingComponentState) {
       state.restore(extra);
     } else if (state is ImageComponentState) {

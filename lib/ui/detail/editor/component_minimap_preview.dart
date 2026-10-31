@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/table/table_document.dart';
 import 'package:booklet/ui/components/drawing/drawing_document.dart';
 
 import 'dart:io';
@@ -57,6 +58,8 @@ class ComponentMinimapPreview extends StatelessWidget {
           ),
         ),
       );
+    } else if (state is TableComponentState) {
+      preview = const Icon(Icons.table_chart_outlined);
     } else if (state is DrawingComponentState) {
       preview = state.preview == null
           ? const Icon(Icons.draw_outlined)

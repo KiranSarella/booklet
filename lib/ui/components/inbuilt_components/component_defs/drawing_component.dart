@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/component_fullscreen_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/business/components_business/component_def.dart';
@@ -32,7 +33,7 @@ class DrawingComponent implements Component {
     required VoidCallback onCreateBelow,
   }) {
     return ListenableBuilder(
-      listenable: state,
+      listenable: Listenable.merge([state, theme.documentSettingsController]),
       builder: (context, _) => GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onSelect,
@@ -40,18 +41,35 @@ class DrawingComponent implements Component {
           padding: const EdgeInsets.all(18),
           child: Column(
             children: [
-              if (isSelected && !theme.documentSettingsController.isReadOnly)
+              if (isSelected)
                 Align(
                   alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit drawing'),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        fullscreenDialog: true,
-                        builder: (_) => DrawingEditor(state: state),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      TextButton.icon(
+                        icon: const Icon(Icons.open_in_full),
+                        label: const Text('Preview drawing'),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            fullscreenDialog: true,
+                            builder: (_) =>
+                                DrawingFullscreenPreview(state: state),
+                          ),
+                        ),
                       ),
-                    ),
+                      if (!theme.documentSettingsController.isReadOnly)
+                        TextButton.icon(
+                          icon: const Icon(Icons.edit_outlined),
+                          label: const Text('Edit drawing'),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              fullscreenDialog: true,
+                              builder: (_) => DrawingEditor(state: state),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ConstrainedBox(
