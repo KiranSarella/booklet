@@ -10,6 +10,57 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  for (final extend in [false, true]) {
+    testWidgets('arrows reveal offscreen selection (extend: $extend)', (
+      tester,
+    ) async {
+      final settings = DocumentSettingsController();
+      final theme = PageSettingsController(settings);
+      final controller = EditorController(theme, settings);
+      for (var i = 0; i < 16; i++) {
+        controller.viewModel.createComponentBelowType(i, 'text');
+      }
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [FlutterQuillLocalizations.delegate],
+          home: Scaffold(body: EditorView(controller: controller)),
+        ),
+      );
+      final editor = tester.state<EditorViewState>(find.byType(EditorView));
+      final components = controller.viewModel.components;
+      final scroll = tester
+          .widget<SingleChildScrollView>(find.byType(SingleChildScrollView).first)
+          .controller!;
+      editor.selectComponent(components.first);
+      await tester.pump();
+      if (extend) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(scroll.offset, 0);
+      for (var i = 2; i < components.length; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+      }
+      expect(controller.viewModel.selectedComponent, same(components.last));
+      expect(scroll.offset, greaterThan(0));
+      final viewport = tester.getRect(find.byType(SingleChildScrollView).first);
+      final lastRect = tester.getRect(find.byKey(components.last.componentKey));
+      expect(lastRect.bottom, lessThanOrEqualTo(viewport.bottom + 1));
+      for (var i = 1; i < components.length; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        await tester.pumpAndSettle();
+      }
+      expect(controller.viewModel.selectedComponent, same(components.first));
+      final firstRect = tester.getRect(find.byKey(components.first.componentKey));
+      expect(firstRect.top, greaterThanOrEqualTo(viewport.top - 1));
+      if (extend) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pumpWidget(const SizedBox.shrink());
+      controller.dispose();
+      theme.dispose();
+      settings.dispose();
+    });
+  }
+
   testWidgets(
     'Enter focuses a selected text component without inserting text',
     (tester) async {

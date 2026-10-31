@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:booklet/application/asset_manager_controller.dart';
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/ui/detail/assets_viewer/media_slideshow_dialog.dart';
+import 'package:desktop_drop/desktop_drop.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -33,6 +35,8 @@ class AssetsViewer extends StatefulWidget {
 }
 
 class _AssetsViewerState extends State<AssetsViewer> {
+  bool _isDragging = false;
+
   final FocusNode _focusNode = FocusNode(debugLabel: 'assets-viewer');
   FocusNode get _effectiveFocusNode => widget.focusNode ?? _focusNode;
 
@@ -61,9 +65,10 @@ class _AssetsViewerState extends State<AssetsViewer> {
     }
   }
 
-  Future<void> _addAssets() async {
+  Future<void> _addAssets({List<XFile>? files}) async {
+    if (widget.isReadOnly || widget.controller.isAddingAssets) return;
     try {
-      await widget.controller.addAssets();
+      await widget.controller.addAssets(files: files);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -205,161 +210,211 @@ class _AssetsViewerState extends State<AssetsViewer> {
             }
             return KeyEventResult.handled;
           },
-          child: Column(
-            mainAxisSize: widget.shrinkWrap
-                ? MainAxisSize.min
-                : MainAxisSize.max,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 20, 12),
-                child: _AssetsToolbar(
-                  wrap: widget.onExpand != null,
-                  trailing: widget.onExpand == null
-                      ? null
-                      : IconButton(
-                          tooltip: 'Expand assets',
-                          onPressed: widget.onExpand,
-                          icon: const Icon(Icons.open_in_full),
-                        ),
+          child: DropTarget(
+            enable: !widget.isReadOnly && !widget.controller.isAddingAssets,
+            onDragEntered: (_) => setState(() => _isDragging = true),
+            onDragExited: (_) => setState(() => _isDragging = false),
+            onDragDone: (detail) async {
+              setState(() => _isDragging = false);
+              final files = <XFile>[];
+              try {
+                for (final file in detail.files) {
+                  if (await FileSystemEntity.isFile(file.path)) files.add(file);
+                }
+                if (!mounted || files.isEmpty) return;
+                await _addAssets(files: files);
+              } catch (error) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(content: Text('Could not add assets: $error')),
+                );
+              }
+            },
+            child: Stack(
+              children: [
+                Column(
+                  mainAxisSize: widget.shrinkWrap
+                      ? MainAxisSize.min
+                      : MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Icon(Icons.folder_open_outlined, color: colors.primary),
-                    // const SizedBox(width: 10),
-                    // Flexible(
-                    //   child: Text(
-                    //     folder?.title ?? 'Assets',
-                    //     overflow: TextOverflow.ellipsis,
-                    //     style: Theme.of(context).textTheme.titleMedium,
-                    //   ),
-                    // ),
-                    SegmentedButton<AssetLayout>(
-                      segments: const [
-                        ButtonSegment(
-                          value: AssetLayout.list,
-                          icon: Icon(Icons.view_list_outlined),
-                          label: Text('List'),
-                        ),
-                        ButtonSegment(
-                          value: AssetLayout.icons,
-                          icon: Icon(Icons.grid_view_outlined),
-                          label: Text('Icons'),
-                        ),
-                      ],
-                      selected: {widget.controller.layout},
-                      onSelectionChanged: (selection) =>
-                          widget.controller.setLayout(selection.first),
-                    ),
-
-                    const SizedBox(width: 12),
-                    if (!widget.isReadOnly) ...[
-                      FilledButton.icon(
-                        onPressed: widget.controller.isAddingAssets
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 20, 12),
+                      child: _AssetsToolbar(
+                        wrap: widget.onExpand != null,
+                        trailing: widget.onExpand == null
                             ? null
-                            : _addAssets,
-                        icon: widget.controller.isAddingAssets
-                            ? const SizedBox.square(
-                                dimension: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                            : IconButton(
+                                tooltip: 'Expand assets',
+                                onPressed: widget.onExpand,
+                                icon: const Icon(Icons.open_in_full),
+                              ),
+                        children: [
+                          // Icon(Icons.folder_open_outlined, color: colors.primary),
+                          // const SizedBox(width: 10),
+                          // Flexible(
+                          //   child: Text(
+                          //     folder?.title ?? 'Assets',
+                          //     overflow: TextOverflow.ellipsis,
+                          //     style: Theme.of(context).textTheme.titleMedium,
+                          //   ),
+                          // ),
+                          SegmentedButton<AssetLayout>(
+                            segments: const [
+                              ButtonSegment(
+                                value: AssetLayout.list,
+                                icon: Icon(Icons.view_list_outlined),
+                                label: Text('List'),
+                              ),
+                              ButtonSegment(
+                                value: AssetLayout.icons,
+                                icon: Icon(Icons.grid_view_outlined),
+                                label: Text('Icons'),
+                              ),
+                            ],
+                            selected: {widget.controller.layout},
+                            onSelectionChanged: (selection) =>
+                                widget.controller.setLayout(selection.first),
+                          ),
+
+                          const SizedBox(width: 12),
+                          if (!widget.isReadOnly) ...[
+                            FilledButton.icon(
+                              onPressed: widget.controller.isAddingAssets
+                                  ? null
+                                  : () => _addAssets(),
+                              icon: widget.controller.isAddingAssets
+                                  ? const SizedBox.square(
+                                      dimension: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.add),
+                              label: const Text('Add asset'),
+                            ),
+                            PopupMenuButton<_AssetAction>(
+                              enabled: selectedAsset != null,
+                              tooltip: 'More asset options',
+                              onSelected: _runAssetAction,
+                              itemBuilder: (context) => const [
+                                PopupMenuItem(
+                                  value: _AssetAction.rename,
+                                  child: ListTile(
+                                    leading: Icon(Icons.edit_outlined),
+                                    title: Text('Rename'),
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
                                 ),
-                              )
-                            : const Icon(Icons.add),
-                        label: const Text('Add asset'),
-                      ),
-                      PopupMenuButton<_AssetAction>(
-                        enabled: selectedAsset != null,
-                        tooltip: 'More asset options',
-                        onSelected: _runAssetAction,
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                            value: _AssetAction.rename,
-                            child: ListTile(
-                              leading: Icon(Icons.edit_outlined),
-                              title: Text('Rename'),
-                              contentPadding: EdgeInsets.zero,
+                                PopupMenuItem(
+                                  value: _AssetAction.delete,
+                                  child: ListTile(
+                                    leading: Icon(Icons.delete_outline),
+                                    title: Text('Delete'),
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: _AssetAction.preview,
+                                  child: ListTile(
+                                    leading: Icon(Icons.open_in_full),
+                                    title: Text('Preview'),
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: _AssetAction.delete,
-                            child: ListTile(
-                              leading: Icon(Icons.delete_outline),
-                              title: Text('Delete'),
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: _AssetAction.preview,
-                            child: ListTile(
-                              leading: Icon(Icons.open_in_full),
-                              title: Text('Preview'),
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
+                          ],
                         ],
                       ),
-                    ],
+                    ),
+                    const Divider(height: 1),
+                    _layoutContent(
+                      assets.isEmpty
+                          ? SizedBox(
+                              height: widget.shrinkWrap ? 280 : null,
+                              child: Center(
+                                child: Text(
+                                  'No assets in this folder',
+                                  style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : widget.controller.layout == AssetLayout.list
+                          ? ListView.separated(
+                              shrinkWrap: widget.shrinkWrap,
+                              primary: widget.shrinkWrap ? false : null,
+                              physics: widget.shrinkWrap
+                                  ? const NeverScrollableScrollPhysics()
+                                  : null,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              itemCount: assets.length,
+                              separatorBuilder: (_, _) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) => _AssetListTile(
+                                asset: assets[index],
+                                thumbnailPath: widget.controller
+                                    .resolveThumbnailPath(assets[index]),
+                                isSelected:
+                                    selectedAsset?.id == assets[index].id,
+                                onTap: () => _selectAsset(assets[index]),
+                                onDoubleTap: () => _openAsset(assets[index]),
+                              ),
+                            )
+                          : GridView.builder(
+                              shrinkWrap: widget.shrinkWrap,
+                              primary: widget.shrinkWrap ? false : null,
+                              physics: widget.shrinkWrap
+                                  ? const NeverScrollableScrollPhysics()
+                                  : null,
+                              padding: const EdgeInsets.all(20),
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 156,
+                                    mainAxisExtent: 132,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                  ),
+                              itemCount: assets.length,
+                              itemBuilder: (context, index) => _AssetIconTile(
+                                asset: assets[index],
+                                thumbnailPath: widget.controller
+                                    .resolveThumbnailPath(assets[index]),
+                                isSelected:
+                                    selectedAsset?.id == assets[index].id,
+                                onTap: () => _selectAsset(assets[index]),
+                                onDoubleTap: () => _openAsset(assets[index]),
+                              ),
+                            ),
+                    ),
                   ],
                 ),
-              ),
-              const Divider(height: 1),
-              _layoutContent(
-                assets.isEmpty
-                    ? SizedBox(
-                        height: widget.shrinkWrap ? 280 : null,
-                        child: Center(
-                          child: Text(
-                            'No assets in this folder',
-                            style: TextStyle(color: colors.onSurfaceVariant),
-                          ),
+                if (_isDragging &&
+                    !widget.isReadOnly &&
+                    !widget.controller.isAddingAssets)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: colors.primaryContainer.withValues(alpha: 0.9),
+                          border: Border.all(color: colors.primary, width: 2),
                         ),
-                      )
-                    : widget.controller.layout == AssetLayout.list
-                    ? ListView.separated(
-                        shrinkWrap: widget.shrinkWrap,
-                        primary: widget.shrinkWrap ? false : null,
-                        physics: widget.shrinkWrap
-                            ? const NeverScrollableScrollPhysics()
-                            : null,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: assets.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
-                        itemBuilder: (context, index) => _AssetListTile(
-                          asset: assets[index],
-                          thumbnailPath: widget.controller.resolveThumbnailPath(
-                            assets[index],
-                          ),
-                          isSelected: selectedAsset?.id == assets[index].id,
-                          onTap: () => _selectAsset(assets[index]),
-                          onDoubleTap: () => _openAsset(assets[index]),
-                        ),
-                      )
-                    : GridView.builder(
-                        shrinkWrap: widget.shrinkWrap,
-                        primary: widget.shrinkWrap ? false : null,
-                        physics: widget.shrinkWrap
-                            ? const NeverScrollableScrollPhysics()
-                            : null,
-                        padding: const EdgeInsets.all(20),
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 156,
-                              mainAxisExtent: 132,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                            ),
-                        itemCount: assets.length,
-                        itemBuilder: (context, index) => _AssetIconTile(
-                          asset: assets[index],
-                          thumbnailPath: widget.controller.resolveThumbnailPath(
-                            assets[index],
-                          ),
-                          isSelected: selectedAsset?.id == assets[index].id,
-                          onTap: () => _selectAsset(assets[index]),
-                          onDoubleTap: () => _openAsset(assets[index]),
+                        alignment: Alignment.center,
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.file_download_outlined, size: 40),
+                            SizedBox(height: 12),
+                            Text('Drop files to add assets'),
+                          ],
                         ),
                       ),
-              ),
-            ],
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
       },

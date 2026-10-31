@@ -202,10 +202,12 @@ class EditorViewState extends State<EditorView> {
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
         setState(() => _viewModel.extendSelectionWithArrowKey(true));
+        _revealKeyboardSelection(true);
         return KeyEventResult.handled;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
         setState(() => _viewModel.extendSelectionWithArrowKey(false));
+        _revealKeyboardSelection(false);
         return KeyEventResult.handled;
       }
     }
@@ -217,6 +219,9 @@ class EditorViewState extends State<EditorView> {
           () => _viewModel.moveSelectedComponent(
             event.logicalKey == LogicalKeyboardKey.arrowDown,
           ),
+        );
+        _revealKeyboardSelection(
+          event.logicalKey == LogicalKeyboardKey.arrowDown,
         );
         return KeyEventResult.handled;
       }
@@ -372,6 +377,26 @@ May this day of your birth be auspicious!
 
   void transformSelectedComponent(String type) {
     setState(() => _viewModel.transformSelectedComponent(type));
+  }
+
+  void _revealKeyboardSelection(bool moveDown) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final componentContext =
+          _viewModel.selectedComponent?.componentKey.currentContext;
+      if (componentContext == null) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          componentContext,
+          alignment: moveDown ? 1 : 0,
+          alignmentPolicy: moveDown
+              ? ScrollPositionAlignmentPolicy.keepVisibleAtEnd
+              : ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+        ),
+      );
+    });
   }
 
   void _scrollToComponent(ComponentBox component) {

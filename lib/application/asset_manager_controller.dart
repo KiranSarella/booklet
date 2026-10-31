@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -105,7 +106,7 @@ class AssetManagerController extends ChangeNotifier {
     }
   }
 
-  Future<void> addAssets() async {
+  Future<void> addAssets({List<XFile>? files}) async {
     final folder = _folder;
     final packagePath = _packagePath;
     if (folder == null || _isAddingAssets) {
@@ -115,12 +116,12 @@ class AssetManagerController extends ChangeNotifier {
     _isAddingAssets = true;
     notifyListeners();
     try {
-      final files = await BookletFile.chooseAssets();
-      if (files.isNotEmpty) {
+      final selectedFiles = files ?? await BookletFile.chooseAssets();
+      if (selectedFiles.isNotEmpty) {
         final imported = await BookletFile.importAssets(
           packagePath: packagePath,
           folderId: folder.folderId!,
-          files: files,
+          files: selectedFiles,
         );
         folder.assets.addAll(imported);
         await _createThumbnails(imported);
