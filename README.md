@@ -19,8 +19,13 @@ Used flutter to make it platform independent.
 - [ ] iOS tablets, mobiles
 - [ ] web (published from desktop app)
 
+# Screenshots
 
-![](/preview.png)
+![](/readme-screenshots/preview.png)
+
+![](/readme-screenshots/table.png)
+
+![](/readme-screenshots/drawing.png)
 
 
 # Flutter
