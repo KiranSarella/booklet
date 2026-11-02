@@ -29,12 +29,8 @@ Used flutter to make it platform independent.
 
 ![](/readme-screenshots/statistical-chart.png)
 
+![](/readme-screenshots/math.png)
 
-## Math Graph
-
-Add **Math Graph** to plot equations such as `2x + 1`, `x^2`, `exp(x)`, `ln(x)`, and `sin(x)`. The page and minimap show a read-only graph; open the full-screen editor to edit multiple equations, axis ranges, and radians/degrees. The **Preview**, **Equations**, and **Raw data** tabs share the same draft. Save applies changes; closing the editor leaves the saved graph unchanged.
-
-Supported notation includes `+`, `-`, `*`, `/`, `^`, parentheses, implicit multiplication (`2x`), constants `pi` and `e`, and the functions listed in the editor. Graphs currently plot two-dimensional functions of the form `y = f(x)`.
 
 # Flutter
 
