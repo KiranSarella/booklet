@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:booklet/ui/components/component_state.dart';
 
 class _CreateBelowIntent extends Intent {
@@ -95,15 +96,17 @@ class AutoHeightRichText2 extends StatelessWidget {
                         if ((event is KeyDownEvent ||
                                 event is KeyRepeatEvent) &&
                             (event.logicalKey == LogicalKeyboardKey.arrowUp ||
-                                event.logicalKey == LogicalKeyboardKey.arrowDown) &&
+                                event.logicalKey ==
+                                    LogicalKeyboardKey.arrowDown) &&
                             !HardwareKeyboard.instance.isShiftPressed) {
                           final selection = textState.controller.selection;
                           final moveDown =
                               event.logicalKey == LogicalKeyboardKey.arrowDown;
-                          final atBoundary = selection.isCollapsed &&
+                          final atBoundary =
+                              selection.isCollapsed &&
                               (moveDown
                                   ? selection.extentOffset >=
-                                      textState.controller.document.length - 1
+                                        textState.controller.document.length - 1
                                   : selection.extentOffset == 0);
                           if (atBoundary &&
                               textState.onMoveToAdjacentTextComponent != null) {
@@ -144,6 +147,31 @@ class AutoHeightRichText2 extends StatelessWidget {
                           : null,
                       textInputAction: TextInputAction.newline,
                       customStyles: defaultStyles,
+                      textSpanBuilder:
+                          (context, node, offset, text, style, recognizer) {
+                            final effectiveStyle = textStyle.merge(style);
+                            final family = effectiveStyle.fontFamily;
+                            // Google Fonts registers each variant as a separate
+                            // family. Changing weight alone keeps the regular
+                            // font file, so select the matching variant here.
+                            final fontName = family == null
+                                ? null
+                                : _googleFontNames[family.split('_').first];
+                            final spanStyle = fontName == null
+                                ? style
+                                : GoogleFonts.getFont(
+                                    fontName,
+                                    textStyle: effectiveStyle,
+                                  );
+                            return TextSpan(
+                              text: text,
+                              style: spanStyle,
+                              recognizer: recognizer,
+                              mouseCursor: recognizer == null
+                                  ? null
+                                  : SystemMouseCursors.click,
+                            );
+                          },
                     ),
                   ),
                 ),
@@ -157,3 +185,7 @@ class AutoHeightRichText2 extends StatelessWidget {
     );
   }
 }
+
+final _googleFontNames = {
+  for (final name in GoogleFonts.asMap().keys) name.replaceAll(' ', ''): name,
+};
