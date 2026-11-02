@@ -317,3 +317,12 @@ class StatisticalChartComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.media;
 }
+
+class MathGraphComponentDef extends ComponentDef {
+  @override
+  String get key => 'math_graph';
+  @override
+  String get name => 'Math Graph';
+  @override
+  ComponentType get type => ComponentType.media;
+}

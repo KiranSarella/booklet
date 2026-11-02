@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/math_graph/math_graph_document.dart';
 import 'package:booklet/ui/components/statistical_chart/statistical_chart_document.dart';
 import 'package:booklet/ui/components/table/table_document.dart';
 
@@ -565,6 +566,9 @@ class BookletFile {
           );
           _resolveComponentAssets(packagePath, componentState);
         }
+        if (componentState is MathGraphState) {
+          componentState.restore(componentJson);
+        }
         if (componentState is StatisticalChartState) {
           componentState.restore(componentJson);
         }
@@ -717,6 +721,14 @@ class BookletFile {
           'assets': state.output,
         });
         _resolveComponentAssets(packagePath, state);
+        continue;
+      }
+      if (state is MathGraphState) {
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': 'math_graph',
+          ...state.toJson(),
+        });
         continue;
       }
       if (state is StatisticalChartState) {

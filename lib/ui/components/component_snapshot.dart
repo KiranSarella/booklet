@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/math_graph/math_graph_document.dart';
 import 'package:booklet/ui/components/statistical_chart/statistical_chart_document.dart';
 import 'package:booklet/ui/components/table/table_document.dart';
 import 'package:booklet/ui/components/drawing/drawing_document.dart';
@@ -52,6 +53,12 @@ class ComponentSnapshot {
       return ComponentSnapshot._(
         typeKey: component.def.key,
         extra: {'assets': state.output},
+      );
+    }
+    if (state is MathGraphState) {
+      return ComponentSnapshot._(
+        typeKey: component.def.key,
+        extra: state.toJson(),
       );
     }
     if (state is StatisticalChartState) {
@@ -157,6 +164,8 @@ class ComponentSnapshot {
       if (authorDelta != null) {
         state.author.controller.document = Document.fromJson(authorDelta);
       }
+    } else if (state is MathGraphState) {
+      state.restore(extra);
     } else if (state is StatisticalChartState) {
       state.restore(extra);
     } else if (state is TableComponentState) {
