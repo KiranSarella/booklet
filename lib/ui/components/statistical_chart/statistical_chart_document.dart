@@ -1,3 +1,5 @@
+import 'histogram.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -18,7 +20,8 @@ enum ChartType {
   stackedBar,
   multiLine,
   stacked100,
-  bubble;
+  bubble,
+  histogram;
 
   String get label => switch (this) {
     bar => 'Bar',
@@ -36,6 +39,7 @@ enum ChartType {
     multiLine => 'Line (multiple series)',
     stacked100 => '100% Stacked Bar',
     bubble => 'Bubble Chart',
+    histogram => 'Histogram',
   };
   bool get composition => [pie, doughnut, treemap, stacked100].contains(this);
 }
@@ -63,6 +67,11 @@ enum ChartFamily {
       ChartType.treemap,
     ],
   ),
+  distributions(
+    'Distributions',
+    'Show how often observations fall within numeric ranges.',
+    [ChartType.histogram],
+  ),
   scatterBubble(
     'Scatter & Bubble',
     'Explore relationships between numeric X and Y values.',
@@ -86,18 +95,24 @@ enum ChartDataFormat {
   timeSeries('Dates', 'Date (YYYY-MM-DD)', 'dates'),
   grouped('Text labels', 'Label', 'labels'),
   composition('Text labels', 'Label', 'labels'),
-  xy('Numbers (X values)', 'X', 'xValues');
+  xy('Numbers (X values)', 'X', 'xValues'),
+  observations('Observations', 'Observation', 'labels');
 
   const ChartDataFormat(this.label, this.columnLabel, this.dataKey);
   final String label;
   final String columnLabel;
   final String dataKey;
   bool get supportsSeries => true;
-  List<ChartType> get types => ChartType.values
-      .where(
-        (t) => this == xy || (t != ChartType.scatter && t != ChartType.bubble),
-      )
-      .toList();
+  List<ChartType> get types => this == observations
+      ? [ChartType.histogram]
+      : ChartType.values
+            .where(
+              (t) =>
+                  t != ChartType.histogram &&
+                  (this == xy ||
+                      (t != ChartType.scatter && t != ChartType.bubble)),
+            )
+            .toList();
   bool validLabel(String value) => switch (this) {
     xy => double.tryParse(value)?.isFinite == true,
     timeSeries => validDate(value),
@@ -127,6 +142,7 @@ class StatisticalChartState extends ComponentState {
   String metricName = 'Value';
   List<ChartSeries> series = [];
   List<double> bubbleSizes = [];
+  int? histogramBinCount;
   List<ChartSeries> get metrics => [ChartSeries(metricName, values), ...series];
   Map<String, dynamic> toJson() => {
     'datasetFormat': category.name,
@@ -136,6 +152,8 @@ class StatisticalChartState extends ComponentState {
         ? labels.map(double.parse).toList()
         : List.of(labels),
     'values': List.of(values),
+    if (type == ChartType.histogram || histogramBinCount != null)
+      'binCount': histogramBinCount,
     if (category.supportsSeries) 'metricName': metricName,
     if (category.supportsSeries)
       'series': series.map((s) => s.toJson()).toList(),
@@ -143,8 +161,14 @@ class StatisticalChartState extends ComponentState {
       'sizes': List.of(bubbleSizes),
   };
   void restore(Map<String, dynamic> json) {
+    if (json['graphType'] == 'histogram') validateJson(json);
     category = ChartDataFormat.values.firstWhere(
-      (c) => c.name == json['datasetFormat'],
+      (c) =>
+          c.name ==
+          (json['datasetFormat'] ??
+              (json['graphType'] == 'histogram'
+                  ? 'observations'
+                  : 'categorical')),
       orElse: () => ChartDataFormat.categorical,
     );
     type = category.types.firstWhere(
@@ -158,8 +182,12 @@ class StatisticalChartState extends ComponentState {
           : category.types.first,
     );
     title = json['title'] is String ? json['title'] as String : '';
-    final rawLabels = json[category.dataKey];
     final rawValues = json['values'];
+    final rawLabels =
+        json[category.dataKey] ??
+        (category == ChartDataFormat.observations && rawValues is List
+            ? List.generate(rawValues.length, (i) => '${i + 1}')
+            : null);
     if (rawLabels is List &&
         rawValues is List &&
         rawLabels.length == rawValues.length &&
@@ -195,6 +223,9 @@ class StatisticalChartState extends ComponentState {
     bubbleSizes = validNumbers(json['sizes'], labels.length)
         ? (json['sizes'] as List).map((v) => (v as num).toDouble()).toList()
         : [];
+    histogramBinCount = json['binCount'] is int
+        ? json['binCount'] as int
+        : null;
     notifyListeners();
   }
 
@@ -205,7 +236,14 @@ class StatisticalChartState extends ComponentState {
 
   static void validateJson(Map<String, dynamic> json) {
     final category = ChartDataFormat.values
-        .where((c) => c.name == (json['datasetFormat'] ?? 'categorical'))
+        .where(
+          (c) =>
+              c.name ==
+              (json['datasetFormat'] ??
+                  (json['graphType'] == 'histogram'
+                      ? 'observations'
+                      : 'categorical')),
+        )
         .firstOrNull;
     if (category == null) throw const FormatException('Unknown datasetFormat.');
     if (!category.types.any((t) => t.name == json['graphType']) &&
@@ -218,7 +256,12 @@ class StatisticalChartState extends ComponentState {
     if (json['title'] is! String) {
       throw const FormatException('Title must be a string.');
     }
-    final labels = json[category.dataKey];
+    final rawValues = json['values'];
+    final labels =
+        json[category.dataKey] ??
+        (category == ChartDataFormat.observations && rawValues is List
+            ? List.generate(rawValues.length, (i) => '${i + 1}')
+            : null);
     if (labels is! List ||
         !labels.every(
           (v) =>
@@ -266,13 +309,24 @@ class StatisticalChartState extends ComponentState {
     }
     if ((type.composition ||
             type == ChartType.scatter ||
-            type == ChartType.bubble) &&
+            type == ChartType.bubble ||
+            type == ChartType.histogram) &&
         extraMetrics > 0) {
       throw const FormatException(
         'This chart uses one value column. Remove extra value columns or choose a Bar, Column, Line, or Area chart.',
       );
     }
 
+    final bins = json['binCount'];
+    if (bins != null && (bins is! int || bins < 1 || bins > 100)) {
+      throw const FormatException('Choose between 1 and 100 bins, or Auto.');
+    }
+    if (type == ChartType.histogram) {
+      buildHistogram(
+        (json['values'] as List).map((v) => (v as num).toDouble()).toList(),
+        binCount: bins as int?,
+      );
+    }
     if (type.composition) {
       final values = (json['values'] as List).cast<num>();
       if (values.any((v) => v < 0) ||
@@ -327,10 +381,17 @@ class StatisticalChartPreview extends StatelessWidget {
           painter: _StatisticalChartPainter(
             state,
             Theme.of(context).colorScheme,
+            Theme.of(context).textTheme.bodySmall?.fontFamily,
           ),
         ),
       ),
-      if (state.category.supportsSeries)
+      if (state.type == ChartType.histogram)
+        Text(
+          state.values.isEmpty
+              ? 'No observations yet. Add values in Data set.'
+              : '${state.values.length} observations · ${buildHistogram(state.values, binCount: state.histogramBinCount).length} bins · Height shows frequency',
+        ),
+      if (state.type != ChartType.histogram && state.category.supportsSeries)
         Wrap(
           spacing: 16,
           children: List.generate(
@@ -344,16 +405,17 @@ class StatisticalChartPreview extends StatelessWidget {
             ),
           ),
         ),
-      Wrap(
-        spacing: 16,
-        children: List.generate(
-          state.values.length,
-          (i) => Text(
-            '${state.labels[i]}: ${state.metrics.map((m) => state.category.supportsSeries ? '${m.name} ${m.values[i]}' : '${m.values[i]}').join(', ')}',
-            style: TextStyle(color: _colors[i % _colors.length]),
+      if (state.type != ChartType.histogram)
+        Wrap(
+          spacing: 16,
+          children: List.generate(
+            state.values.length,
+            (i) => Text(
+              '${state.labels[i]}: ${state.metrics.map((m) => state.category.supportsSeries ? '${m.name} ${m.values[i]}' : '${m.values[i]}').join(', ')}',
+              style: TextStyle(color: _colors[i % _colors.length]),
+            ),
           ),
         ),
-      ),
       if (state.type == ChartType.bubble &&
           state.values.isNotEmpty &&
           (state.bubbleSizes.isEmpty ||
@@ -380,9 +442,10 @@ const _colors = [
 ];
 
 class _StatisticalChartPainter extends CustomPainter {
-  _StatisticalChartPainter(this.state, this.colors);
+  _StatisticalChartPainter(this.state, this.colors, this.fontFamily);
   final StatisticalChartState state;
   final ColorScheme colors;
+  final String? fontFamily;
   @override
   void paint(Canvas canvas, Size size) {
     if (state.values.isEmpty) return;
@@ -399,13 +462,88 @@ class _StatisticalChartPainter extends CustomPainter {
       final painter = TextPainter(
         text: TextSpan(
           text: label,
-          style: TextStyle(color: colors.onSurface, fontSize: 10),
+          style: TextStyle(
+            color: colors.onSurface,
+            fontSize: 10,
+            fontFamily: fontFamily,
+          ),
         ),
         textDirection: TextDirection.ltr,
+        maxLines: 1,
+        ellipsis: '…',
       )..layout(maxWidth: width);
       painter.paint(canvas, at);
+      painter.dispose();
     }
 
+    if (type == ChartType.histogram) {
+      final bins = buildHistogram(values, binCount: state.histogramBinCount);
+      final area = Rect.fromLTWH(
+        52,
+        24,
+        math.max(1, size.width - 68),
+        math.max(1, size.height - 64),
+      );
+      final highest = bins.map((b) => b.count).reduce(math.max);
+      final tickStep = math.max(1, (highest / 4).ceil());
+      final top = (highest / tickStep).ceil() * tickStep;
+      double y(int frequency) =>
+          area.bottom - frequency / math.max(1, top) * area.height;
+      for (var n = 0; n <= top; n += tickStep) {
+        canvas.drawLine(
+          Offset(area.left, y(n)),
+          Offset(area.right, y(n)),
+          paint
+            ..color = colors.outlineVariant
+            ..strokeWidth = .5,
+        );
+        text('$n', Offset(8, y(n) - 5));
+      }
+      final width = area.width / bins.length;
+      for (var i = 0; i < bins.length; i++) {
+        final rect = Rect.fromLTRB(
+          area.left + i * width,
+          y(bins[i].count),
+          area.left + (i + 1) * width,
+          area.bottom,
+        );
+        canvas.drawRect(
+          rect,
+          paint..color = colors.primary.withValues(alpha: .75),
+        );
+        canvas.drawRect(
+          rect,
+          paint
+            ..color = colors.surface
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = .6,
+        );
+        paint.style = PaintingStyle.fill;
+      }
+      final every = math.max(1, (bins.length * 60 / area.width).ceil());
+      final ticks = {
+        for (var i = 0; i < bins.length; i += every) i,
+        bins.length,
+      };
+      for (final i in ticks) {
+        final value = i == bins.length ? bins.last.upper : bins[i].lower;
+        text(
+          value.toStringAsPrecision(3),
+          Offset(
+            (area.left + i * width - 20).clamp(0, size.width - 60),
+            area.bottom + 6,
+          ),
+          width: 60,
+        );
+      }
+      text('Frequency', Offset.zero, width: 80);
+      text(
+        state.metricName,
+        Offset(area.center.dx - 50, area.bottom + 24),
+        width: 100,
+      );
+      return;
+    }
     if (type.composition) {
       final total = values.fold<double>(0, (a, b) => a + math.max(0, b));
       if (total <= 0) return;

@@ -554,7 +554,7 @@ void main() {
                 ? ['2026-03-01', '2026-01-01', '2026-02-01']
                 : ['A', 'B', 'C'],
             'values': [2, 5, 3],
-            if (category.supportsSeries)
+            if (category.supportsSeries && type != ChartType.histogram)
               'series': [
                 {
                   'name': 'Second',

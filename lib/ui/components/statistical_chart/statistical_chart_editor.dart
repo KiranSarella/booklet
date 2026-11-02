@@ -35,6 +35,10 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
   final sizes = <TextEditingController>[];
   late ChartType selectedType;
   late ChartDataFormat axis;
+  late int? binCount = draft.histogramBinCount;
+  final pastedValues = TextEditingController();
+  String? pasteError;
+  bool get isHistogram => selectedType == ChartType.histogram;
   ChartFamily get family => ChartFamily.forType(selectedType);
   bool rawInvalid = false;
   String? error;
@@ -125,6 +129,7 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
         )
         .toList(),
     'values': columns.first.map((c) => double.tryParse(c.text)).toList(),
+    'binCount': binCount,
     if (axis.supportsSeries) 'metricName': names.first.text,
     if (axis.supportsSeries)
       'series': List.generate(
@@ -168,6 +173,7 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
         draft.restore(json);
         selectedType = draft.type;
         axis = draft.category;
+        binCount = draft.histogramBinCount;
         replaceFields();
         error = null;
         rawInvalid = false;
@@ -188,10 +194,40 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
   void chooseType(ChartType type) {
     if (rawInvalid) return;
     selectedType = type;
+    if (type == ChartType.histogram) {
+      axis = ChartDataFormat.observations;
+    } else if (axis == ChartDataFormat.observations) {
+      axis = ChartDataFormat.categorical;
+    }
     if ((type == ChartType.scatter || type == ChartType.bubble) &&
         axis != ChartDataFormat.xy) {
       axis = ChartDataFormat.xy;
     }
+    update();
+  }
+
+  void addPastedValues() {
+    final text = pastedValues.text.trim();
+    final parsed = text.isEmpty
+        ? <double?>[]
+        : text
+              .split(RegExp(r'[\s,;]+'))
+              .where((v) => v.isNotEmpty)
+              .map(double.tryParse)
+              .toList();
+    if (parsed.isEmpty || parsed.any((v) => v == null || !v.isFinite)) {
+      setState(
+        () => pasteError = 'Enter finite numbers separated by spaces, commas, semicolons, or new lines.',
+      );
+      return;
+    }
+    for (final value in parsed) {
+      labels.add(TextEditingController(text: '${labels.length + 1}'));
+      columns.first.add(TextEditingController(text: '$value'));
+      sizes.add(TextEditingController(text: '1'));
+    }
+    pastedValues.clear();
+    pasteError = null;
     update();
   }
 
@@ -200,6 +236,7 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
     for (final c in [
       title,
       raw,
+      pastedValues,
       ...labels,
       ...columns.expand((c) => c),
       ...names,
@@ -244,7 +281,9 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!selectedType.composition && family != ChartFamily.scatterBubble)
+          if (!isHistogram &&
+              !selectedType.composition &&
+              family != ChartFamily.scatterBubble)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: DropdownButtonFormField<ChartDataFormat>(
@@ -271,6 +310,53 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                 onChanged: rawInvalid ? null : (value) => changeAxis(value!),
               ),
             ),
+          if (isHistogram) ...[
+            const Text(
+              'Enter the original numeric observations, one per row. The chart calculates frequencies; do not enter pre-counted frequencies.',
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int>(
+              key: ValueKey(('histogram-bins', binCount)),
+              initialValue: binCount ?? 0,
+              decoration: const InputDecoration(labelText: 'Number of bins'),
+              items: [
+                const DropdownMenuItem(value: 0, child: Text('Auto')),
+                for (var i = 1; i <= 100; i++)
+                  DropdownMenuItem(value: i, child: Text('$i bins')),
+              ],
+              onChanged: rawInvalid
+                  ? null
+                  : (value) {
+                      binCount = value == 0 ? null : value;
+                      update();
+                    },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const ValueKey('histogram-paste-values'),
+              controller: pastedValues,
+              minLines: 2,
+              maxLines: 4,
+              decoration: InputDecoration(
+                labelText: 'Paste observations',
+                hintText: '12, 15, 15, 18, 22',
+                errorText: pasteError,
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (_) => setState(() => pasteError = null),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: columns.length == 1 && !rawInvalid
+                    ? addPastedValues
+                    : null,
+                icon: const Icon(Icons.playlist_add),
+                label: const Text('Add values'),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           if (selectedType.composition)
             const Padding(
               padding: EdgeInsets.only(bottom: 12),
@@ -290,11 +376,15 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
             child: SizedBox(
               width: math.max(
                 constraints.maxWidth - 32,
-                160.0 * (1 + columns.length + (showSizes ? 1 : 0)) + 56,
+                160.0 *
+                        ((isHistogram ? 0 : 1) +
+                            columns.length +
+                            (showSizes ? 1 : 0)) +
+                    56,
               ),
               child: Table(
                 columnWidths: {
-                  1 + columns.length + (showSizes ? 1 : 0):
+                  (isHistogram ? 0 : 1) + columns.length + (showSizes ? 1 : 0):
                       const FixedColumnWidth(56),
                 },
                 defaultVerticalAlignment: TableCellVerticalAlignment.middle,
@@ -302,10 +392,11 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                 children: [
                   TableRow(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(axis.columnLabel),
-                      ),
+                      if (!isHistogram)
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(axis.columnLabel),
+                        ),
                       for (var c = 0; c < columns.length; c++)
                         axis.supportsSeries
                             ? Column(
@@ -342,11 +433,12 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                   for (var i = 0; i < labels.length; i++)
                     TableRow(
                       children: [
-                        cell(
-                          labels[i],
-                          axis.columnLabel,
-                          numeric: axis == ChartDataFormat.xy,
-                        ),
+                        if (!isHistogram)
+                          cell(
+                            labels[i],
+                            axis.columnLabel,
+                            numeric: axis == ChartDataFormat.xy,
+                          ),
                         for (var c = 0; c < columns.length; c++)
                           cell(
                             columns[c][i],
@@ -381,7 +473,7 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                 onPressed: () {
                   labels.add(
                     TextEditingController(
-                      text: axis == ChartDataFormat.xy
+                      text: axis == ChartDataFormat.xy || isHistogram
                           ? '${labels.length + 1}'
                           : axis == ChartDataFormat.timeSeries
                           ? DateTime.now().toIso8601String().substring(0, 10)
@@ -395,7 +487,8 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                   update();
                 },
               ),
-              if (!selectedType.composition &&
+              if (!isHistogram &&
+                  !selectedType.composition &&
                   family != ChartFamily.scatterBubble)
                 TextButton.icon(
                   icon: const Icon(Icons.add),
