@@ -31,6 +31,9 @@ class ComponentTypes {
         return '📍 Location';
       case 'assets':
         return 'Assets';
+      case 'graph':
+      case 'statistical_chart':
+        return 'Statistical Chart';
       case 'table':
         return 'Table';
       case 'drawing':
@@ -74,6 +77,9 @@ class ComponentTypes {
         return 'location';
       case 'Assets':
         return 'assets';
+      case 'Graph':
+      case 'Statistical Chart':
+        return 'statistical_chart';
       case 'Table':
         return 'table';
       case 'Drawing':

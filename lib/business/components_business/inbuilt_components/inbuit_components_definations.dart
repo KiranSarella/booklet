@@ -308,3 +308,12 @@ class TableComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.media;
 }
+
+class StatisticalChartComponentDef extends ComponentDef {
+  @override
+  String get key => 'statistical_chart';
+  @override
+  String get name => 'Statistical Chart';
+  @override
+  ComponentType get type => ComponentType.media;
+}

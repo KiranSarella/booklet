@@ -1,3 +1,7 @@
+import 'package:booklet/ui/components/statistical_chart/statistical_chart_document.dart';
+import 'package:booklet/ui/components/statistical_chart/statistical_chart_editor.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/statistical_chart_component.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -138,6 +142,111 @@ void main() {
     settings.dispose();
   });
 
+  testWidgets('chart miniatures show actual charts and fit compressed rows', (
+    tester,
+  ) async {
+    final component = StatisticalChartComponent(id: 'miniature');
+    final box = ComponentBox(component: component);
+    for (final type in [
+      ChartType.column,
+      ChartType.pie,
+      ChartType.bubble,
+      ChartType.stackedBar,
+    ]) {
+      component.state.restore({
+        'datasetFormat': type == ChartType.bubble ? 'xy' : 'categorical',
+        'graphType': type.name,
+        'title': 'Chart title',
+        if (type == ChartType.bubble)
+          'xValues': [1, 2, 3]
+        else
+          'labels': ['A', 'B', 'C'],
+        'values': [3, 7, 5],
+        if (type == ChartType.bubble) 'sizes': [1, 4, 9],
+        if (type == ChartType.stackedBar)
+          'series': [
+            {
+              'name': 'Second',
+              'values': [2, 4, 1],
+            },
+          ],
+      });
+      for (final height in [3.0, 30.0, 80.0]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Center(
+              child: SizedBox(
+                width: 150,
+                height: height,
+                child: ComponentMinimapPreview(box: box),
+              ),
+            ),
+          ),
+        );
+        final chart = tester.widget<StatisticalChartPreview>(
+          find.byType(StatisticalChartPreview),
+        );
+        expect(chart.state, same(component.state));
+        expect(chart.state.type, type);
+        expect(find.byIcon(Icons.bar_chart), findsNothing);
+        expect(find.byType(StatisticalChartEditor), findsNothing);
+        expect(find.byType(TextField), findsNothing);
+        final root = tester.renderObject<RenderBox>(
+          find.byType(ComponentMinimapPreview),
+        );
+        final miniature = tester.renderObject<RenderBox>(
+          find.byType(StatisticalChartPreview),
+        );
+        final painted = MatrixUtils.transformRect(
+          miniature.getTransformTo(root),
+          Offset.zero & miniature.size,
+        );
+        expect(painted.top, greaterThanOrEqualTo(-.001));
+        expect(painted.bottom, lessThanOrEqualTo(height + .001));
+        expect(painted.left, greaterThanOrEqualTo(-.001));
+        expect(painted.right, lessThanOrEqualTo(150.001));
+        expect(tester.takeException(), isNull);
+      }
+    }
+    await tester.pumpWidget(const SizedBox());
+    component.dispose();
+  });
+  testWidgets('chart miniatures update after saved edits without remounting', (
+    tester,
+  ) async {
+    final component = StatisticalChartComponent(id: 'live-miniature');
+    final box = ComponentBox(component: component);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 150,
+          height: 80,
+          child: ComponentMinimapPreview(box: box),
+        ),
+      ),
+    );
+    expect(find.text('A: Value 3.0'), findsOneWidget);
+    component.state.restore({
+      'graphType': 'pie',
+      'title': 'Updated',
+      'labels': ['Edited'],
+      'values': [42],
+    });
+    await tester.pump();
+    expect(find.text('Updated'), findsOneWidget);
+    expect(find.text('Edited: Value 42.0'), findsOneWidget);
+    expect(find.text('A: Value 3.0'), findsNothing);
+    expect(
+      tester
+          .widget<StatisticalChartPreview>(find.byType(StatisticalChartPreview))
+          .state
+          .type,
+      ChartType.pie,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    component.dispose();
+  });
   testWidgets('image and video previews use actual thumbnail pixels', (
     tester,
   ) async {

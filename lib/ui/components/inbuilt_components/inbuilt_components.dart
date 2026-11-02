@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/inbuilt_components/component_defs/statistical_chart_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/table_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/drawing_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/assets_component.dart';
@@ -63,6 +64,9 @@ class InbuiltComponents {
         return QuoteComponent(id: id);
       case 'assets':
         return AssetsComponent(id: id);
+      case 'graph':
+      case 'statistical_chart':
+        return StatisticalChartComponent(id: id);
       case 'table':
         return TableComponent(id: id);
       case 'drawing':
@@ -108,6 +112,7 @@ class InbuiltComponents {
       ImageComponentDef(),
       DrawingComponentDef(),
       TableComponentDef(),
+      StatisticalChartComponentDef(),
       VideoComponentDef(),
       AudioComponentDef(),
       EmbedComponentDef(),
