@@ -27,6 +27,8 @@ Used flutter to make it platform independent.
 
 ![](/readme-screenshots/drawing.png)
 
+![](/readme-screenshots/statistical-chart.png)
+
 
 # Flutter
 
