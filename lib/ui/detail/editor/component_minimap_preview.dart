@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/gantt_chart/gantt_chart_document.dart';
 import 'package:booklet/ui/components/math_graph/math_graph_document.dart';
 import 'package:booklet/ui/components/statistical_chart/statistical_chart_document.dart';
 import 'package:booklet/ui/components/table/table_document.dart';
@@ -54,6 +55,25 @@ class ComponentMinimapPreview extends StatelessWidget {
                       ? FontWeight.w600
                       : FontWeight.w800,
                   color: colors.onSurface,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    } else if (state is GanttChartState) {
+      preview = ListenableBuilder(
+        listenable: state,
+        builder: (context, _) => IgnorePointer(
+          child: ExcludeSemantics(
+            child: RepaintBoundary(
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: SizedBox(
+                  // Lay out at page scale before shrinking, so axes, legends,
+                  // and labels keep the same proportions in compressed rows.
+                  width: 640,
+                  child: GanttChartPreview(state: state),
                 ),
               ),
             ),

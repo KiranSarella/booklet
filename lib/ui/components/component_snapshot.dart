@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/gantt_chart/gantt_chart_document.dart';
 import 'package:booklet/ui/components/math_graph/math_graph_document.dart';
 import 'package:booklet/ui/components/statistical_chart/statistical_chart_document.dart';
 import 'package:booklet/ui/components/table/table_document.dart';
@@ -53,6 +54,12 @@ class ComponentSnapshot {
       return ComponentSnapshot._(
         typeKey: component.def.key,
         extra: {'assets': state.output},
+      );
+    }
+    if (state is GanttChartState) {
+      return ComponentSnapshot._(
+        typeKey: component.def.key,
+        extra: state.toJson(),
       );
     }
     if (state is MathGraphState) {
@@ -164,6 +171,8 @@ class ComponentSnapshot {
       if (authorDelta != null) {
         state.author.controller.document = Document.fromJson(authorDelta);
       }
+    } else if (state is GanttChartState) {
+      state.restore(extra);
     } else if (state is MathGraphState) {
       state.restore(extra);
     } else if (state is StatisticalChartState) {

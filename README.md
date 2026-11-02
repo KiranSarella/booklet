@@ -32,6 +32,10 @@ Used flutter to make it platform independent.
 ![](/readme-screenshots/math.png)
 
 
+## Gantt Chart
+
+Add **Gantt Chart** to plan tasks with start/end dates, progress percentages, and dependencies. The full-screen editor has synchronized **Preview**, **Tasks**, and **Raw data** tabs, with date pickers, task ordering, and day/week/month timeline labels. End dates are inclusive. Choose **Standard Gantt** for scheduling or **Tracking Gantt** to compare the current schedule with baseline dates. In Tracking Gantt, use **Capture baseline** before adjusting current dates. Circular dependencies are rejected; scheduling conflicts are highlighted without moving task dates. Page and minimap previews remain read-only.
+
 # Flutter
 
 ```

@@ -326,3 +326,12 @@ class MathGraphComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.media;
 }
+
+class GanttChartComponentDef extends ComponentDef {
+  @override
+  String get key => 'gantt_chart';
+  @override
+  String get name => 'Gantt Chart';
+  @override
+  ComponentType get type => ComponentType.media;
+}
