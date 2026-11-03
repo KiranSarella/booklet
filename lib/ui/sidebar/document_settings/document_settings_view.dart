@@ -1,3 +1,6 @@
+import 'package:file_selector/file_selector.dart';
+import 'package:booklet/ui/sidebar/document_settings/file_import_dialog.dart';
+import 'package:booklet/ui/sidebar/document_settings/epub_import_dialog.dart';
 import 'package:booklet/ui/sidebar/document_settings/pdf_import_dialog.dart';
 import 'package:booklet/ui/sidebar/document_settings/document_information_section.dart';
 import 'package:booklet/ui/sidebar/document_settings/deleted_items_section.dart';
@@ -68,6 +71,67 @@ class DocumentSettingsView extends StatelessWidget {
                 label: const Text('PDF'),
               ),
             ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: viewModel.settingsController.isReadOnly
+                    ? null
+                    : () => showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => EpubImportDialog(
+                          controller: viewModel.editorController,
+                        ),
+                      ),
+                icon: const Icon(Icons.menu_book_outlined),
+                label: const Text('EPUB'),
+              ),
+            ),
+            for (final isDocx in [true, false]) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: viewModel.settingsController.isReadOnly
+                      ? null
+                      : () => showDialog<void>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => FileImportDialog(
+                            label: isDocx ? 'DOCX' : 'TXT',
+                            typeGroup: isDocx
+                                ? const XTypeGroup(
+                                    label: 'Word document',
+                                    extensions: ['docx'],
+                                    uniformTypeIdentifiers: [
+                                      'org.openxmlformats.wordprocessingml.document',
+                                    ],
+                                  )
+                                : const XTypeGroup(
+                                    label: 'Plain text',
+                                    extensions: ['txt'],
+                                    uniformTypeIdentifiers: [
+                                      'public.plain-text',
+                                    ],
+                                  ),
+                            description: isDocx
+                                ? 'Import a Word document into a new editable page, including headings, basic formatting, lists, links, and embedded images. Tables import as text in reading order. Complex layouts may need adjustment. Save legacy .doc or encrypted documents as an unencrypted .docx first. Maximum file size: 50 MB.'
+                                : 'Import plain text into a new editable page, preserving paragraphs and line breaks. Supports UTF-8 and UTF-16 with a byte-order mark. Maximum file size: 10 MB.',
+                            onImport: isDocx
+                                ? viewModel.editorController.importDocx
+                                : viewModel.editorController.importTxt,
+                          ),
+                        ),
+                  icon: Icon(
+                    isDocx
+                        ? Icons.description_outlined
+                        : Icons.text_snippet_outlined,
+                  ),
+                  label: Text(isDocx ? 'DOCX' : 'TXT'),
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
             Text('Mode', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),

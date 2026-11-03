@@ -444,21 +444,10 @@ class EditorVM {
   void importPdf(PdfImportResult result) {
     if (theme.documentSettingsController.isReadOnly) return;
     if (result.pages.length > 1 && result.sections.isNotEmpty) {
-      final pages = [
+      importChapters(result.title, [
         for (final section in result.sections)
-          _createImportedPage(HtmlImportResult(section.title, section.blocks)),
-      ];
-      clearSelectedComponent();
-      final group = navigation.addGroup(title: result.title);
-      for (final page in pages) {
-        group.children.add(
-          NavigationNode.page(title: page.title, pageId: page.id),
-        );
-        _pagesById[page.id] = page;
-        _watchPage(page);
-      }
-      navigation.selectPage(pages.first.id);
-      _documentChanged();
+          HtmlImportResult(section.title, section.blocks),
+      ], groupSingleChapter: true);
       return;
     }
     importHtml(
@@ -477,6 +466,30 @@ class EditorVM {
               ],
       ),
     );
+  }
+
+  void importChapters(
+    String title,
+    List<HtmlImportResult> chapters, {
+    bool groupSingleChapter = false,
+  }) {
+    if (theme.documentSettingsController.isReadOnly || chapters.isEmpty) return;
+    if (chapters.length == 1 && !groupSingleChapter) {
+      importHtml(HtmlImportResult(title, chapters.first.blocks));
+      return;
+    }
+    final pages = chapters.map(_createImportedPage).toList();
+    clearSelectedComponent();
+    final group = navigation.addGroup(title: title);
+    for (final page in pages) {
+      group.children.add(
+        NavigationNode.page(title: page.title, pageId: page.id),
+      );
+      _pagesById[page.id] = page;
+      _watchPage(page);
+    }
+    navigation.selectPage(pages.first.id);
+    _documentChanged();
   }
 
   PageContent _createImportedPage(HtmlImportResult result) {

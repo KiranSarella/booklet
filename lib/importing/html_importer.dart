@@ -87,6 +87,16 @@ class HtmlImporter {
 
   static HtmlImportResult parse(String source, {required Uri baseUri}) {
     final document = html.parse(source);
+    final wikipediaContent = document.querySelector('.mw-parser-output');
+    final wikipediaTitle = document.querySelector('#firstHeading')?.text.trim();
+    if (wikipediaContent != null) {
+      for (final node in wikipediaContent.querySelectorAll(
+        '.mw-editsection, .navbox, .vertical-navbox, .metadata, '
+        '.ambox, .sistersitebox, .noprint, .toc, .mw-empty-elt',
+      )) {
+        node.remove();
+      }
+    }
     final base = document.querySelector('base[href]')?.attributes['href'];
     if (base != null) baseUri = baseUri.resolve(base);
     for (final node in document.querySelectorAll(
@@ -111,12 +121,14 @@ class HtmlImporter {
       if (!inContent) header.remove();
     }
     final root =
+        wikipediaContent ??
         document.querySelector('main article') ??
         document.querySelector('article') ??
         document.querySelector('main') ??
         document.querySelector('[role="main"]') ??
         document.body;
     final title =
+        wikipediaTitle ??
         root?.querySelector('h1')?.text.trim() ??
         document.querySelector('title')?.text.trim() ??
         'Imported HTML';
@@ -334,6 +346,19 @@ class HtmlImporter {
       flush();
     }
 
+    if (wikipediaContent != null &&
+        wikipediaTitle != null &&
+        wikipediaTitle.isNotEmpty &&
+        root?.querySelector('h1') == null) {
+      blocks.add(
+        HtmlImportBlock(
+          'title',
+          delta: [
+            {'insert': '$wikipediaTitle\n'},
+          ],
+        ),
+      );
+    }
     if (root != null) walk(root);
     if (blocks.isEmpty) {
       throw const FormatException(

@@ -198,6 +198,11 @@ void main() {
         ..title = 'Sales'
         ..labels = ['One', 'Two']
         ..values = [-2, 5];
+      if (type == ChartType.combo) {
+        state.series = [
+          ChartSeries('Target', [2, 4]),
+        ];
+      }
       final restored = StatisticalChartState()..restore(state.toJson());
       expect(restored.toJson(), state.toJson());
       restored.values[0] = 10;
@@ -257,6 +262,7 @@ void main() {
       'Changed',
     );
     await tester.enterText(find.widgetWithText(TextFormField, '12.0'), '42');
+    await tester.ensureVisible(find.text('Add data point'));
     await tester.tap(find.text('Add data point'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Raw data'));
@@ -327,7 +333,11 @@ void main() {
               ? ['2026-01-01', '2026-04-01']
               : ['A', 'B']
           ..values = [2, 6]
-          ..series = category == ChartDataFormat.grouped
+          ..series =
+              type == ChartType.combo ||
+                  (category == ChartDataFormat.grouped &&
+                      type != ChartType.boxPlot &&
+                      type != ChartType.histogram)
               ? [
                   ChartSeries('Metric 2', [4, 8]),
                 ]
@@ -554,7 +564,8 @@ void main() {
                 ? ['2026-03-01', '2026-01-01', '2026-02-01']
                 : ['A', 'B', 'C'],
             'values': [2, 5, 3],
-            if (category.supportsSeries && type != ChartType.histogram)
+            if (category.supportsSeries &&
+                ![ChartType.histogram, ChartType.boxPlot].contains(type))
               'series': [
                 {
                   'name': 'Second',

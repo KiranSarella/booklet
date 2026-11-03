@@ -1,4 +1,5 @@
 import 'histogram.dart';
+import 'box_plot.dart';
 
 import 'dart:math' as math;
 
@@ -21,7 +22,9 @@ enum ChartType {
   multiLine,
   stacked100,
   bubble,
-  histogram;
+  histogram,
+  boxPlot,
+  combo;
 
   String get label => switch (this) {
     bar => 'Bar',
@@ -40,7 +43,18 @@ enum ChartType {
     stacked100 => '100% Stacked Bar',
     bubble => 'Bubble Chart',
     histogram => 'Histogram',
+    boxPlot => 'Box-and-whisker',
+    combo => 'Combo (Columns & Lines)',
   };
+  bool get supportsIntervals => [
+    ChartType.bar,
+    ChartType.column,
+    ChartType.groupedBar,
+    ChartType.line,
+    ChartType.multiLine,
+    ChartType.scatter,
+    ChartType.combo,
+  ].contains(this);
   bool get composition => [pie, doughnut, treemap, stacked100].contains(this);
 }
 
@@ -69,9 +83,12 @@ enum ChartFamily {
   ),
   distributions(
     'Distributions',
-    'Show how often observations fall within numeric ranges.',
-    [ChartType.histogram],
+    'Explore frequency, medians, spread, and outliers.',
+    [ChartType.histogram, ChartType.boxPlot],
   ),
+  combo('Combo', 'Compare columns and lines on a shared numeric scale.', [
+    ChartType.combo,
+  ]),
   scatterBubble(
     'Scatter & Bubble',
     'Explore relationships between numeric X and Y values.',
@@ -104,11 +121,12 @@ enum ChartDataFormat {
   final String dataKey;
   bool get supportsSeries => true;
   List<ChartType> get types => this == observations
-      ? [ChartType.histogram]
+      ? [ChartType.histogram, ChartType.boxPlot]
       : ChartType.values
             .where(
               (t) =>
                   t != ChartType.histogram &&
+                  t != ChartType.boxPlot &&
                   (this == xy ||
                       (t != ChartType.scatter && t != ChartType.bubble)),
             )
@@ -127,10 +145,24 @@ enum ChartDataFormat {
 }
 
 class ChartSeries {
-  ChartSeries(this.name, this.values);
+  ChartSeries(
+    this.name,
+    this.values, {
+    this.style = 'line',
+    this.lower = const [],
+    this.upper = const [],
+  });
   String name;
   List<double> values;
-  Map<String, dynamic> toJson() => {'name': name, 'values': List.of(values)};
+  String style;
+  List<double> lower, upper;
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'values': List.of(values),
+    'style': style,
+    if (lower.isNotEmpty) 'lower': List.of(lower),
+    if (upper.isNotEmpty) 'upper': List.of(upper),
+  };
 }
 
 class StatisticalChartState extends ComponentState {
@@ -143,11 +175,28 @@ class StatisticalChartState extends ComponentState {
   List<ChartSeries> series = [];
   List<double> bubbleSizes = [];
   int? histogramBinCount;
-  List<ChartSeries> get metrics => [ChartSeries(metricName, values), ...series];
+  String primaryStyle = 'column';
+  List<double> lower = [], upper = [];
+  bool showIntervals = false;
+  bool get supportsIntervals => type.supportsIntervals;
+  List<ChartSeries> get metrics => [
+    ChartSeries(
+      metricName,
+      values,
+      style: primaryStyle,
+      lower: lower,
+      upper: upper,
+    ),
+    ...series,
+  ];
   Map<String, dynamic> toJson() => {
     'datasetFormat': category.name,
     'graphType': type.name,
     'title': title,
+    'primaryStyle': primaryStyle,
+    'showIntervals': showIntervals,
+    if (lower.isNotEmpty) 'lower': List.of(lower),
+    if (upper.isNotEmpty) 'upper': List.of(upper),
     category.dataKey: category == ChartDataFormat.xy
         ? labels.map(double.parse).toList()
         : List.of(labels),
@@ -161,12 +210,17 @@ class StatisticalChartState extends ComponentState {
       'sizes': List.of(bubbleSizes),
   };
   void restore(Map<String, dynamic> json) {
-    if (json['graphType'] == 'histogram') validateJson(json);
+    if (['histogram', 'boxPlot', 'combo'].contains(json['graphType']) ||
+        json['showIntervals'] == true ||
+        json.containsKey('lower') ||
+        json.containsKey('upper')) {
+      validateJson(json);
+    }
     category = ChartDataFormat.values.firstWhere(
       (c) =>
           c.name ==
           (json['datasetFormat'] ??
-              (json['graphType'] == 'histogram'
+              (['histogram', 'boxPlot'].contains(json['graphType'])
                   ? 'observations'
                   : 'categorical')),
       orElse: () => ChartDataFormat.categorical,
@@ -186,7 +240,10 @@ class StatisticalChartState extends ComponentState {
     final rawLabels =
         json[category.dataKey] ??
         (category == ChartDataFormat.observations && rawValues is List
-            ? List.generate(rawValues.length, (i) => '${i + 1}')
+            ? List.generate(
+                rawValues.length,
+                (i) => json['graphType'] == 'boxPlot' ? 'Group 1' : '${i + 1}',
+              )
             : null);
     if (rawLabels is List &&
         rawValues is List &&
@@ -215,6 +272,9 @@ class StatisticalChartState extends ComponentState {
               (item['values'] as List)
                   .map((v) => (v as num).toDouble())
                   .toList(),
+              style: item['style'] as String? ?? 'line',
+              lower: readBounds(item['lower']),
+              upper: readBounds(item['upper']),
             ),
           );
         }
@@ -223,11 +283,18 @@ class StatisticalChartState extends ComponentState {
     bubbleSizes = validNumbers(json['sizes'], labels.length)
         ? (json['sizes'] as List).map((v) => (v as num).toDouble()).toList()
         : [];
+    primaryStyle = json['primaryStyle'] as String? ?? 'column';
+    lower = readBounds(json['lower']);
+    upper = readBounds(json['upper']);
+    showIntervals = json['showIntervals'] == true;
     histogramBinCount = json['binCount'] is int
         ? json['binCount'] as int
         : null;
     notifyListeners();
   }
+
+  static List<double> readBounds(Object? value) =>
+      value is List ? value.map((v) => (v as num).toDouble()).toList() : [];
 
   static bool validNumbers(Object? raw, int length) =>
       raw is List &&
@@ -240,7 +307,7 @@ class StatisticalChartState extends ComponentState {
           (c) =>
               c.name ==
               (json['datasetFormat'] ??
-                  (json['graphType'] == 'histogram'
+                  (['histogram', 'boxPlot'].contains(json['graphType'])
                       ? 'observations'
                       : 'categorical')),
         )
@@ -260,7 +327,10 @@ class StatisticalChartState extends ComponentState {
     final labels =
         json[category.dataKey] ??
         (category == ChartDataFormat.observations && rawValues is List
-            ? List.generate(rawValues.length, (i) => '${i + 1}')
+            ? List.generate(
+                rawValues.length,
+                (i) => json['graphType'] == 'boxPlot' ? 'Group 1' : '${i + 1}',
+              )
             : null);
     if (labels is! List ||
         !labels.every(
@@ -301,6 +371,7 @@ class StatisticalChartState extends ComponentState {
           ChartType.groupedBar,
           ChartType.stackedBar,
           ChartType.multiLine,
+          ChartType.combo,
         ].contains(type) &&
         extraMetrics == 0) {
       throw const FormatException(
@@ -310,16 +381,78 @@ class StatisticalChartState extends ComponentState {
     if ((type.composition ||
             type == ChartType.scatter ||
             type == ChartType.bubble ||
-            type == ChartType.histogram) &&
+            type == ChartType.histogram ||
+            type == ChartType.boxPlot) &&
         extraMetrics > 0) {
       throw const FormatException(
         'This chart uses one value column. Remove extra value columns or choose a Bar, Column, Line, or Area chart.',
       );
     }
 
+    if (json.containsKey('showIntervals') && json['showIntervals'] is! bool) {
+      throw const FormatException('showIntervals must be true or false.');
+    }
+    final primaryStyle = json['primaryStyle'] ?? 'column';
+    final styles = [primaryStyle, for (final m in series) m['style'] ?? 'line'];
+    if (styles.any((v) => v != 'column' && v != 'line')) {
+      throw const FormatException('Series style must be column or line.');
+    }
+    if (type == ChartType.combo &&
+        (!styles.contains('column') || !styles.contains('line'))) {
+      throw const FormatException(
+        'A combo chart needs at least one Column and one Line series.',
+      );
+    }
+    for (final m in [json, ...series]) {
+      final lo = m['lower'], hi = m['upper'];
+      if (lo == null && hi == null) {
+        if (json['showIntervals'] == true && labels.isNotEmpty) {
+          throw const FormatException(
+            'Enter lower and upper bounds for every series.',
+          );
+        }
+        continue;
+      }
+      if (!validNumbers(lo, labels.length) ||
+          !validNumbers(hi, labels.length)) {
+        throw const FormatException(
+          'Lower and upper bounds need one finite number per row.',
+        );
+      }
+      final vals = m['values'] as List;
+      for (var i = 0; i < labels.length; i++) {
+        if (lo[i] > vals[i] || hi[i] < vals[i]) {
+          throw const FormatException(
+            'Each lower bound must be ≤ its value, and each upper bound ≥ its value.',
+          );
+        }
+      }
+    }
+
+    if (json['showIntervals'] == true) {
+      var minimum = 0.0, maximum = 0.0;
+      for (final m in [json, ...series]) {
+        for (final v in [...?m['lower'] as List?, ...?m['upper'] as List?]) {
+          minimum = math.min(minimum, (v as num).toDouble());
+          maximum = math.max(maximum, v.toDouble());
+        }
+      }
+      if (!(maximum - minimum).isFinite) {
+        throw const FormatException('The interval range is too large to plot.');
+      }
+    }
     final bins = json['binCount'];
     if (bins != null && (bins is! int || bins < 1 || bins > 100)) {
       throw const FormatException('Choose between 1 and 100 bins, or Auto.');
+    }
+    if (type == ChartType.boxPlot) {
+      final numbers = (json['values'] as List).cast<num>();
+      if (numbers.isNotEmpty &&
+          !(numbers.reduce(math.max) - numbers.reduce(math.min)).isFinite) {
+        throw const FormatException(
+          'The observation range is too large to plot.',
+        );
+      }
     }
     if (type == ChartType.histogram) {
       buildHistogram(
@@ -391,7 +524,8 @@ class StatisticalChartPreview extends StatelessWidget {
               ? 'No observations yet. Add values in Data set.'
               : '${state.values.length} observations · ${buildHistogram(state.values, binCount: state.histogramBinCount).length} bins · Height shows frequency',
         ),
-      if (state.type != ChartType.histogram && state.category.supportsSeries)
+      if (![ChartType.histogram, ChartType.boxPlot].contains(state.type) &&
+          state.category.supportsSeries)
         Wrap(
           spacing: 16,
           children: List.generate(
@@ -405,7 +539,7 @@ class StatisticalChartPreview extends StatelessWidget {
             ),
           ),
         ),
-      if (state.type != ChartType.histogram)
+      if (![ChartType.histogram, ChartType.boxPlot].contains(state.type))
         Wrap(
           spacing: 16,
           children: List.generate(
@@ -416,6 +550,12 @@ class StatisticalChartPreview extends StatelessWidget {
             ),
           ),
         ),
+      if (state.type == ChartType.boxPlot)
+        const Text(
+          'Boxes: middle 50% · Line: median · Whiskers: 1.5 × IQR · Dots: outliers',
+        ),
+      if (state.showIntervals && state.supportsIntervals)
+        const Text('Error bars show the supplied lower and upper bounds.'),
       if (state.type == ChartType.bubble &&
           state.values.isNotEmpty &&
           (state.bubbleSizes.isEmpty ||
@@ -458,7 +598,12 @@ class _StatisticalChartPainter extends CustomPainter {
     final paint = Paint();
     final values = state.values;
     final type = state.type;
-    void text(String label, Offset at, {double width = 40}) {
+    void text(
+      String label,
+      Offset at, {
+      double width = 40,
+      TextAlign align = TextAlign.left,
+    }) {
       final painter = TextPainter(
         text: TextSpan(
           text: label,
@@ -469,6 +614,7 @@ class _StatisticalChartPainter extends CustomPainter {
           ),
         ),
         textDirection: TextDirection.ltr,
+        textAlign: align,
         maxLines: 1,
         ellipsis: '…',
       )..layout(maxWidth: width);
@@ -542,6 +688,69 @@ class _StatisticalChartPainter extends CustomPainter {
         Offset(area.center.dx - 50, area.bottom + 24),
         width: 100,
       );
+      return;
+    }
+    if (type == ChartType.boxPlot) {
+      final groups = <String, List<double>>{};
+      for (var i = 0; i < values.length; i++) {
+        groups.putIfAbsent(state.labels[i], () => []).add(values[i]);
+      }
+      final low = values.reduce(math.min), high = values.reduce(math.max);
+      final pad = high == low
+          ? math.max(1.0, low.abs() * .05)
+          : (high - low) * .08;
+      double y(double v) =>
+          plot.bottom - (v - low + pad) / (high - low + 2 * pad) * plot.height;
+      text(low.toStringAsPrecision(3), Offset(0, y(low) - 5));
+      text(high.toStringAsPrecision(3), Offset(0, y(high) - 5));
+      final step = plot.width / groups.length;
+      var i = 0;
+      for (final entry in groups.entries) {
+        final b = summarizeBoxPlot(entry.value);
+        final x = plot.left + step * (i + .5), w = math.min(60.0, step * .55);
+        paint
+          ..color = _colors[i % _colors.length]
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke;
+        canvas.drawLine(
+          Offset(x, y(b.lowerWhisker)),
+          Offset(x, y(b.q1)),
+          paint,
+        );
+        canvas.drawLine(
+          Offset(x, y(b.q3)),
+          Offset(x, y(b.upperWhisker)),
+          paint,
+        );
+        for (final v in [b.lowerWhisker, b.upperWhisker]) {
+          canvas.drawLine(
+            Offset(x - w / 3, y(v)),
+            Offset(x + w / 3, y(v)),
+            paint,
+          );
+        }
+        final rect = Rect.fromLTRB(x - w / 2, y(b.q3), x + w / 2, y(b.q1));
+        canvas.drawRect(
+          rect,
+          Paint()..color = paint.color.withValues(alpha: .2),
+        );
+        canvas.drawRect(rect, paint);
+        canvas.drawLine(
+          Offset(x - w / 2, y(b.median)),
+          Offset(x + w / 2, y(b.median)),
+          paint,
+        );
+        for (final v in b.outliers) {
+          canvas.drawCircle(Offset(x, y(v)), 3, paint);
+        }
+        text(
+          entry.key,
+          Offset(x - step / 2, plot.bottom + 5),
+          width: step,
+          align: TextAlign.center,
+        );
+        i++;
+      }
       return;
     }
     if (type.composition) {
@@ -650,6 +859,13 @@ class _StatisticalChartPainter extends CustomPainter {
         for (final m in metrics) {
           low = math.min(low, m.values[i]);
           high = math.max(high, m.values[i]);
+          if (state.showIntervals &&
+              state.supportsIntervals &&
+              m.lower.length == values.length &&
+              m.upper.length == values.length) {
+            low = math.min(low, m.lower[i]);
+            high = math.max(high, m.upper[i]);
+          }
         }
       }
     }
@@ -716,7 +932,21 @@ class _StatisticalChartPainter extends CustomPainter {
     final bubbleRadii = bubbleMarkerRadii(state.bubbleSizes, values.length);
     final positive = List.filled(values.length, 0.0),
         negative = List.filled(values.length, 0.0);
-    for (var m = 0; m < metrics.length; m++) {
+    final columnCount = type == ChartType.combo
+        ? metrics.where((m) => m.style == 'column').length
+        : metrics.length;
+    var columnIndex = 0;
+    final metricOrder = List.generate(metrics.length, (i) => i);
+    if (type == ChartType.combo) {
+      // Draw lines over all columns, regardless of the data column order.
+      metricOrder.sort((a, b) {
+        final comparison = (metrics[a].style == 'column' ? 0 : 1).compareTo(
+          metrics[b].style == 'column' ? 0 : 1,
+        );
+        return comparison == 0 ? a.compareTo(b) : comparison;
+      });
+    }
+    for (final m in metricOrder) {
       final metric = metrics[m];
       final color = metrics.length == 1
           ? colors.primary
@@ -729,12 +959,15 @@ class _StatisticalChartPainter extends CustomPainter {
         paint
           ..color = color
           ..strokeWidth = 2;
-        if ([
-          ChartType.bar,
-          ChartType.column,
-          ChartType.groupedBar,
-          ChartType.stackedBar,
-        ].contains(type)) {
+        final isColumn = type == ChartType.combo
+            ? metric.style == 'column'
+            : [
+                ChartType.bar,
+                ChartType.column,
+                ChartType.groupedBar,
+                ChartType.stackedBar,
+              ].contains(type);
+        if (isColumn) {
           var base = 0.0, top = value;
           if (type == ChartType.stackedBar) {
             base = value >= 0 ? positive[i] : negative[i];
@@ -746,11 +979,13 @@ class _StatisticalChartPainter extends CustomPainter {
             }
           }
           final width =
-              step * .7 / (type == ChartType.stackedBar ? 1 : metrics.length);
+              step * .7 / (type == ChartType.stackedBar ? 1 : columnCount);
           final left =
               point.dx -
               step * .35 +
-              (type == ChartType.stackedBar ? 0 : m * width);
+              (type == ChartType.stackedBar
+                  ? 0
+                  : (type == ChartType.combo ? columnIndex : m) * width);
           canvas.drawRect(
             Rect.fromLTRB(
               left,
@@ -780,14 +1015,15 @@ class _StatisticalChartPainter extends CustomPainter {
           previous = point;
         }
       }
-      if (![
-        ChartType.scatter,
-        ChartType.bubble,
-        ChartType.bar,
-        ChartType.column,
-        ChartType.groupedBar,
-        ChartType.stackedBar,
-      ].contains(type)) {
+      if ((type != ChartType.combo || metric.style == 'line') &&
+          ![
+            ChartType.scatter,
+            ChartType.bubble,
+            ChartType.bar,
+            ChartType.column,
+            ChartType.groupedBar,
+            ChartType.stackedBar,
+          ].contains(type)) {
         canvas.drawPath(
           path,
           paint
@@ -803,6 +1039,44 @@ class _StatisticalChartPainter extends CustomPainter {
           canvas.drawPath(path, paint..color = color.withValues(alpha: .2));
         }
       }
+      if (state.showIntervals &&
+          state.supportsIntervals &&
+          metric.lower.length == values.length &&
+          metric.upper.length == values.length) {
+        for (final i in order) {
+          final width = step * .7 / math.max(1, columnCount);
+          final dx =
+              (type == ChartType.combo && metric.style == 'column') ||
+                  [
+                    ChartType.bar,
+                    ChartType.column,
+                    ChartType.groupedBar,
+                  ].contains(type)
+              ? x(i) -
+                    step * .35 +
+                    (type == ChartType.combo ? columnIndex : m) * width +
+                    width / 2
+              : x(i);
+          paint
+            ..color = colors.onSurface.withValues(alpha: .8)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5;
+          canvas.drawLine(
+            Offset(dx, y(metric.lower[i])),
+            Offset(dx, y(metric.upper[i])),
+            paint,
+          );
+          for (final bound in [metric.lower[i], metric.upper[i]]) {
+            canvas.drawLine(
+              Offset(dx - 4, y(bound)),
+              Offset(dx + 4, y(bound)),
+              paint,
+            );
+          }
+        }
+        paint.style = PaintingStyle.fill;
+      }
+      if (metric.style == 'column') columnIndex++;
     }
     text(
       state.labels[order.first],

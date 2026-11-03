@@ -1,3 +1,6 @@
+import 'package:booklet/importing/docx_importer.dart';
+import 'package:booklet/importing/txt_importer.dart';
+import 'package:booklet/importing/epub_importer.dart';
 import 'package:booklet/importing/pdf_importer.dart';
 import 'package:booklet/importing/html_importer.dart';
 import 'package:booklet/ui/detail/editor/editor_search.dart';
@@ -256,6 +259,30 @@ class EditorController extends ChangeNotifier {
   bool get isAutoSaving => _isAutoSaving;
 
   bool get canPasteComponents => !documentSettingsController.isReadOnly;
+
+  Future<void> importDocx(String path) async {
+    if (documentSettingsController.isReadOnly) return;
+    final result = await DocxImporter.load(path);
+    if (documentSettingsController.isReadOnly) return;
+    viewModel.importHtml(result);
+    notifyListeners();
+  }
+
+  Future<void> importTxt(String path) async {
+    if (documentSettingsController.isReadOnly) return;
+    final result = await TxtImporter.load(path);
+    if (documentSettingsController.isReadOnly) return;
+    viewModel.importHtml(result);
+    notifyListeners();
+  }
+
+  Future<void> importEpub(String path) async {
+    if (documentSettingsController.isReadOnly) return;
+    final result = await EpubImporter.load(path);
+    if (documentSettingsController.isReadOnly) return;
+    viewModel.importChapters(result.title, result.chapters);
+    notifyListeners();
+  }
 
   Future<void> importPdf(String path) async {
     if (documentSettingsController.isReadOnly) return;

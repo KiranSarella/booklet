@@ -33,6 +33,12 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
   final columns = <List<TextEditingController>>[];
   final names = <TextEditingController>[];
   final sizes = <TextEditingController>[];
+  final bounds = <List<TextEditingController>>[];
+  final styles = <String>[];
+  late bool intervals = draft.showIntervals;
+  late bool hasIntervalBounds = draft.lower.isNotEmpty || draft.showIntervals;
+  bool get isBoxPlot => selectedType == ChartType.boxPlot;
+  bool get supportsIntervals => selectedType.supportsIntervals;
   late ChartType selectedType;
   late ChartDataFormat axis;
   late int? binCount = draft.histogramBinCount;
@@ -82,7 +88,13 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
   }
 
   void replaceFields() {
-    retire([...labels, ...columns.expand((c) => c), ...names, ...sizes]);
+    retire([
+      ...labels,
+      ...columns.expand((c) => c),
+      ...names,
+      ...sizes,
+      ...bounds.expand((b) => b),
+    ]);
     labels
       ..clear()
       ..addAll(draft.labels.map((v) => TextEditingController(text: v)));
@@ -110,6 +122,29 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
           ),
         ),
       );
+    bounds.clear();
+    styles.clear();
+    for (final metric in draft.metrics) {
+      styles.add(metric.style);
+      bounds.add(
+        List.generate(
+          labels.length,
+          (i) => TextEditingController(
+            text:
+                '${metric.lower.length == labels.length ? metric.lower[i] : metric.values[i]}',
+          ),
+        ),
+      );
+      bounds.add(
+        List.generate(
+          labels.length,
+          (i) => TextEditingController(
+            text:
+                '${metric.upper.length == labels.length ? metric.upper[i] : metric.values[i]}',
+          ),
+        ),
+      );
+    }
     title.text = draft.title;
   }
 
@@ -123,6 +158,12 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
     'datasetFormat': axis.name,
     'graphType': selectedType.name,
     'title': title.text,
+    'primaryStyle': styles.first,
+    'showIntervals': intervals,
+    if (intervals)
+      'lower': bounds[0].map((c) => double.tryParse(c.text)).toList(),
+    if (intervals)
+      'upper': bounds[1].map((c) => double.tryParse(c.text)).toList(),
     axis.dataKey: labels
         .map(
           (c) => axis == ChartDataFormat.xy ? double.tryParse(c.text) : c.text,
@@ -136,6 +177,15 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
         columns.length - 1,
         (i) => {
           'name': names[i + 1].text,
+          'style': styles[i + 1],
+          if (intervals)
+            'lower': bounds[(i + 1) * 2]
+                .map((c) => double.tryParse(c.text))
+                .toList(),
+          if (intervals)
+            'upper': bounds[(i + 1) * 2 + 1]
+                .map((c) => double.tryParse(c.text))
+                .toList(),
           'values': columns[i + 1].map((c) => double.tryParse(c.text)).toList(),
         },
       ),
@@ -174,6 +224,8 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
         selectedType = draft.type;
         axis = draft.category;
         binCount = draft.histogramBinCount;
+        intervals = draft.showIntervals;
+        hasIntervalBounds = draft.lower.isNotEmpty || draft.showIntervals;
         replaceFields();
         error = null;
         rawInvalid = false;
@@ -194,7 +246,8 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
   void chooseType(ChartType type) {
     if (rawInvalid) return;
     selectedType = type;
-    if (type == ChartType.histogram) {
+    if (!supportsIntervals) intervals = false;
+    if (type == ChartType.histogram || type == ChartType.boxPlot) {
       axis = ChartDataFormat.observations;
     } else if (axis == ChartDataFormat.observations) {
       axis = ChartDataFormat.categorical;
@@ -225,6 +278,9 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
       labels.add(TextEditingController(text: '${labels.length + 1}'));
       columns.first.add(TextEditingController(text: '$value'));
       sizes.add(TextEditingController(text: '1'));
+      for (final b in bounds) {
+        b.add(TextEditingController(text: '$value'));
+      }
     }
     pastedValues.clear();
     pasteError = null;
@@ -241,6 +297,7 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
       ...columns.expand((c) => c),
       ...names,
       ...sizes,
+      ...bounds.expand((b) => b),
     ]) {
       c.dispose();
     }
@@ -282,6 +339,7 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isHistogram &&
+              !isBoxPlot &&
               !selectedType.composition &&
               family != ChartFamily.scatterBubble)
             Padding(
@@ -309,6 +367,41 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                         .toList(),
                 onChanged: rawInvalid ? null : (value) => changeAxis(value!),
               ),
+            ),
+          if (isBoxPlot)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Enter one observation per row. Repeat a group label to collect observations in the same box. Quartiles use inclusive percentiles; whiskers use 1.5 × IQR fences.',
+              ),
+            ),
+          if (selectedType == ChartType.combo)
+            const Text(
+              'Choose Column or Line for each value column. Both use the same vertical scale.',
+            ),
+          if (supportsIntervals)
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Error bars / confidence intervals'),
+              subtitle: const Text(
+                'Enter calculated lower and upper bounds; confidence levels are not calculated automatically.',
+              ),
+              value: intervals,
+              onChanged: rawInvalid
+                  ? null
+                  : (v) {
+                      intervals = v!;
+                      if (intervals && !hasIntervalBounds) {
+                        for (var c = 0; c < columns.length; c++) {
+                          for (var i = 0; i < labels.length; i++) {
+                            bounds[c * 2][i].text = columns[c][i].text;
+                            bounds[c * 2 + 1][i].text = columns[c][i].text;
+                          }
+                        }
+                        hasIntervalBounds = true;
+                      }
+                      update();
+                    },
             ),
           if (isHistogram) ...[
             const Text(
@@ -378,14 +471,17 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                 constraints.maxWidth - 32,
                 160.0 *
                         ((isHistogram ? 0 : 1) +
-                            columns.length +
+                            columns.length * (intervals ? 3 : 1) +
                             (showSizes ? 1 : 0)) +
                     56,
               ),
               child: Table(
                 columnWidths: {
-                  (isHistogram ? 0 : 1) + columns.length + (showSizes ? 1 : 0):
-                      const FixedColumnWidth(56),
+                  (isHistogram ? 0 : 1) +
+                      columns.length * (intervals ? 3 : 1) +
+                      (showSizes ? 1 : 0): const FixedColumnWidth(
+                    56,
+                  ),
                 },
                 defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                 border: TableBorder.all(color: Theme.of(context).dividerColor),
@@ -395,13 +491,33 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                       if (!isHistogram)
                         Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Text(axis.columnLabel),
+                          child: Text(isBoxPlot ? 'Group' : axis.columnLabel),
                         ),
-                      for (var c = 0; c < columns.length; c++)
+                      for (var c = 0; c < columns.length; c++) ...[
                         axis.supportsSeries
                             ? Column(
                                 children: [
                                   cell(names[c], 'Metric name'),
+                                  if (selectedType == ChartType.combo)
+                                    DropdownButton<String>(
+                                      value: styles[c],
+                                      items: const [
+                                        DropdownMenuItem(
+                                          value: 'column',
+                                          child: Text('Column'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'line',
+                                          child: Text('Line'),
+                                        ),
+                                      ],
+                                      onChanged: rawInvalid
+                                          ? null
+                                          : (v) {
+                                              styles[c] = v!;
+                                              update();
+                                            },
+                                    ),
                                   if (columns.length > 1)
                                     IconButton(
                                       tooltip: 'Remove value column',
@@ -412,7 +528,10 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                                         retire([
                                           names.removeAt(c),
                                           ...columns.removeAt(c),
+                                          ...bounds.removeAt(c * 2),
+                                          ...bounds.removeAt(c * 2),
                                         ]);
+                                        styles.removeAt(c);
                                         update();
                                       },
                                     ),
@@ -422,6 +541,17 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                                 padding: EdgeInsets.all(12),
                                 child: Text('Value'),
                               ),
+                        if (intervals)
+                          const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Text('Lower bound'),
+                          ),
+                        if (intervals)
+                          const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Text('Upper bound'),
+                          ),
+                      ],
                       if (showSizes)
                         const Padding(
                           padding: EdgeInsets.all(12),
@@ -436,15 +566,28 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                         if (!isHistogram)
                           cell(
                             labels[i],
-                            axis.columnLabel,
+                            isBoxPlot ? 'Group' : axis.columnLabel,
                             numeric: axis == ChartDataFormat.xy,
                           ),
-                        for (var c = 0; c < columns.length; c++)
+                        for (var c = 0; c < columns.length; c++) ...[
                           cell(
                             columns[c][i],
                             axis.supportsSeries ? names[c].text : 'Value',
                             numeric: true,
                           ),
+                          if (intervals)
+                            cell(
+                              bounds[c * 2][i],
+                              'Lower bound',
+                              numeric: true,
+                            ),
+                          if (intervals)
+                            cell(
+                              bounds[c * 2 + 1][i],
+                              'Upper bound',
+                              numeric: true,
+                            ),
+                        ],
                         if (showSizes) cell(sizes[i], 'Size', numeric: true),
                         IconButton(
                           tooltip: 'Remove data point',
@@ -454,6 +597,7 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                               labels.removeAt(i),
                               sizes.removeAt(i),
                               for (final col in columns) col.removeAt(i),
+                              for (final b in bounds) b.removeAt(i),
                             ]);
                             update();
                           },
@@ -484,10 +628,14 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                     col.add(TextEditingController(text: '0'));
                   }
                   sizes.add(TextEditingController(text: '1'));
+                  for (final b in bounds) {
+                    b.add(TextEditingController(text: '0'));
+                  }
                   update();
                 },
               ),
               if (!isHistogram &&
+                  !isBoxPlot &&
                   !selectedType.composition &&
                   family != ChartFamily.scatterBubble)
                 TextButton.icon(
@@ -500,6 +648,19 @@ class _StatisticalChartEditorState extends State<StatisticalChartEditor> {
                       ),
                     );
                     columns.add(
+                      List.generate(
+                        labels.length,
+                        (_) => TextEditingController(text: '0'),
+                      ),
+                    );
+                    styles.add('line');
+                    bounds.add(
+                      List.generate(
+                        labels.length,
+                        (_) => TextEditingController(text: '0'),
+                      ),
+                    );
+                    bounds.add(
                       List.generate(
                         labels.length,
                         (_) => TextEditingController(text: '0'),
