@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:booklet/application/app.dart';
@@ -12,26 +13,8 @@ import 'package:booklet/application/open_file_service.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/application/window_manager_service.dart';
 import 'package:booklet/ui/main_view.dart';
+import 'package:booklet/ui/reader/reader_shell.dart';
 import 'package:booklet/ui/start_booklet.dart';
-
-// Keeps gray appearance dark enough for the dark scheme's white foregrounds.
-ColorScheme _applyGrayTint(ColorScheme scheme) {
-  Color tint(Color color) =>
-      // Color.lerp(color, const Color.fromARGB(255, 227, 234, 236), 1)!;
-      Color.fromARGB(255, 201, 202, 202);
-  return scheme.copyWith(
-    surface: tint(scheme.surface),
-    surfaceDim: tint(scheme.surfaceDim),
-    surfaceBright: tint(scheme.surfaceBright),
-    surfaceContainerLowest: tint(scheme.surfaceContainerLowest),
-    surfaceContainerLow: tint(scheme.surfaceContainerLow),
-    surfaceContainer: tint(scheme.surfaceContainer),
-    surfaceContainerHigh: tint(scheme.surfaceContainerHigh),
-    surfaceContainerHighest: tint(scheme.surfaceContainerHighest),
-    onSurface: Colors.black,
-    onSurfaceVariant: Colors.black
-  );
-}
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,12 +22,17 @@ Future<void> main(List<String> args) async {
   // Every window (the first one and any spawned via WindowManagerService)
   // goes through this same entry point; the window's own launch arguments
   // tell us which document (if any) it should open.
-  final windowController = await WindowController.fromCurrentEngine();
-  final documentPath = WindowManagerService.parseDocumentPath(
-    windowController.arguments,
-  );
+  String? documentPath;
+  if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+    final windowController = await WindowController.fromCurrentEngine();
+    documentPath = WindowManagerService.parseDocumentPath(
+      windowController.arguments,
+    );
+  }
 
-  final documentSettingsController = DocumentSettingsController();
+  final documentSettingsController = DocumentSettingsController(
+    forceReadOnly: Platform.isAndroid,
+  );
   final pageSettingsController = PageSettingsController(
     documentSettingsController,
   );
@@ -81,19 +69,53 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     );
     widget.application.documentSettingsController.load();
     widget.application.editorTheme.load();
-    unawaited(_openFileService.listen(_openExternalBooklet));
+    unawaited(
+      _openFileService.listen(_openExternalBooklet, onError: _showOpenError),
+    );
   }
 
   Future<void> _openExternalBooklet(String path) async {
-    if (widget.application.screen == AppScreen.startup) {
-      await widget.application.openBookletAtPath(path);
+    if (Platform.isAndroid || widget.application.screen == AppScreen.startup) {
+      try {
+        await widget.application.openBookletAtPath(path);
+      } catch (_) {
+        _showOpenError();
+      }
     } else {
       await _windowManagerService.openDocumentInNewWindow(path);
     }
   }
 
+  void _showOpenError() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = _navigatorKey.currentContext;
+      if (mounted && context != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not open booklet. Choose a valid .booklet file.',
+            ),
+          ),
+        );
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
   Future<void> _openBookletFromStartup() async {
     await widget.application.openBooklet();
+  }
+
+  Future<void> _openLegacyBooklet() async {
+    final path = await getDirectoryPath(
+      confirmButtonText: 'Open booklet package',
+    );
+    if (path == null) return;
+    try {
+      await widget.application.openBookletAtPath(path);
+    } catch (_) {
+      _showOpenError();
+    }
   }
 
   Future<void> _createBooklet() async {
@@ -110,9 +132,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   }
 
   void _openInNewWindow() {
-    unawaited(
-      _windowManagerService.openDocumentInNewWindow(null),
-    );
+    unawaited(_windowManagerService.openDocumentInNewWindow(null));
   }
 
   @override
@@ -147,14 +167,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
         documentSettingsController,
       ]),
       builder: (context, _) {
-        final baseLightScheme = ColorScheme.fromSeed(seedColor: Colors.indigo);
-        final baseGrayScheme = ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-          brightness: Brightness.dark,
-        );
-        final colorScheme = documentSettingsController.isGray
-            ? _applyGrayTint(baseGrayScheme)
-            : baseLightScheme;
+        final colorScheme = ColorScheme.fromSeed(seedColor: Colors.indigo);
 
         final isDesktopFileMenu = Platform.isMacOS || Platform.isLinux;
         return MaterialApp(
@@ -191,6 +204,10 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                               onSelected: _openBookletFromMenu,
                             ),
                             PlatformMenuItem(
+                              label: 'Open older folder package…',
+                              onSelected: _openLegacyBooklet,
+                            ),
+                            PlatformMenuItem(
                               label: 'Save',
                               onSelected: () => widget
                                   .application
@@ -225,43 +242,54 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildHome() => Scaffold(
-    body: SafeArea(
-      child: Actions(
-        actions: <Type, Action<Intent>>{
-          DismissIntent: CallbackAction<DismissIntent>(
-            onInvoke: (_) {
-              _bookletEditorKey.currentState?.dismissOptionsMenu();
-              return null;
-            },
-          ),
-        },
-        child: Shortcuts(
-          shortcuts: const <ShortcutActivator, Intent>{
-            SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
-          },
-          child: Stack(
-            children: [
-              Center(
-                child: SizedBox(
-                  width: double.infinity,
-                  height: double.infinity,
-                  child: MainView(
-                    key: _bookletEditorKey,
-                    controller: widget.application.editorController,
-                    onOpenInNewWindow: _openInNewWindow,
-                  ),
+  Future<void> _openAndroidBooklet() async {
+    final path = await _openFileService.pickAndroidBooklet();
+    if (path != null) await widget.application.openBookletAtPath(path);
+  }
+
+  Widget _buildHome() => Platform.isAndroid
+      ? ReaderShell(
+          application: widget.application,
+          onOpen: _openAndroidBooklet,
+        )
+      : Scaffold(
+          body: SafeArea(
+            child: Actions(
+              actions: <Type, Action<Intent>>{
+                DismissIntent: CallbackAction<DismissIntent>(
+                  onInvoke: (_) {
+                    _bookletEditorKey.currentState?.dismissOptionsMenu();
+                    return null;
+                  },
+                ),
+              },
+              child: Shortcuts(
+                shortcuts: const <ShortcutActivator, Intent>{
+                  SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+                },
+                child: Stack(
+                  children: [
+                    Center(
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: MainView(
+                          key: _bookletEditorKey,
+                          controller: widget.application.editorController,
+                          onOpenInNewWindow: _openInNewWindow,
+                        ),
+                      ),
+                    ),
+                    if (widget.application.screen == AppScreen.startup)
+                      StartBooklet(
+                        onCreateNew: _createBooklet,
+                        onOpenExisting: _openBookletFromStartup,
+                        onOpenLegacy: _openLegacyBooklet,
+                      ),
+                  ],
                 ),
               ),
-              if (widget.application.screen == AppScreen.startup)
-                StartBooklet(
-                  onCreateNew: _createBooklet,
-                  onOpenExisting: _openBookletFromStartup,
-                ),
-            ],
+            ),
           ),
-        ),
-      ),
-    ),
-  );
+        );
 }

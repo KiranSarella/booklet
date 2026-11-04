@@ -241,9 +241,10 @@ class MainViewState extends State<MainView> {
                         ? () => _editorKey.currentState?.applyHistory()
                         : null,
                     onRedo: _viewModel.canRedo
-                        ? () => _editorKey.currentState?.applyHistory(redo: true)
+                        ? () =>
+                              _editorKey.currentState?.applyHistory(redo: true)
                         : null,
-                    documentPath: widget.controller.snapshotPackage,
+                    documentPath: widget.controller.documentFilePath,
                     pageSettingsController: widget.controller.editorTheme,
                     documentSettingsController:
                         widget.controller.documentSettingsController,

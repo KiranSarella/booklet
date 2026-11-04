@@ -5,8 +5,10 @@ class StartBooklet extends StatelessWidget {
     super.key,
     required this.onCreateNew,
     required this.onOpenExisting,
+    this.onOpenLegacy,
   });
 
+  final Future<void> Function()? onOpenLegacy;
   final VoidCallback onCreateNew;
   final Future<void> Function() onOpenExisting;
 
@@ -48,6 +50,11 @@ class StartBooklet extends StatelessWidget {
                     icon: const Icon(Icons.folder_open_outlined),
                     label: const Text('Open existing'),
                   ),
+                  if (onOpenLegacy != null)
+                    TextButton(
+                      onPressed: onOpenLegacy,
+                      child: const Text('Open older folder package…'),
+                    ),
                 ],
               ),
             ),

@@ -16,6 +16,7 @@ import 'package:booklet/application/component_clipboard_controller.dart';
 import 'package:booklet/application/navigation_clipboard_controller.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/storage/booklet_file.dart';
+import 'package:booklet/storage/booklet_archive.dart';
 import 'package:booklet/storage/deleted_items.dart';
 import 'package:booklet/storage/daily_snapshots.dart';
 import 'package:booklet/ui/detail/editor/editor_vm.dart';
@@ -87,6 +88,7 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
     try {
       await action();
+      await _commitPortableDocument();
     } catch (error) {
       trashError = error.toString();
     } finally {
@@ -141,6 +143,12 @@ class EditorController extends ChangeNotifier {
   bool _isAutoSaving = false;
   bool isLoadingPage = false;
   String? _documentPath;
+  String? _portableTargetPath;
+  Directory? _documentWorkspace;
+  final List<Directory> _retainedWorkspaces = [];
+
+  /// The user-facing document, distinct from its internal editing workspace.
+  String? get documentFilePath => _portableTargetPath ?? snapshotPackage;
   int _selectionRequest = 0;
 
   String? _snapshotPackage;
@@ -170,6 +178,7 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
     try {
       await action();
+      await _commitPortableDocument();
       await refreshSnapshots();
     } catch (error) {
       snapshotError = error.toString();
@@ -512,30 +521,64 @@ class EditorController extends ChangeNotifier {
   PageContent? get selectedPage => viewModel.selectedPage;
 
   void createBooklet() {
-    if (examiningSnapshot) return;
+    if (documentSettingsController.isReadOnly || examiningSnapshot) return;
     dailySnapshots = [];
     deletedItems = [];
     trashError = null;
     _autoSaveTimer?.cancel();
     _documentPath = null;
+    _portableTargetPath = null;
+    final previousWorkspace = _documentWorkspace;
+    _documentWorkspace = null;
+    if (previousWorkspace != null) {
+      unawaited(previousWorkspace.delete(recursive: true));
+    }
     _lastSavedSignature = null;
     notifyListeners();
   }
 
   Future<bool> openBooklet() async {
-    final manifest = await BookletFile.openManifest();
-    if (manifest == null) {
-      return false;
-    }
-    await flushAutoSave();
-    await _openWithSnapshots(manifest);
-    return true;
+    final path = await BookletFile.chooseOpenPath();
+    return path == null ? false : openBookletAtPath(path);
   }
 
   Future<bool> openBookletAtPath(String packagePath) async {
     await flushAutoSave();
-    final manifest = await BookletFile.loadManifestAtPath(packagePath);
-    await _openWithSnapshots(manifest);
+    if (_autoSaveError != null) {
+      throw StateError('Save failed. Reopen after saving your changes.');
+    }
+    Directory? workspace;
+    String? portablePath;
+    var source = packagePath;
+    if (await File(packagePath).exists()) {
+      if (packagePath.endsWith('/content.json')) {
+        source = File(packagePath).parent.path;
+      } else {
+        final opened = await BookletArchive.open(packagePath);
+        workspace = opened.workspace;
+        source = opened.packagePath;
+        portablePath = packagePath;
+      }
+    }
+    final previousWorkspace = _documentWorkspace;
+    final previousTarget = _portableTargetPath;
+    try {
+      final manifest = await BookletFile.loadManifestAtPath(source);
+      _portableTargetPath = portablePath;
+      await _openWithSnapshots(manifest);
+      _documentWorkspace = workspace;
+    } catch (_) {
+      _portableTargetPath = previousTarget;
+      if (workspace != null) await workspace.delete(recursive: true);
+      rethrow;
+    }
+    if (previousWorkspace != null) {
+      await previousWorkspace.delete(recursive: true);
+    }
+    for (final retained in _retainedWorkspaces) {
+      await retained.delete(recursive: true);
+    }
+    _retainedWorkspaces.clear();
     return true;
   }
 
@@ -547,6 +590,10 @@ class EditorController extends ChangeNotifier {
     }
     _snapshotPackage = null;
     restoredSnapshotDay = null;
+    if (documentSettingsController.forceReadOnly) {
+      await _applyManifest(manifest);
+      return;
+    }
     await DailySnapshots.recover(manifest.path);
     final active = await DailySnapshots.activeDay(manifest.path);
     if (active != null) {
@@ -833,27 +880,67 @@ class EditorController extends ChangeNotifier {
 
   Future<bool> saveBookletAs() => _save(saveAs: true);
 
-  Future<bool> _save({required bool saveAs}) async {
-    if (examiningSnapshot && saveAs) return false;
-    final previousPath = _documentPath;
-    var path = saveAs ? null : _documentPath;
-    path ??= await BookletFile.chooseSavePath();
-    if (path == null) {
-      return false;
-    }
+  Future<bool> saveBookletToPath(String filePath) =>
+      _save(saveAs: true, destination: filePath);
 
-    _documentPath = path;
+  Future<bool> _save({required bool saveAs, String? destination}) async {
+    if (documentSettingsController.isReadOnly) return false;
+    if (examiningSnapshot && saveAs) return false;
+    if (_saveInProgress != null) await _saveInProgress;
+    if (examiningSnapshot && _portableTargetPath == null) {
+      await flushAutoSave();
+      return _autoSaveError == null;
+    }
+    final previousPath = _documentPath;
+    var target =
+        destination ?? (saveAs ? null : _portableTargetPath ?? _documentPath);
+    target ??= await BookletFile.chooseSavePath();
+    if (target == null) return false;
+    if (!target.toLowerCase().endsWith('.booklet')) target = '$target.booklet';
+
+    final previousWorkspace = _documentWorkspace;
+    final previousTarget = _portableTargetPath;
+    Directory? nextWorkspace;
+    // Save As copies unloaded pages, media, backups and trash too.
+    if (saveAs || _documentWorkspace == null) {
+      nextWorkspace = await BookletArchive.createWorkspace(
+        sourceDirectory: previousPath,
+      );
+      _documentPath = nextWorkspace.path;
+      _documentWorkspace = nextWorkspace;
+    }
+    _portableTargetPath = target;
     _autoSaveTimer?.cancel();
-    await _persistToPath(path, sourcePackagePath: previousPath);
+    try {
+      await _persistToPath(_documentPath!, sourcePackagePath: previousPath);
+    } catch (_) {
+      _documentPath = previousPath;
+      _portableTargetPath = previousTarget;
+      _documentWorkspace = previousWorkspace;
+      if (nextWorkspace != null) _retainedWorkspaces.add(nextWorkspace);
+      rethrow;
+    }
+    // Reload absolute media paths against the new workspace after Save As.
+    if (nextWorkspace != null) {
+      await _applyManifest(
+        await BookletFile.loadManifestAtPath(_documentPath!),
+      );
+      if (previousWorkspace != null) {
+        await previousWorkspace.delete(recursive: true);
+      }
+    }
     _lastSavedSignature = _documentSignature();
     _autoSaveError = null;
     await refreshDeletedItems();
-    assetManagerController.selectFolder(
-      viewModel.navigation.selectedNode,
-      path,
-    );
     notifyListeners();
     return true;
+  }
+
+  Future<void> _commitPortableDocument() async {
+    final target = _portableTargetPath;
+    if (target == null || documentSettingsController.isReadOnly) return;
+    final package = snapshotPackage;
+    if (package != null) await BookletArchive.write(package, target);
   }
 
   Future<void> _persistToPath(
@@ -888,6 +975,7 @@ class EditorController extends ChangeNotifier {
         selectedAssetFolderId: viewModel.navigation.selectedAssetFolderId,
         sourcePackagePath: sourcePackagePath,
       );
+      await _commitPortableDocument();
       for (final stagedPath in _stagedNavigationSubtrees.keys) {
         await Directory(stagedPath).delete(recursive: true);
       }
@@ -909,6 +997,7 @@ class EditorController extends ChangeNotifier {
   }
 
   Future<void> _saveLoadedPages() async {
+    if (documentSettingsController.isReadOnly) return;
     final path = _documentPath;
     if (path == null) {
       return;
@@ -939,6 +1028,11 @@ class EditorController extends ChangeNotifier {
     if (temporary != null) {
       unawaited(Directory(temporary).delete(recursive: true));
     }
+    for (final retained in _retainedWorkspaces) {
+      unawaited(retained.delete(recursive: true));
+    }
+    final workspace = _documentWorkspace;
+    if (workspace != null) unawaited(workspace.delete(recursive: true));
     assetManagerController.dispose();
     viewModel.dispose();
     super.dispose();

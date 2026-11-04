@@ -1,0 +1,23 @@
+group 'xyz.justsoft.video_thumbnail'
+version '1.0-SNAPSHOT'
+
+// Use the Android plugin supplied by the application, rather than AGP 4.1.
+apply plugin: 'com.android.library'
+
+android {
+    namespace 'xyz.justsoft.video_thumbnail'
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 21
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        disable 'InvalidPackage'
+    }
+}

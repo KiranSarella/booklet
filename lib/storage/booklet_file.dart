@@ -52,6 +52,19 @@ class BookletFile {
     return _normalizePackagePath(location.path);
   }
 
+  static Future<String?> chooseOpenPath() async {
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(
+          label: 'Booklet document',
+          extensions: ['booklet'],
+          uniformTypeIdentifiers: ['com.booklet.document'],
+        ),
+      ],
+    );
+    return file?.path;
+  }
+
   static Future<BookletManifest?> openManifest() async {
     final file = await openFile();
     if (file == null) {

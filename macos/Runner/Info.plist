@@ -26,14 +26,15 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.booklet.document</string>
 			<key>UTTypeDescription</key>
-			<string>Booklet document package</string>
+			<string>Booklet document</string>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>com.apple.package</string>
 				<string>public.data</string>
 			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>
+				<key>public.mime-type</key>
+				<string>application/x-booklet</string>
 				<key>public.filename-extension</key>
 				<array>
 					<string>booklet</string>
@@ -53,7 +54,7 @@
 				<string>com.booklet.document</string>
 			</array>
 			<key>LSTypeIsPackage</key>
-			<true/>
+			<false/>
 		</dict>
 	</array>
 	<key>LSMinimumSystemVersion</key>

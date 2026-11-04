@@ -123,6 +123,7 @@ class CodeBlockComponent implements Component {
   }) {
     return CodeBlockComponentView(
       state: state,
+      readOnly: theme.documentSettingsController.isReadOnly,
       isSelected: isSelected,
       onSelect: onSelect,
     );
@@ -132,12 +133,14 @@ class CodeBlockComponent implements Component {
 class CodeBlockComponentView extends StatefulWidget {
   const CodeBlockComponentView({
     super.key,
+    this.readOnly = false,
     required this.state,
     required this.isSelected,
     required this.onSelect,
   });
 
   final CodeBlockComponentState state;
+  final bool readOnly;
   final bool isSelected;
   final VoidCallback onSelect;
 
@@ -191,6 +194,7 @@ class _CodeBlockComponentViewState extends State<CodeBlockComponentView> {
       color: colorScheme.onSurface,
     );
     final codeField = CodeField(
+      readOnly: widget.readOnly,
       controller: widget.state.controller,
       focusNode: widget.state.focusNode,
       minLines: 1,
@@ -284,13 +288,15 @@ class _CodeBlockComponentViewState extends State<CodeBlockComponentView> {
                     ),
                   )
                   .toList(growable: false),
-              onChanged: (language) {
-                if (language == null) {
-                  return;
-                }
-                widget.state.setLanguage(language);
-                widget.onSelect();
-              },
+              onChanged: widget.readOnly
+                  ? null
+                  : (language) {
+                      if (language == null) {
+                        return;
+                      }
+                      widget.state.setLanguage(language);
+                      widget.onSelect();
+                    },
             ),
           ),
           const Spacer(),

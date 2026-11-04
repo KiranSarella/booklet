@@ -1,14 +1,15 @@
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum DocumentEditMode { edit, readOnly }
 
-// Document-only appearance: Gray has no equivalent in page_settings, where it
-// is simply treated as light when that feature's appearance mode is 'auto'.
-enum DocumentAppearanceMode { light, gray, dark, auto }
+enum DocumentAppearanceMode { light, dark, auto }
 
 class DocumentSettingsController extends ChangeNotifier {
+  DocumentSettingsController({this.forceReadOnly = false});
+
+  final bool forceReadOnly;
+
   static const _editModeKey = 'document.editMode';
   static const _appearanceModeKey = 'document.appearanceMode';
 
@@ -16,15 +17,14 @@ class DocumentSettingsController extends ChangeNotifier {
   DocumentAppearanceMode _appearanceMode = DocumentAppearanceMode.auto;
   Brightness _systemBrightness = Brightness.light;
 
-  DocumentEditMode get editMode => _editMode;
-  bool get isReadOnly => _editMode == DocumentEditMode.readOnly;
+  DocumentEditMode get editMode =>
+      forceReadOnly ? DocumentEditMode.readOnly : _editMode;
+  bool get isReadOnly => editMode == DocumentEditMode.readOnly;
 
   // Primary appearance: scopes the whole application (navigation, menus, etc.), not the page view.
   DocumentAppearanceMode get appearanceMode => _appearanceMode;
-  bool get isGray => _appearanceMode == DocumentAppearanceMode.gray;
   ThemeMode get themeMode => switch (_appearanceMode) {
     DocumentAppearanceMode.light => ThemeMode.light,
-    DocumentAppearanceMode.gray => ThemeMode.light,
     DocumentAppearanceMode.dark => ThemeMode.dark,
     DocumentAppearanceMode.auto => ThemeMode.system,
   };
@@ -51,7 +51,7 @@ class DocumentSettingsController extends ChangeNotifier {
   }
 
   void updateEditMode(DocumentEditMode mode) {
-    if (_editMode == mode) {
+    if (forceReadOnly || _editMode == mode) {
       return;
     }
     _editMode = mode;

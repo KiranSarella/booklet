@@ -197,16 +197,17 @@ class BookletSearchViewState extends State<BookletSearchView> {
             child: Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                IconButton(
-                  tooltip: _showReplace ? 'Hide replace' : 'Show replace',
-                  isSelected: _showReplace,
-                  icon: Icon(
-                    _showReplace ? Icons.expand_more : Icons.chevron_right,
+                if (!widget.controller.documentSettingsController.isReadOnly)
+                  IconButton(
+                    tooltip: _showReplace ? 'Hide replace' : 'Show replace',
+                    isSelected: _showReplace,
+                    icon: Icon(
+                      _showReplace ? Icons.expand_more : Icons.chevron_right,
+                    ),
+                    onPressed: _replacing
+                        ? null
+                        : () => setState(() => _showReplace = !_showReplace),
                   ),
-                  onPressed: _replacing
-                      ? null
-                      : () => setState(() => _showReplace = !_showReplace),
-                ),
                 IconButton(
                   tooltip: 'Match case',
                   isSelected: _caseSensitive,

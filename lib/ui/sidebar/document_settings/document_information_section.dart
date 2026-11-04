@@ -71,6 +71,12 @@ class _DocumentInformationSectionState
         updated = stat.modified;
       }
     }
+    final document = widget.controller.documentFilePath;
+    if (document != null && await File(document).exists()) {
+      final stat = await File(document).stat();
+      bytes = stat.size;
+      updated = stat.modified;
+    }
     return (
       created:
           DateTime.tryParse(data['createdAt'] as String? ?? '') ??
@@ -187,7 +193,11 @@ class _DocumentInformationSectionState
           _field(context, 'Pages', '$pages'),
           _field(context, 'Groups', '$groups'),
           _field(context, 'Attachments', '$assets'),
-          _field(context, 'File location', path ?? 'Not saved yet'),
+          _field(
+            context,
+            'File location',
+            widget.controller.documentFilePath ?? 'Not saved yet',
+          ),
         ],
       ),
     );

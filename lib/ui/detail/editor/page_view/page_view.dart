@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 class PageView extends StatelessWidget {
   const PageView({
     super.key,
+    this.readerLayout = false,
     this.searchComponents = const {},
     this.activeSearchComponent,
     required this.editorTheme,
@@ -20,6 +21,7 @@ class PageView extends StatelessWidget {
     required this.onMoveToAdjacentTextComponent,
   });
 
+  final bool readerLayout;
   final Set<ComponentBox> searchComponents;
   final ComponentBox? activeSearchComponent;
   final PageSettingsController editorTheme;
@@ -143,14 +145,18 @@ class PageView extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight: 900,
+              minHeight: readerLayout ? 0 : 900,
               maxWidth: editorTheme.maxContentWidth ?? double.infinity,
             ),
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(color: editorTheme.pageBackgroundColor),
               clipBehavior: Clip.antiAlias,
-              padding: const EdgeInsets.all(60),
+              padding: EdgeInsets.all(
+                readerLayout
+                    ? (MediaQuery.sizeOf(context).width < 600 ? 12 : 32)
+                    : 60,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: _buildComponents(),

@@ -4,6 +4,33 @@ import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('read-only code blocks disable editing and language changes', (
+    tester,
+  ) async {
+    final state = CodeBlockComponentState(code: 'final answer = 42;');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CodeBlockComponentView(
+            state: state,
+            isSelected: false,
+            readOnly: true,
+            onSelect: () {},
+          ),
+        ),
+      ),
+    );
+    expect(tester.widget<TextField>(find.byType(TextField)).readOnly, isTrue);
+    expect(
+      tester
+          .widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
+          .onChanged,
+      isNull,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+
   testWidgets('code block accepts multiline input', (tester) async {
     final state = CodeBlockComponentState();
     await tester.pumpWidget(
