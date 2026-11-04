@@ -38,17 +38,18 @@ Future<void> main(List<String> args) async {
   );
   final application = App(pageSettingsController, documentSettingsController);
 
-  runApp(MainApp(application: application));
-
-  if (documentPath != null) {
-    unawaited(application.openBookletAtPath(documentPath));
-  }
+  runApp(MainApp(application: application, initialDocumentPath: documentPath));
 }
 
 class MainApp extends StatefulWidget {
-  const MainApp({super.key, required this.application});
+  const MainApp({
+    super.key,
+    required this.application,
+    this.initialDocumentPath,
+  });
 
   final App application;
+  final String? initialDocumentPath;
 
   @override
   State<MainApp> createState() => _MainAppState();
@@ -59,6 +60,8 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   final _bookletEditorKey = GlobalKey<MainViewState>();
   final _windowManagerService = WindowManagerService();
   final _openFileService = OpenFileService();
+  bool _checkingInitialDocument = true;
+  int _openingDocuments = 0;
 
   @override
   void initState() {
@@ -69,17 +72,37 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     );
     widget.application.documentSettingsController.load();
     widget.application.editorTheme.load();
-    unawaited(
-      _openFileService.listen(_openExternalBooklet, onError: _showOpenError),
-    );
+    unawaited(_initializeDocumentOpening());
+  }
+
+  Future<void> _initializeDocumentOpening() async {
+    try {
+      final path = widget.initialDocumentPath;
+      if (path != null) {
+        await _openExternalBooklet(path);
+      }
+      await _openFileService.listen(
+        _openExternalBooklet,
+        onError: _showOpenError,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _checkingInitialDocument = false);
+      }
+    }
   }
 
   Future<void> _openExternalBooklet(String path) async {
     if (Platform.isAndroid || widget.application.screen == AppScreen.startup) {
+      setState(() => _openingDocuments++);
       try {
         await widget.application.openBookletAtPath(path);
       } catch (_) {
         _showOpenError();
+      } finally {
+        if (mounted) {
+          setState(() => _openingDocuments--);
+        }
       }
     } else {
       await _windowManagerService.openDocumentInNewWindow(path);
@@ -251,6 +274,19 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
       ? ReaderShell(
           application: widget.application,
           onOpen: _openAndroidBooklet,
+        )
+      : _checkingInitialDocument || _openingDocuments > 0
+      ? const Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Opening booklet…'),
+              ],
+            ),
+          ),
         )
       : Scaffold(
           body: SafeArea(

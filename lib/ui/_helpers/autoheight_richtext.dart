@@ -149,7 +149,16 @@ class AutoHeightRichText2 extends StatelessWidget {
                       customStyles: defaultStyles,
                       textSpanBuilder:
                           (context, node, offset, text, style, recognizer) {
-                            final effectiveStyle = textStyle.merge(style);
+                            final isPlaceholder = node.style.containsKey(
+                              Attribute.placeholder.key,
+                            );
+                            final effectiveStyle = textStyle
+                                .merge(style)
+                                .copyWith(
+                                  color: isPlaceholder
+                                      ? Colors.grey.withValues(alpha: 0.6)
+                                      : style?.color ?? textStyle.color,
+                                );
                             final family = effectiveStyle.fontFamily;
                             // Google Fonts registers each variant as a separate
                             // family. Changing weight alone keeps the regular
