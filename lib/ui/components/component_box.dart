@@ -30,8 +30,7 @@ class ComponentBox {
       component.state is QuoteComponentState ||
       component.state is CodeBlockComponentState ||
       component.state is MathComponentState ||
-      component.state is EmbedComponentState ||
-      component.state is LinkComponentState;
+      component.state is EmbedComponentState;
 
   Widget buildUI({
     required PageSettingsController theme,
@@ -177,6 +176,7 @@ class ComponentBox {
       state.focusNode.unfocus();
     } else if (state is LinkComponentState) {
       state.urlFocusNode.unfocus();
+      state.titleFocusNode.unfocus();
     } else if (state is AssetsComponentState) {
       state.focusNode.unfocus();
     }

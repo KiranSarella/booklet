@@ -1,6 +1,7 @@
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/link_component.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -36,6 +37,12 @@ void main() {
     );
 
     expect(find.text('https://example.com'), findsOneWidget);
+    expect(find.byTooltip('Open in browser'), findsOneWidget);
+    expect(find.byTooltip('Edit link'), findsNothing);
+    expect(
+      tester.widget<Text>(find.text('https://example.com')).style?.decoration,
+      isNot(TextDecoration.underline),
+    );
 
     await tester.pumpWidget(
       MaterialApp(
@@ -48,7 +55,40 @@ void main() {
         ),
       ),
     );
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byTooltip('Open in browser'), findsOneWidget);
+    expect(find.byTooltip('Edit link'), findsOneWidget);
+    await tester.tap(find.byTooltip('Edit link'));
+    await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNWidgets(2));
+    expect(state.urlFocusNode.hasFocus, isTrue);
+    expect(state.isFocused, isTrue);
+
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async => call.method == 'Clipboard.getData'
+          ? {'text': 'https://pasted.example'}
+          : null,
+    );
+    state.urlController.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: state.urlController.text.length,
+    );
+    await tester.pump();
+    final editable = tester.state<EditableTextState>(
+      find.byType(EditableText).first,
+    );
+    await editable.pasteText(SelectionChangedCause.keyboard);
+    await tester.pump();
+    expect(state.url, 'https://pasted.example');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      null,
+    );
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing);
+    expect(state.isFocused, isFalse);
 
     state.updateTitle('Example site');
     await tester.pumpWidget(
