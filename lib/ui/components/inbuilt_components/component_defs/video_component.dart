@@ -1,3 +1,12 @@
+import 'package:booklet/ui/components/media/media_caption.dart';
+import 'package:booklet/ui/components/media/online_video.dart';
+import 'package:booklet/ui/components/media/online_video_player.dart';
+
+import 'dart:typed_data';
+
+import 'package:booklet/ui/components/media/video_thumbnail_cache.dart';
+import 'package:booklet/ui/components/media/media_url_dialog.dart';
+
 import 'dart:io';
 
 import 'package:booklet/business/components_business/component_def.dart';
@@ -45,6 +54,7 @@ class VideoComponent implements Component {
   }) {
     return VideoComponentView(
       state: state,
+      isReadOnly: theme.documentSettingsController.isReadOnly,
       isSelected: isSelected,
       onSelect: onSelect,
     );
@@ -57,10 +67,12 @@ class VideoComponentView extends StatefulWidget {
     required this.state,
     required this.isSelected,
     required this.onSelect,
+    this.isReadOnly = false,
   });
 
   final VideoComponentState state;
   final bool isSelected;
+  final bool isReadOnly;
   final VoidCallback onSelect;
 
   @override
@@ -77,6 +89,7 @@ class _VideoComponentViewState extends State<VideoComponentView> {
     'avi',
   ];
 
+  Future<Uint8List?>? _thumbnail;
   VideoPlayerController? _controller;
   String? _loadedPath;
   Object? _loadError;
@@ -93,7 +106,7 @@ class _VideoComponentViewState extends State<VideoComponentView> {
   @override
   void didUpdateWidget(covariant VideoComponentView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.state.mediaPath != widget.state.mediaPath) {
+    if (_loadedPath != widget.state.mediaPath) {
       _loadedPath = widget.state.mediaPath;
       _loadVideo(_loadedPath);
     }
@@ -101,15 +114,22 @@ class _VideoComponentViewState extends State<VideoComponentView> {
 
   Future<void> _loadVideo(String? path) async {
     final generation = ++_loadGeneration;
+    _thumbnail = VideoThumbnailCache.load(path);
     final previousController = _controller;
     _controller = null;
     _loadError = null;
     await previousController?.dispose();
+    if (!mounted || generation != _loadGeneration) return;
 
     if (path == null || path.isEmpty) {
       if (mounted && generation == _loadGeneration) {
         setState(() {});
       }
+      return;
+    }
+
+    if (OnlineVideo.parse(path) != null) {
+      if (mounted && generation == _loadGeneration) setState(() {});
       return;
     }
 
@@ -154,7 +174,9 @@ class _VideoComponentViewState extends State<VideoComponentView> {
   }
 
   void _setVideo(String path) {
-    if (path.isEmpty || !_isVideoPath(path)) {
+    if (!mounted ||
+        path.isEmpty ||
+        (!isMediaUrl(path) && !_isVideoPath(path))) {
       return;
     }
     setState(() {
@@ -163,6 +185,11 @@ class _VideoComponentViewState extends State<VideoComponentView> {
     });
     _loadVideo(path);
     widget.onSelect();
+  }
+
+  Future<void> _chooseUrl() async {
+    final url = await showMediaUrlDialog(context, 'video');
+    if (url != null && mounted) _setVideo(url);
   }
 
   bool _isVideoPath(String path) {
@@ -194,103 +221,133 @@ class _VideoComponentViewState extends State<VideoComponentView> {
     final controller = _controller;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return DropTarget(
-      onDragEntered: (_) => setState(() => _isDragging = true),
-      onDragExited: (_) => setState(() => _isDragging = false),
-      onDragDone: (detail) {
-        setState(() => _isDragging = false);
-        for (final file in detail.files) {
-          if (_isVideoPath(file.path)) {
-            _setVideo(file.path);
-            break;
+    return MediaCaption(
+      sourceUrl: path,
+      state: widget.state,
+      isSelected: widget.isSelected,
+      isReadOnly: widget.isReadOnly,
+      onSelect: widget.onSelect,
+      child: DropTarget(
+        onDragEntered: (_) => setState(() => _isDragging = true),
+        onDragExited: (_) => setState(() => _isDragging = false),
+        onDragDone: (detail) {
+          setState(() => _isDragging = false);
+          for (final file in detail.files) {
+            if (_isVideoPath(file.path)) {
+              _setVideo(file.path);
+              break;
+            }
           }
-        }
-      },
-      child: GestureDetector(
-        onTap: widget.onSelect,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-          child: path == null || path.isEmpty
-              ? _EmptyVideoState(
-                  isDragging: _isDragging,
-                  onChooseVideo: _chooseVideo,
-                )
-              : Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        border: widget.isSelected
-                            ? Border.all(color: colorScheme.primary, width: 2)
-                            : null,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: _loadError != null
-                          ? const _VideoUnavailable()
-                          : controller == null ||
-                                !controller.value.isInitialized
-                          ? const AspectRatio(
-                              aspectRatio: 16 / 9,
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                          : Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                AspectRatio(
-                                  aspectRatio: controller.value.aspectRatio > 0
-                                      ? controller.value.aspectRatio
-                                      : 16 / 9,
-                                  child: VideoPlayer(controller),
+        },
+        child: GestureDetector(
+          onTap: widget.onSelect,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+            child: path == null || path.isEmpty
+                ? _EmptyVideoState(
+                    isDragging: _isDragging,
+                    onChooseVideo: _chooseVideo,
+                    onChooseUrl: _chooseUrl,
+                  )
+                : Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 720),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          border: widget.isSelected
+                              ? Border.all(color: colorScheme.primary, width: 2)
+                              : null,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: OnlineVideo.parse(path) != null
+                            ? OnlineVideoPlayer(
+                                key: ValueKey(path),
+                                source: path,
+                              )
+                            : _loadError != null
+                            ? const _VideoUnavailable()
+                            : controller == null ||
+                                  !controller.value.isInitialized
+                            ? AspectRatio(
+                                aspectRatio: 16 / 9,
+                                child: FutureBuilder<Uint8List?>(
+                                  future: _thumbnail,
+                                  builder: (context, snapshot) => Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      if (snapshot.data != null)
+                                        Image.memory(
+                                          snapshot.data!,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      tooltip: controller.value.isPlaying
-                                          ? 'Pause video'
-                                          : 'Play video',
-                                      onPressed: () {
-                                        setState(() {
+                              )
+                            : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  AspectRatio(
+                                    aspectRatio:
+                                        controller.value.aspectRatio > 0
+                                        ? controller.value.aspectRatio
+                                        : 16 / 9,
+                                    child: VideoPlayer(controller),
+                                  ),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        tooltip: controller.value.isPlaying
+                                            ? 'Pause video'
+                                            : 'Play video',
+                                        onPressed: () {
+                                          setState(() {
+                                            controller.value.isPlaying
+                                                ? controller.pause()
+                                                : controller.play();
+                                          });
+                                        },
+                                        color: Colors.white,
+                                        icon: Icon(
                                           controller.value.isPlaying
-                                              ? controller.pause()
-                                              : controller.play();
-                                        });
-                                      },
-                                      color: Colors.white,
-                                      icon: Icon(
-                                        controller.value.isPlaying
-                                            ? Icons.pause
-                                            : Icons.play_arrow,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: VideoProgressIndicator(
-                                        controller,
-                                        allowScrubbing: true,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
-                                        ),
-                                        colors: VideoProgressColors(
-                                          playedColor: colorScheme.primary,
-                                          bufferedColor: Colors.white38,
-                                          backgroundColor: Colors.white24,
+                                              ? Icons.pause
+                                              : Icons.play_arrow,
                                         ),
                                       ),
-                                    ),
-                                    IconButton(
-                                      tooltip: 'Expand video',
-                                      onPressed: () => _showPreview(controller),
-                                      color: Colors.white,
-                                      icon: const Icon(Icons.open_in_full),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                      Expanded(
+                                        child: VideoProgressIndicator(
+                                          controller,
+                                          allowScrubbing: true,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                          ),
+                                          colors: VideoProgressColors(
+                                            playedColor: colorScheme.primary,
+                                            bufferedColor: Colors.white38,
+                                            backgroundColor: Colors.white24,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        tooltip: 'Expand video',
+                                        onPressed: () =>
+                                            _showPreview(controller),
+                                        color: Colors.white,
+                                        icon: const Icon(Icons.open_in_full),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                      ),
                     ),
                   ),
-                ),
+          ),
         ),
       ),
     );
@@ -409,10 +466,12 @@ class _EmptyVideoState extends StatelessWidget {
   const _EmptyVideoState({
     required this.isDragging,
     required this.onChooseVideo,
+    required this.onChooseUrl,
   });
 
   final bool isDragging;
   final VoidCallback onChooseVideo;
+  final VoidCallback? onChooseUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -441,6 +500,11 @@ class _EmptyVideoState extends StatelessWidget {
             onPressed: onChooseVideo,
             icon: const Icon(Icons.folder_open),
             label: const Text('Choose video'),
+          ),
+          TextButton.icon(
+            onPressed: onChooseUrl,
+            icon: const Icon(Icons.link),
+            label: const Text('Paste URL'),
           ),
         ],
       ),

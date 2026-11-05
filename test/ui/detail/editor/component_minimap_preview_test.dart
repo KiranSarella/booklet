@@ -259,6 +259,17 @@ void main() {
     );
     final image = File('${directory.path}/image.png');
     image.writeAsBytesSync(bytes);
+    const cacheChannel = MethodChannel('plugins.flutter.io/path_provider');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      cacheChannel,
+      (_) async => directory.path,
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        cacheChannel,
+        null,
+      ),
+    );
     var requests = 0;
     const channel = MethodChannel('booklet/video_thumbnail');
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (

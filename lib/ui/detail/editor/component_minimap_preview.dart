@@ -10,8 +10,10 @@ import 'dart:math' as math;
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
+
+import 'dart:typed_data';
+
+import 'package:booklet/ui/components/media/video_thumbnail_cache.dart';
 
 /// A passive miniature of a component; never mounts an editable component.
 class ComponentMinimapPreview extends StatelessWidget {
@@ -244,31 +246,7 @@ class _VideoMiniatureState extends State<_VideoMiniature> {
   }
 
   Future<Uint8List?> _loadThumbnail(String? path) async {
-    if (path == null || path.isEmpty) return null;
-    Directory? temporary;
-    try {
-      if (Platform.isMacOS) {
-        temporary = await Directory.systemTemp.createTemp('booklet_minimap_');
-        final thumbnail = File('${temporary.path}/preview.png');
-        await const MethodChannel('booklet/video_thumbnail').invokeMethod<bool>(
-          'createVideoThumbnail',
-          {'videoPath': path, 'thumbnailPath': thumbnail.path},
-        );
-        if (await thumbnail.exists()) return await thumbnail.readAsBytes();
-        return null;
-      }
-      return await VideoThumbnail.thumbnailData(
-        video: path,
-        imageFormat: ImageFormat.JPEG,
-        maxWidth: 180,
-        quality: 65,
-      );
-    } catch (_) {
-      // Missing or unsupported media still retains its video/play silhouette.
-      return null;
-    } finally {
-      if (temporary != null) await temporary.delete(recursive: true);
-    }
+    return VideoThumbnailCache.load(path);
   }
 
   @override

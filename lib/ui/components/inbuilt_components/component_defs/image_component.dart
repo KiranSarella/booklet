@@ -1,3 +1,6 @@
+import 'package:booklet/ui/components/media/media_caption.dart';
+import 'package:booklet/ui/components/media/media_url_dialog.dart';
+
 import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
@@ -130,7 +133,7 @@ class _ImageComponentViewState extends State<ImageComponentView> {
   }
 
   Future<void> _setImage(String path) async {
-    if (path.isEmpty || !_isImagePath(path)) {
+    if (path.isEmpty || (!isMediaUrl(path) && !_isImagePath(path))) {
       return;
     }
 
@@ -143,6 +146,11 @@ class _ImageComponentViewState extends State<ImageComponentView> {
       _size = _parseSize(widget.state.imageSize);
     });
     widget.onSelect();
+  }
+
+  Future<void> _chooseUrl() async {
+    final url = await showMediaUrlDialog(context, 'image');
+    if (url != null && mounted) _setImage(url);
   }
 
   bool _isImagePath(String path) {
@@ -208,57 +216,68 @@ class _ImageComponentViewState extends State<ImageComponentView> {
   Widget build(BuildContext context) {
     final path = widget.state.mediaPath;
     final isReadOnly = widget.theme.documentSettingsController.isReadOnly;
-    return DropTarget(
-      enable: !isReadOnly,
-      onDragEntered: (_) => setState(() => _isDragging = true),
-      onDragExited: (_) => setState(() => _isDragging = false),
-      onDragDone: (detail) async {
-        setState(() => _isDragging = false);
-        for (final file in detail.files) {
-          if (_isImagePath(file.path)) {
-            await _setImage(file.path);
-            break;
+    return MediaCaption(
+      sourceUrl: path,
+      state: widget.state,
+      isSelected: widget.isSelected,
+      isReadOnly: isReadOnly,
+      onSelect: widget.onSelect,
+      child: DropTarget(
+        enable: !isReadOnly,
+        onDragEntered: (_) => setState(() => _isDragging = true),
+        onDragExited: (_) => setState(() => _isDragging = false),
+        onDragDone: (detail) async {
+          setState(() => _isDragging = false);
+          for (final file in detail.files) {
+            if (_isImagePath(file.path)) {
+              await _setImage(file.path);
+              break;
+            }
           }
-        }
-      },
-      child: GestureDetector(
-        onTap: widget.onSelect,
-        child: Stack(
-          alignment: Alignment.topCenter,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-              child: path == null || path.isEmpty
-                  ? _EmptyImageState(
-                      isDragging: _isDragging,
-                      onChooseImage: isReadOnly ? null : _chooseImage,
-                    )
-                  : Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: _size.maxExtent,
-                          maxHeight: _size.maxExtent,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: _buildImage(path),
+        },
+        child: GestureDetector(
+          onTap: widget.onSelect,
+          child: Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 18,
+                ),
+                child: path == null || path.isEmpty
+                    ? _EmptyImageState(
+                        isDragging: _isDragging,
+                        onChooseImage: isReadOnly ? null : _chooseImage,
+                        onChooseUrl: isReadOnly ? null : _chooseUrl,
+                      )
+                    : Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: _size.maxExtent,
+                            maxHeight: _size.maxExtent,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: _buildImage(path),
+                          ),
                         ),
                       ),
-                    ),
-            ),
-            if (widget.isSelected && path != null && path.isNotEmpty)
-              _ImageToolbar(
-                selectedSize: _size,
-                showSizeOptions: !isReadOnly,
-                onSizeChanged: (size) {
-                  setState(() {
-                    _size = size;
-                    widget.state.imageSize = size.name;
-                  });
-                },
-                onExpand: _showPreview,
               ),
-          ],
+              if (widget.isSelected && path != null && path.isNotEmpty)
+                _ImageToolbar(
+                  selectedSize: _size,
+                  showSizeOptions: !isReadOnly,
+                  onSizeChanged: (size) {
+                    setState(() {
+                      _size = size;
+                      widget.state.imageSize = size.name;
+                    });
+                  },
+                  onExpand: _showPreview,
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -342,10 +361,12 @@ class _EmptyImageState extends StatelessWidget {
   const _EmptyImageState({
     required this.isDragging,
     required this.onChooseImage,
+    required this.onChooseUrl,
   });
 
   final bool isDragging;
   final VoidCallback? onChooseImage;
+  final VoidCallback? onChooseUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -374,6 +395,11 @@ class _EmptyImageState extends StatelessWidget {
             onPressed: onChooseImage,
             icon: const Icon(Icons.folder_open),
             label: const Text('Choose image'),
+          ),
+          TextButton.icon(
+            onPressed: onChooseUrl,
+            icon: const Icon(Icons.link),
+            label: const Text('Paste URL'),
           ),
         ],
       ),

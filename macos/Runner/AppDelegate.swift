@@ -47,7 +47,9 @@ class AppDelegate: FlutterAppDelegate {
           return
         }
         do {
-          let video = AVURLAsset(url: URL(fileURLWithPath: videoPath))
+          let parsedURL = URL(string: videoPath)
+          let isRemote = parsedURL?.scheme == "https" || parsedURL?.scheme == "http"
+          let video = AVURLAsset(url: isRemote ? parsedURL! : URL(fileURLWithPath: videoPath))
           let generator = AVAssetImageGenerator(asset: video)
           generator.appliesPreferredTrackTransform = true
           generator.maximumSize = CGSize(width: 320, height: 320)

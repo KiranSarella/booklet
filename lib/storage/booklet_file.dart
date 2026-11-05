@@ -595,6 +595,9 @@ class BookletFile {
         if (componentState is DrawingComponentState) {
           componentState.restore(componentJson);
         }
+        if (componentState is CaptionedMediaComponentState) {
+          componentState.caption = componentJson['caption'] as String? ?? '';
+        }
         if (componentState is ImageComponentState) {
           final mediaPath = componentJson['mediaPath'] as String?;
           componentState.mediaPath = _resolvePackageMediaPath(
@@ -786,6 +789,7 @@ class BookletFile {
           'id': componentBox.component.id,
           'type': componentBox.component.def.key,
           'mediaPath': asset['mediaPath'],
+          'caption': state.caption,
           'imageSize': state.imageSize ?? 'medium',
           'width': asset['width'],
           'height': asset['height'],
@@ -797,6 +801,7 @@ class BookletFile {
           'id': componentBox.component.id,
           'type': componentBox.component.def.key,
           'mediaPath': await _persistVideoAsset(packagePath, state),
+          'caption': state.caption,
         });
         continue;
       }
@@ -986,6 +991,16 @@ class BookletFile {
     if (sourcePath == null || sourcePath.isEmpty) {
       return {
         'mediaPath': null,
+        'imageSize': state.imageSize ?? 'medium',
+        'width': state.width,
+        'height': state.height,
+      };
+    }
+
+    final uri = Uri.tryParse(sourcePath);
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      return {
+        'mediaPath': sourcePath,
         'imageSize': state.imageSize ?? 'medium',
         'width': state.width,
         'height': state.height,

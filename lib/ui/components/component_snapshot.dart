@@ -91,6 +91,7 @@ class ComponentSnapshot {
         typeKey: component.def.key,
         extra: {
           'mediaPath': state.mediaPath,
+          'caption': state.caption,
           'imageSize': state.imageSize,
           'width': state.width,
           'height': state.height,
@@ -100,7 +101,7 @@ class ComponentSnapshot {
     if (state is VideoComponentState) {
       return ComponentSnapshot._(
         typeKey: component.def.key,
-        extra: {'mediaPath': state.mediaPath},
+        extra: {'mediaPath': state.mediaPath, 'caption': state.caption},
       );
     }
     if (state is AudioComponentState) {
@@ -182,11 +183,13 @@ class ComponentSnapshot {
     } else if (state is DrawingComponentState) {
       state.restore(extra);
     } else if (state is ImageComponentState) {
+      state.caption = extra['caption'] as String? ?? '';
       state.mediaPath = extra['mediaPath'] as String?;
       state.imageSize = extra['imageSize'] as String?;
       state.width = extra['width'] as int?;
       state.height = extra['height'] as int?;
     } else if (state is VideoComponentState) {
+      state.caption = extra['caption'] as String? ?? '';
       state.mediaPath = extra['mediaPath'] as String?;
     } else if (state is AudioComponentState) {
       state.mediaPath = extra['mediaPath'] as String?;

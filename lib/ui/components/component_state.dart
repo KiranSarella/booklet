@@ -254,7 +254,27 @@ class ChecklistComponentState extends ListItemComponentState {
   }
 }
 
-class ImageComponentState extends ComponentState {
+/// Shared caption content for media, including notifications for autosave.
+abstract class CaptionedMediaComponentState extends ComponentState {
+  CaptionedMediaComponentState() {
+    captionController.addListener(notifyListeners);
+  }
+
+  final TextEditingController captionController = TextEditingController();
+
+  String get caption => captionController.text;
+  set caption(String value) {
+    if (caption != value) captionController.text = value;
+  }
+
+  @override
+  void dispose() {
+    captionController.dispose();
+    super.dispose();
+  }
+}
+
+class ImageComponentState extends CaptionedMediaComponentState {
   ImageComponentState({
     this._mediaPath,
     this._imageSize,
@@ -303,7 +323,7 @@ class ImageComponentState extends ComponentState {
   String? get output => mediaPath;
 }
 
-class VideoComponentState extends ComponentState {
+class VideoComponentState extends CaptionedMediaComponentState {
   VideoComponentState({this._mediaPath});
 
   String? _mediaPath;
