@@ -323,8 +323,18 @@ class ImageComponentState extends CaptionedMediaComponentState {
   String? get output => mediaPath;
 }
 
-class VideoComponentState extends CaptionedMediaComponentState {
-  VideoComponentState({this._mediaPath});
+class VideoComponentState extends FileMediaComponentState {
+  VideoComponentState({super.mediaPath});
+}
+
+class Model3dComponentState extends FileMediaComponentState {
+  Model3dComponentState({super.mediaPath});
+}
+
+/// A portable file attachment with an optional caption.
+class FileMediaComponentState extends CaptionedMediaComponentState {
+  // ignore: prefer_initializing_formals
+  FileMediaComponentState({String? mediaPath}) : _mediaPath = mediaPath;
 
   String? _mediaPath;
   String? get mediaPath => _mediaPath;

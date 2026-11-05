@@ -83,9 +83,9 @@ class ComponentBox {
         isReadOnly: isReadOnly,
       ),
       child: CustomPaint(
-        foregroundPainter: selected && !focused
-            ? const _RainbowBorderPainter()
-            : null,
+        // Keep selection decoration behind native platform views. Painting it
+        // above a WebView creates an overlay that can intercept its input.
+        painter: selected && !focused ? const _RainbowBorderPainter() : null,
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
@@ -232,4 +232,7 @@ class _RainbowBorderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RainbowBorderPainter oldDelegate) => false;
+
+  @override
+  bool hitTest(Offset position) => false;
 }

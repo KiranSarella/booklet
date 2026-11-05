@@ -335,3 +335,12 @@ class GanttChartComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.media;
 }
+
+class Model3dComponentDef extends ComponentDef {
+  @override
+  String get key => "model_3d";
+  @override
+  String get name => "3D Model";
+  @override
+  ComponentType get type => ComponentType.media;
+}

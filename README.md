@@ -12,8 +12,8 @@ Used flutter to make it platform independent.
 Contributions are welcome.
 
 **write mode**
-- [X] linux desktop (tested)
-- [X] mac desktop (tested)
+- [X] linux desktop (working)
+- [X] mac desktop (working)
 - [ ] windows desktop
 
 **read-only mode**
@@ -35,7 +35,7 @@ Contributions are welcome.
 
 ![](/readme-screenshots/math.png)
 
-
+![](/readme-screenshots/3d-model.png)
 
 # Flutter
 

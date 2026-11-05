@@ -98,7 +98,7 @@ class ComponentSnapshot {
         },
       );
     }
-    if (state is VideoComponentState) {
+    if (state is FileMediaComponentState) {
       return ComponentSnapshot._(
         typeKey: component.def.key,
         extra: {'mediaPath': state.mediaPath, 'caption': state.caption},
@@ -188,7 +188,7 @@ class ComponentSnapshot {
       state.imageSize = extra['imageSize'] as String?;
       state.width = extra['width'] as int?;
       state.height = extra['height'] as int?;
-    } else if (state is VideoComponentState) {
+    } else if (state is FileMediaComponentState) {
       state.caption = extra['caption'] as String? ?? '';
       state.mediaPath = extra['mediaPath'] as String?;
     } else if (state is AudioComponentState) {

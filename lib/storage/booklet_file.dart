@@ -402,7 +402,7 @@ class BookletFile {
       final state = box.component.state;
       if (state is AssetsComponentState) originalAssets[state] = state.output;
       if (state is ImageComponentState ||
-          state is VideoComponentState ||
+          state is FileMediaComponentState ||
           state is AudioComponentState) {
         originalPaths[state] = _mediaPathOf(state);
       }
@@ -416,7 +416,7 @@ class BookletFile {
       for (final box in page.components) {
         final state = box.component.state;
         if (state is ImageComponentState ||
-            state is VideoComponentState ||
+            state is FileMediaComponentState ||
             state is AudioComponentState) {
           _setMediaPath(state, originalPaths[state]);
         }
@@ -426,7 +426,7 @@ class BookletFile {
 
   static String? _mediaPathOf(Object state) => switch (state) {
     ImageComponentState value => value.mediaPath,
-    VideoComponentState value => value.mediaPath,
+    FileMediaComponentState value => value.mediaPath,
     AudioComponentState value => value.mediaPath,
     _ => null,
   };
@@ -434,7 +434,7 @@ class BookletFile {
   static void _setMediaPath(Object state, String? path) {
     if (state is ImageComponentState) {
       state.mediaPath = path;
-    } else if (state is VideoComponentState) {
+    } else if (state is FileMediaComponentState) {
       state.mediaPath = path;
     } else if (state is AudioComponentState) {
       state.mediaPath = path;
@@ -610,7 +610,7 @@ class BookletFile {
           final height = componentJson['height'];
           componentState.width = width is num ? width.toInt() : null;
           componentState.height = height is num ? height.toInt() : null;
-        } else if (componentState is VideoComponentState) {
+        } else if (componentState is FileMediaComponentState) {
           componentState.mediaPath = _resolvePackageMediaPath(
             packagePath,
             componentJson['mediaPath'] as String?,
@@ -796,11 +796,11 @@ class BookletFile {
         });
         continue;
       }
-      if (state is VideoComponentState) {
+      if (state is FileMediaComponentState) {
         componentJson.add({
           'id': componentBox.component.id,
           'type': componentBox.component.def.key,
-          'mediaPath': await _persistVideoAsset(packagePath, state),
+          'mediaPath': await _persistFileMediaAsset(packagePath, state),
           'caption': state.caption,
         });
         continue;
@@ -1048,9 +1048,9 @@ class BookletFile {
     };
   }
 
-  static Future<String?> _persistVideoAsset(
+  static Future<String?> _persistFileMediaAsset(
     String packagePath,
-    VideoComponentState state,
+    FileMediaComponentState state,
   ) async {
     final sourcePath = state.mediaPath;
     if (sourcePath == null || sourcePath.isEmpty) {

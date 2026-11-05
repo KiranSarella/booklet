@@ -136,6 +136,7 @@ class ComponentMinimapPreview extends StatelessWidget {
       'assets',
       'audio',
       'embed',
+      'model_3d',
     ].contains(kind)) {
       preview = DecoratedBox(
         decoration: BoxDecoration(
@@ -152,6 +153,7 @@ class ComponentMinimapPreview extends StatelessWidget {
                 'code_block' => Icons.code,
                 'audio' => Icons.music_note,
                 'embed' => Icons.integration_instructions_outlined,
+                'model_3d' => Icons.view_in_ar_outlined,
                 _ => Icons.folder_outlined,
               },
               size: 15,

@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/inbuilt_components/component_defs/model_3d_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/gantt_chart_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/math_graph_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/statistical_chart_component.dart';
@@ -83,6 +84,8 @@ class InbuiltComponents {
         return VideoComponent(id: id);
       case 'audio':
         return AudioComponent(id: id);
+      case 'model_3d':
+        return Model3dComponent(id: id);
       case 'embed':
         return EmbedComponent(id: id);
       case 'link':
@@ -123,6 +126,7 @@ class InbuiltComponents {
       GanttChartComponentDef(),
       VideoComponentDef(),
       AudioComponentDef(),
+      Model3dComponentDef(),
       EmbedComponentDef(),
       LinkComponentDef(),
       LocationComponentDef(),

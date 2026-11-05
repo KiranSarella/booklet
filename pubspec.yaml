@@ -45,6 +45,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/3d/model-viewer.min.js
+    - assets/3d/LICENSE
     - assets/fonts/Bangers-OFL.txt
     - assets/fonts/Pacifico-OFL.txt
     - assets/fonts/CourierPrime-OFL.txt
