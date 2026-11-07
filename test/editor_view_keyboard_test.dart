@@ -5,11 +5,87 @@ import 'package:booklet/ui/detail/editor/editor_view.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('mouse toolbar highlights selected read-only text', (
+    tester,
+  ) async {
+    final settings = DocumentSettingsController();
+    final theme = PageSettingsController(settings);
+    final controller = EditorController(theme, settings);
+    final state =
+        controller.viewModel.components
+                .firstWhere((box) => box.component.state is TextComponentState)
+                .component
+                .state
+            as TextComponentState;
+    state.replaceDocument(
+      Document.fromJson([
+        {'insert': 'Hello reader\n'},
+      ]),
+    );
+    settings.updateEditMode(DocumentEditMode.readOnly);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [FlutterQuillLocalizations.delegate],
+        home: Scaffold(body: EditorView(controller: controller)),
+      ),
+    );
+    state.focusNode.requestFocus();
+    await tester.pump();
+    state.controller.updateSelection(
+      const TextSelection(baseOffset: 0, extentOffset: 5),
+      ChangeSource.local,
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byTooltip('Choose highlight color'),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Pink'), findsNothing);
+    await tester.tap(
+      find.bySemanticsLabel('Pink'),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(state.readingHighlights.value, isEmpty);
+    // Toolbar/keyboard navigation can move focus while selection survives.
+    state.focusNode.unfocus();
+    await tester.pump();
+    expect(state.controller.selection.isCollapsed, isFalse);
+    await tester.tap(
+      find.byTooltip('Highlight selected text'),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(state.readingHighlights.value.length, 5);
+    bool hasPink(InlineSpan span) =>
+        span is TextSpan &&
+        (span.style?.backgroundColor == const Color(0xFFF48FB1) ||
+            (span.children?.any(hasPink) ?? false));
+    expect(
+      tester
+          .widgetList<RichText>(find.byType(RichText))
+          .any((widget) => hasPink(widget.text)),
+      isTrue,
+    );
+    await tester.tap(
+      find.byTooltip('Clear selected highlight'),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(state.readingHighlights.value, isEmpty);
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
+    theme.dispose();
+    settings.dispose();
+  });
+
   for (final extend in [false, true]) {
     testWidgets('arrows reveal offscreen selection (extend: $extend)', (
       tester,
@@ -29,7 +105,9 @@ void main() {
       final editor = tester.state<EditorViewState>(find.byType(EditorView));
       final components = controller.viewModel.components;
       final scroll = tester
-          .widget<SingleChildScrollView>(find.byType(SingleChildScrollView).first)
+          .widget<SingleChildScrollView>(
+            find.byType(SingleChildScrollView).first,
+          )
           .controller!;
       editor.selectComponent(components.first);
       await tester.pump();
@@ -51,7 +129,9 @@ void main() {
         await tester.pumpAndSettle();
       }
       expect(controller.viewModel.selectedComponent, same(components.first));
-      final firstRect = tester.getRect(find.byKey(components.first.componentKey));
+      final firstRect = tester.getRect(
+        find.byKey(components.first.componentKey),
+      );
       expect(firstRect.top, greaterThanOrEqualTo(viewport.top - 1));
       if (extend) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
       await tester.pumpWidget(const SizedBox.shrink());

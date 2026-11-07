@@ -16,7 +16,7 @@ import 'package:booklet/ui/components/component_snapshot.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/foundation.dart' show VoidCallback;
-import 'package:flutter/widgets.dart' show TextSelection;
+import 'package:flutter/widgets.dart' show TextSelection, Color;
 import 'package:flutter_quill/flutter_quill.dart' show ChangeSource, Document;
 import 'package:booklet/ui/sidebar/pages_navigation/pages_navigation_vm.dart';
 import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
@@ -45,6 +45,87 @@ class EditorVM {
   final PageSettingsController theme;
   final PagesNavigationVM navigation = PagesNavigationVM();
   final Map<String, PageContent> _pagesById = {};
+
+  // Session annotations survive unloading pages without changing their files.
+  final _readingAnnotations =
+      <(String, String, int), (String, Map<int, Color>)>{};
+
+  void Function(String)? onReadingAnnotationsChanged;
+
+  String exportReadingAnnotations() => jsonEncode([
+    for (final entry in _readingAnnotations.entries)
+      {
+        'page': entry.key.$1,
+        'component': entry.key.$2,
+        'field': entry.key.$3,
+        'text': entry.value.$1,
+        'colors': {
+          for (final color in entry.value.$2.entries)
+            '${color.key}': color.value.toARGB32(),
+        },
+      },
+  ]);
+
+  void importReadingAnnotations(String? encoded) {
+    if (encoded == null) return;
+    try {
+      final restored = <(String, String, int), (String, Map<int, Color>)>{};
+      for (final entry in jsonDecode(encoded) as List) {
+        restored[(
+          entry['page'] as String,
+          entry['component'] as String,
+          entry['field'] as int,
+        )] = (
+          entry['text'] as String,
+          {
+            for (final color in (entry['colors'] as Map).entries)
+              int.parse(color.key as String): Color(color.value as int),
+          },
+        );
+      }
+      _readingAnnotations.addAll(restored);
+    } on FormatException {
+      // Invalid local annotations must not prevent opening the document.
+    } on TypeError {
+      // Ignore incompatible annotation data.
+    }
+  }
+
+  Iterable<TextComponentState> _readingFields(ComponentState state) =>
+      switch (state) {
+        TextComponentState() => [state],
+        QuoteComponentState() => [state.quote, state.author],
+        _ => const [],
+      };
+
+  void _rememberReadingAnnotations(PageContent page) {
+    _readingAnnotations.removeWhere((key, _) => key.$1 == page.id);
+    for (final box in page.components) {
+      var index = 0;
+      for (final field in _readingFields(box.component.state)) {
+        if (field.readingHighlights.value.isNotEmpty) {
+          _readingAnnotations[(page.id, box.component.id, index)] = (
+            field.output,
+            Map<int, Color>.of(field.readingHighlights.value),
+          );
+        }
+        index++;
+      }
+    }
+  }
+
+  void _restoreReadingAnnotations(PageContent page) {
+    for (final box in page.components) {
+      var index = 0;
+      for (final field in _readingFields(box.component.state)) {
+        final saved = _readingAnnotations[(page.id, box.component.id, index++)];
+        if (saved != null && saved.$1 == field.output) {
+          field.readingHighlights.value = Map<int, Color>.of(saved.$2);
+        }
+      }
+    }
+  }
+
   final Map<ComponentState, VoidCallback> _componentListeners = {};
   VoidCallback? onDocumentChanged;
   VoidCallback? onHistoryChanged;
@@ -345,6 +426,7 @@ class EditorVM {
       page.dispose();
     }
     _pagesById.clear();
+    _readingAnnotations.clear();
     _histories.clear();
     navigation.replaceGroups(
       groups,
@@ -357,6 +439,10 @@ class EditorVM {
   }
 
   void setSelectedPage(PageContent page, {bool preserveLoadedPages = false}) {
+    for (final loaded in _pagesById.values) {
+      _rememberReadingAnnotations(loaded);
+    }
+    _restoreReadingAnnotations(page);
     if (!preserveLoadedPages) {
       _unwatchAllComponents();
       for (final loadedPage in _pagesById.values) {
@@ -1196,6 +1282,12 @@ class EditorVM {
     _histories.putIfAbsent(page.id, () => EditorHistory(_captureHistory(page)));
     for (final component in page.components) {
       _watchComponent(component);
+      for (final field in _readingFields(component.component.state)) {
+        field.onReadingHighlightsChanged = () {
+          _rememberReadingAnnotations(page);
+          onReadingAnnotationsChanged?.call(exportReadingAnnotations());
+        };
+      }
     }
   }
 

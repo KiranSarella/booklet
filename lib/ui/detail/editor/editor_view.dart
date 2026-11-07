@@ -25,6 +25,35 @@ class EditorView extends StatefulWidget {
 class EditorViewState extends State<EditorView> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _viewportKey = GlobalKey();
+  TextComponentState? _highlightTarget;
+
+  void _captureHighlightSelection() {
+    _highlightTarget = null;
+    final selectedFields = <TextComponentState>[];
+    for (final box in _viewModel.components) {
+      final state = box.component.state;
+      final fields = switch (state) {
+        TextComponentState() => [state],
+        QuoteComponentState() => [state.quote, state.author],
+        _ => <TextComponentState>[],
+      };
+      for (final field in fields) {
+        final selection = field.controller.selection;
+        if (!selection.isValid || selection.isCollapsed) continue;
+        if (field.focusNode.hasFocus) {
+          _highlightTarget = field;
+          return;
+        }
+        selectedFields.add(field);
+      }
+    }
+    // A toolbar or keyboard action may take focus without clearing selection.
+    // Only fall back when the selected range identifies one unambiguous field.
+    if (selectedFields.length == 1) {
+      _highlightTarget = selectedFields.single;
+    }
+  }
+
   bool _showMinimap = false;
   bool _showSearch = false;
   bool _showReplace = false;
@@ -614,6 +643,15 @@ May this day of your birth be auspicious!
                 ),
               Positioned.fill(
                 child: OptionsDock(
+                  onHighlightAction: _captureHighlightSelection,
+                  onHighlightSelected: (color) {
+                    if (widget
+                        .controller
+                        .documentSettingsController
+                        .isReadOnly) {
+                      _highlightTarget?.highlightReadingSelection(color);
+                    }
+                  },
                   key: _optionsDockKey,
                   onComponentSelected: addComponentBelowSelected,
                   onComponentTransformed: transformSelectedComponent,

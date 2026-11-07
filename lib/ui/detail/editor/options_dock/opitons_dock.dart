@@ -19,6 +19,8 @@ class OptionsDock extends StatefulWidget {
     required this.selectedListStyleOptions,
     required this.canPaste,
     required this.isReadOnly,
+    this.onHighlightAction,
+    this.onHighlightSelected,
   });
 
   final ValueChanged<String> onComponentSelected;
@@ -36,6 +38,8 @@ class OptionsDock extends StatefulWidget {
   final List<String> selectedListStyleOptions;
   final bool canPaste;
   final bool isReadOnly;
+  final VoidCallback? onHighlightAction;
+  final ValueChanged<Color?>? onHighlightSelected;
 
   @override
   State<OptionsDock> createState() => OptionsDockState();
@@ -43,6 +47,7 @@ class OptionsDock extends StatefulWidget {
 
 class OptionsDockState extends State<OptionsDock> {
   String? _openMenu;
+  Color _highlightColor = const Color(0xFFFFF59D);
 
   void dismissMenu() {
     if (_openMenu != null) {
@@ -56,6 +61,16 @@ class OptionsDockState extends State<OptionsDock> {
 
   @override
   Widget build(BuildContext context) {
+    // Pale annotation colors need deeper counterparts on light toolbar surfaces.
+    final iconTint = Theme.of(context).brightness == Brightness.light
+        ? switch (_highlightColor.toARGB32()) {
+            0xFFFFF59D => const Color(0xFFE0B800),
+            0xFFA5D6A7 => const Color(0xFF2E7D32),
+            0xFF90CAF9 => const Color(0xFF1565C0),
+            0xFFF48FB1 => const Color(0xFFAD1457),
+            _ => _highlightColor,
+          }
+        : _highlightColor;
     return Stack(
       children: [
         if (_openMenu != null)
@@ -104,9 +119,85 @@ class OptionsDockState extends State<OptionsDock> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (widget.isReadOnly)
-                const _ReadOnlyIndicator()
-              else ...[
+              if (widget.isReadOnly) ...[
+                const _ReadOnlyIndicator(),
+                const SizedBox(height: 20),
+                TextFieldTapRegion(
+                  child: Material(
+                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'Highlight selected text',
+                          icon: Icon(Icons.highlight, color: iconTint),
+                          onPressed: () {
+                            if (!widget.isReadOnly) return;
+                            widget.onHighlightAction?.call();
+                            widget.onHighlightSelected?.call(_highlightColor);
+                          },
+                        ),
+                        const SizedBox(width: 36, child: Divider(height: 1)),
+                        PopupMenuButton<Color>(
+                          tooltip: 'Choose highlight color',
+                          requestFocus: false,
+                          constraints: const BoxConstraints(minWidth: 56),
+                          onSelected: (color) {
+                            if (widget.isReadOnly) {
+                              setState(() => _highlightColor = color);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            for (final (name, color) in const [
+                              ('Yellow', Color(0xFFFFF59D)),
+                              ('Green', Color(0xFFA5D6A7)),
+                              ('Blue', Color(0xFF90CAF9)),
+                              ('Pink', Color(0xFFF48FB1)),
+                            ])
+                              PopupMenuItem(
+                                value: color,
+                                child: TextFieldTapRegion(
+                                  child: Semantics(
+                                    label: name,
+                                    selected: color == _highlightColor,
+                                    child: Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: color,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: color == _highlightColor
+                                          ? const Icon(
+                                              Icons.check,
+                                              size: 18,
+                                              color: Colors.black87,
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                          icon: Icon(Icons.arrow_drop_down, color: iconTint),
+                        ),
+                        const SizedBox(width: 36, child: Divider(height: 1)),
+                        IconButton(
+                          tooltip: 'Clear selected highlight',
+                          icon: const Icon(Icons.format_color_reset),
+                          onPressed: () {
+                            if (!widget.isReadOnly) return;
+                            widget.onHighlightAction?.call();
+                            widget.onHighlightSelected?.call(null);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ] else ...[
                 _DockButton(
                   icon: Icons.add,
                   color: Colors.blue,
@@ -267,7 +358,7 @@ class _ReadOnlyIndicator extends StatelessWidget {
         child: const SizedBox(
           width: 52,
           height: 44,
-          child: Icon(Icons.lock_outline, size: 20, color: Colors.red,),
+          child: Icon(Icons.lock_outline, size: 20, color: Colors.red),
         ),
       ),
     );

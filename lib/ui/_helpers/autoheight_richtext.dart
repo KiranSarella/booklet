@@ -39,7 +39,12 @@ class AutoHeightRichText2 extends StatelessWidget {
   final EdgeInsets editorPadding;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder<Map<int, Color>>(
+    valueListenable: (visualState as TextComponentState).readingHighlights,
+    builder: (context, _, _) => _buildEditor(context),
+  );
+
+  Widget _buildEditor(BuildContext context) {
     final textState = visualState as TextComponentState;
     final defaultStyles = DefaultStyles(
       paragraph: DefaultTextBlockStyle(
@@ -172,6 +177,39 @@ class AutoHeightRichText2 extends StatelessWidget {
                                     fontName,
                                     textStyle: effectiveStyle,
                                   );
+                            if (textState.controller.readOnly &&
+                                textState.readingHighlights.value.isNotEmpty &&
+                                !isPlaceholder) {
+                              final colors = textState.readingHighlights.value;
+                              final start = node.documentOffset + offset;
+                              final children = <TextSpan>[];
+                              var runStart = 0;
+                              while (runStart < text.length) {
+                                final color = colors[start + runStart];
+                                var end = runStart + 1;
+                                while (end < text.length &&
+                                    colors[start + end] == color) {
+                                  end++;
+                                }
+                                children.add(
+                                  TextSpan(
+                                    text: text.substring(runStart, end),
+                                    style: color == null
+                                        ? null
+                                        : TextStyle(
+                                            backgroundColor: color,
+                                            color: Colors.black87,
+                                          ),
+                                    recognizer: recognizer,
+                                  ),
+                                );
+                                runStart = end;
+                              }
+                              return TextSpan(
+                                style: spanStyle,
+                                children: children,
+                              );
+                            }
                             return TextSpan(
                               text: text,
                               style: spanStyle,

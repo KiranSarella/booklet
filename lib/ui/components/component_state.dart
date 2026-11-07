@@ -83,6 +83,7 @@ class TextComponentState extends ComponentState {
 
   /// Restores component alignment when edits replace the document terminator.
   void replaceDocument(Document document) {
+    readingHighlights.value = {};
     controller.document = document;
     controller.formatText(0, document.length, alignment);
   }
@@ -99,6 +100,28 @@ class TextComponentState extends ComponentState {
         : Document.fromJson(_initialDelta),
     selection: const TextSelection.collapsed(offset: 0),
   );
+
+  // Reading annotations are deliberately separate from the document delta.
+  VoidCallback? onReadingHighlightsChanged;
+  final readingHighlights = ValueNotifier<Map<int, Color>>({});
+
+  void highlightReadingSelection(Color? color) {
+    final selection = controller.selection;
+    if (!controller.readOnly || !selection.isValid || selection.isCollapsed) {
+      return;
+    }
+    final colors = Map<int, Color>.from(readingHighlights.value);
+    final end = selection.end.clamp(0, controller.document.length - 1);
+    for (var i = selection.start.clamp(0, end); i < end; i++) {
+      if (color == null) {
+        colors.remove(i);
+      } else {
+        colors[i] = color;
+      }
+    }
+    readingHighlights.value = colors;
+    onReadingHighlightsChanged?.call();
+  }
 
   /// Returns true when the text was consumed (split across components).
   Future<bool> Function(String text)? onPasteText;
@@ -123,6 +146,7 @@ class TextComponentState extends ComponentState {
 
   @override
   void dispose() {
+    readingHighlights.dispose();
     controller.removeListener(notifyListeners);
     controller.dispose();
     focusNode.dispose();

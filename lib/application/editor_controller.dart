@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:booklet/importing/docx_importer.dart';
 import 'package:booklet/importing/txt_importer.dart';
 import 'package:booklet/importing/epub_importer.dart';
@@ -619,6 +620,14 @@ class EditorController extends ChangeNotifier {
       selectedPageId: manifest.selectedPageId,
       selectedAssetFolderId: manifest.selectedAssetFolderId,
     );
+    final preferences = await SharedPreferences.getInstance();
+    // Use the original archive path, since extracted workspaces change on reopen.
+    final annotationsKey =
+        'reading.highlights.v1.${_portableTargetPath ?? manifest.path}';
+    viewModel.importReadingAnnotations(preferences.getString(annotationsKey));
+    viewModel.onReadingAnnotationsChanged = (encoded) {
+      unawaited(preferences.setString(annotationsKey, encoded));
+    };
     assetManagerController.selectFolder(
       viewModel.navigation.selectedNode,
       _documentPath,
