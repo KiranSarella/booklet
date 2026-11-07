@@ -12,10 +12,12 @@ class EditorSearchMatch {
     this.replace,
     this.clearSelection, {
     this.text = '',
+    this.textState,
     this.start = 0,
     this.end = 0,
   });
 
+  final TextComponentState? textState;
   final String text;
   final int start;
   final int end;
@@ -41,8 +43,9 @@ List<EditorSearchMatch> findEditorMatches(
       String text,
       ValueChanged<TextSelection> select,
       void Function(TextSelection, String) replace,
-      VoidCallback clearSelection,
-    ) {
+      VoidCallback clearSelection, {
+      TextComponentState? textState,
+    }) {
       for (final match in pattern.allMatches(text)) {
         final selection = TextSelection(
           baseOffset: match.start,
@@ -59,6 +62,7 @@ List<EditorSearchMatch> findEditorMatches(
               }
             },
             text: text,
+            textState: textState,
             start: match.start,
             end: match.end,
           ),
@@ -93,6 +97,7 @@ List<EditorSearchMatch> findEditorMatches(
             );
           }
         },
+        textState: state,
       );
     }
 

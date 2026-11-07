@@ -94,6 +94,17 @@ void main() {
         } finally {
           reopened.dispose();
         }
+        final highlights = await editor.searchBooklet('', highlightsOnly: true);
+        expect(highlights.map((page) => page.pageId), ['one', 'two']);
+        expect(
+          highlights.every((page) => page.hits.single.query == 'Hello'),
+          isTrue,
+        );
+        expect(
+          highlights.every((page) => page.hits.single.matchIndex == 0),
+          isTrue,
+        );
+        expect(editor.selectedPage!.id, 'two');
         await editor.selectPage('one');
         expect(current(), isNot(same(original)));
         expect(

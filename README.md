@@ -37,6 +37,8 @@ Contributions are welcome.
 
 ![](/readme-screenshots/3d-model.png)
 
+![](/readme-screenshots/highlight.png)
+
 
 # Flutter
 

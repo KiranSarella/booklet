@@ -114,7 +114,7 @@ class EditorVM {
     }
   }
 
-  void _restoreReadingAnnotations(PageContent page) {
+  void restoreReadingAnnotations(PageContent page) {
     for (final box in page.components) {
       var index = 0;
       for (final field in _readingFields(box.component.state)) {
@@ -442,7 +442,7 @@ class EditorVM {
     for (final loaded in _pagesById.values) {
       _rememberReadingAnnotations(loaded);
     }
-    _restoreReadingAnnotations(page);
+    restoreReadingAnnotations(page);
     if (!preserveLoadedPages) {
       _unwatchAllComponents();
       for (final loadedPage in _pagesById.values) {

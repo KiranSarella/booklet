@@ -12,6 +12,76 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets(
+    'read-only highlight button lists highlights and clears results',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final settings = DocumentSettingsController();
+      final theme = PageSettingsController(settings);
+      final editor = EditorController(theme, settings);
+      final box = editor.viewModel.createComponentBelowType(0, 'text');
+      final state = box.component.state as TextComponentState;
+      state.replaceDocument(
+        Document.fromJson([
+          {'insert': 'same same\n'},
+        ]),
+      );
+      settings.updateEditMode(DocumentEditMode.readOnly);
+      state.controller.readOnly = true;
+      state.controller.updateSelection(
+        const TextSelection(baseOffset: 5, extentOffset: 9),
+        ChangeSource.local,
+      );
+      state.highlightReadingSelection(const Color(0xFFFFF59D));
+      String? openedQuery;
+      int? openedIndex;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BookletSearchView(
+              controller: editor,
+              onClose: () {},
+              onResult: (_, query, index, _) {
+                openedQuery = query;
+                openedIndex = index;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip('Show highlights'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.text('1 content match across 1 page'), findsOneWidget);
+      await tester.tap(find.textContaining('same same', findRichText: true));
+      expect(openedQuery, 'same');
+      expect(openedIndex, 1);
+      await tester.tap(find.byTooltip('Clear search'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Search titles and content across all pages.'),
+        findsOneWidget,
+      );
+      settings.updateEditMode(DocumentEditMode.edit);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BookletSearchView(
+              controller: editor,
+              onClose: () {},
+              onResult: (_, _, _, _) {},
+            ),
+          ),
+        ),
+      );
+      expect(find.byTooltip('Show highlights'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      editor.dispose();
+      theme.dispose();
+      settings.dispose();
+    },
+  );
+
+  testWidgets(
     'toolbar and shortcut open search; clear and close end the query',
     (tester) async {
       SharedPreferences.setMockInitialValues({});

@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/component_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:booklet/importing/docx_importer.dart';
 import 'package:booklet/importing/txt_importer.dart';
@@ -649,8 +650,10 @@ class EditorController extends ChangeNotifier {
   Future<List<BookletSearchPage>> searchBooklet(
     String query, {
     bool caseSensitive = false,
+    bool highlightsOnly = false,
   }) async {
-    if (query.isEmpty) return [];
+    if (query.isEmpty && !highlightsOnly) return [];
+    if (highlightsOnly && !documentSettingsController.isReadOnly) return [];
     final roots = viewModel.navigation.groups.toList();
     final package = _documentPath;
     final sources = Map<String, String>.of(_navigationPageSources);
@@ -665,23 +668,91 @@ class EditorController extends ChangeNotifier {
           page = await BookletFile.loadPage(source, id, editorTheme);
         }
         try {
-          final matches = page == null
-              ? <EditorSearchMatch>[]
-              : findEditorMatches(
-                  page.components,
-                  query,
-                  caseSensitive: caseSensitive,
+          if (highlightsOnly) {
+            if (page != null) {
+              if (temporary) viewModel.restoreReadingAnnotations(page);
+              final hits = <BookletSearchHit>[];
+              for (final box in page.components) {
+                final state = box.component.state;
+                final fields = switch (state) {
+                  TextComponentState() => [state],
+                  QuoteComponentState() => [state.quote, state.author],
+                  _ => <TextComponentState>[],
+                };
+                for (final field in fields) {
+                  final text = field.output;
+                  final colors = field.readingHighlights.value;
+                  final offsets =
+                      colors.keys
+                          .where((i) => i >= 0 && i < text.length - 1)
+                          .toList()
+                        ..sort();
+                  var i = 0;
+                  while (i < offsets.length) {
+                    final start = offsets[i];
+                    var end = start + 1;
+                    while (++i < offsets.length &&
+                        offsets[i] == end &&
+                        colors[offsets[i]] == colors[start]) {
+                      end++;
+                    }
+                    final phrase = text.substring(start, end);
+                    final matches = findEditorMatches(
+                      page.components,
+                      phrase,
+                      caseSensitive: true,
+                    );
+                    final index = matches.indexWhere(
+                      (match) =>
+                          identical(match.component, box) &&
+                          identical(match.textState, field) &&
+                          match.start == start &&
+                          match.text == text.substring(0, text.length - 1),
+                    );
+                    if (index >= 0) {
+                      hits.add(
+                        BookletSearchHit(
+                          text,
+                          start,
+                          end,
+                          query: phrase,
+                          matchIndex: index,
+                        ),
+                      );
+                    }
+                  }
+                }
+              }
+              if (hits.isNotEmpty) {
+                results.add(
+                  BookletSearchPage(
+                    id,
+                    node.title,
+                    ancestors.join(' › '),
+                    hits,
+                  ),
                 );
-          final titleMatch = caseSensitive
-              ? node.title.contains(query)
-              : node.title.toLowerCase().contains(query.toLowerCase());
-          if (matches.isNotEmpty || titleMatch) {
-            results.add(
-              BookletSearchPage(id, node.title, ancestors.join(' › '), [
-                for (final match in matches)
-                  BookletSearchHit(match.text, match.start, match.end),
-              ]),
-            );
+              }
+            }
+          } else {
+            final matches = page == null
+                ? <EditorSearchMatch>[]
+                : findEditorMatches(
+                    page.components,
+                    query,
+                    caseSensitive: caseSensitive,
+                  );
+            final titleMatch = caseSensitive
+                ? node.title.contains(query)
+                : node.title.toLowerCase().contains(query.toLowerCase());
+            if (matches.isNotEmpty || titleMatch) {
+              results.add(
+                BookletSearchPage(id, node.title, ancestors.join(' › '), [
+                  for (final match in matches)
+                    BookletSearchHit(match.text, match.start, match.end),
+                ]),
+              );
+            }
           }
         } finally {
           if (temporary) page?.dispose();
@@ -1057,7 +1128,15 @@ class BookletSearchPage {
 }
 
 class BookletSearchHit {
-  const BookletSearchHit(this.text, this.start, this.end);
+  const BookletSearchHit(
+    this.text,
+    this.start,
+    this.end, {
+    this.query,
+    this.matchIndex,
+  });
+  final String? query;
+  final int? matchIndex;
   final String text;
   final int start;
   final int end;

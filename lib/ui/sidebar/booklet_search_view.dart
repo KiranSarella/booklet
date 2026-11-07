@@ -46,6 +46,7 @@ class BookletSearchViewState extends State<BookletSearchView> {
     super.didUpdateWidget(oldWidget);
     if (_documentPath != widget.controller.documentPath) {
       _documentPath = widget.controller.documentPath;
+      _highlightsOnly = false;
       _query.clear();
       _timer?.cancel();
       ++_request;
@@ -55,6 +56,7 @@ class BookletSearchViewState extends State<BookletSearchView> {
     }
   }
 
+  bool _highlightsOnly = false;
   bool _caseSensitive = false;
   bool _showReplace = false;
   bool _replacing = false;
@@ -96,20 +98,22 @@ class BookletSearchViewState extends State<BookletSearchView> {
   String? _error;
   List<BookletSearchPage> _results = [];
 
-  void _schedule(String value) {
+  void _schedule(String value, {bool highlightsOnly = false}) {
+    _highlightsOnly = highlightsOnly;
     _timer?.cancel();
     final request = ++_request;
     setState(() {
-      _busy = value.isNotEmpty;
+      _busy = highlightsOnly || value.isNotEmpty;
       _error = null;
       _results = [];
     });
-    if (value.isEmpty) return;
+    if (value.isEmpty && !highlightsOnly) return;
     _timer = Timer(const Duration(milliseconds: 250), () async {
       try {
         final results = await widget.controller.searchBooklet(
           value,
           caseSensitive: _caseSensitive,
+          highlightsOnly: highlightsOnly,
         );
         if (!mounted || request != _request) return;
         setState(() {
@@ -133,6 +137,18 @@ class BookletSearchViewState extends State<BookletSearchView> {
     _replacement.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  void _openResult(BookletSearchPage page, int index) {
+    final hit = index >= 0 && index < page.hits.length
+        ? page.hits[index]
+        : null;
+    widget.onResult(
+      page.pageId,
+      hit?.query ?? _query.text,
+      hit?.matchIndex ?? index,
+      hit?.query != null ? true : _caseSensitive,
+    );
   }
 
   Widget _snippet(BookletSearchHit hit) {
@@ -231,6 +247,16 @@ class BookletSearchViewState extends State<BookletSearchView> {
                           _focus.requestFocus();
                         },
                 ),
+                if (widget.controller.documentSettingsController.isReadOnly)
+                  IconButton(
+                    tooltip: 'Show highlights',
+                    isSelected: _highlightsOnly,
+                    icon: const Icon(Icons.highlight),
+                    onPressed: () {
+                      _query.clear();
+                      _schedule('', highlightsOnly: !_highlightsOnly);
+                    },
+                  ),
                 IconButton(
                   tooltip: 'Close booklet search',
                   icon: const Icon(Icons.close),
@@ -294,10 +320,12 @@ class BookletSearchViewState extends State<BookletSearchView> {
             Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                _query.text.isEmpty
+                _query.text.isEmpty && !_highlightsOnly
                     ? 'Search titles and content across all pages.'
                     : _results.isEmpty
-                    ? 'No results found.'
+                    ? (_highlightsOnly
+                          ? 'No highlights found.'
+                          : 'No results found.')
                     : '$count content ${count == 1 ? 'match' : 'matches'} across ${_results.length} ${_results.length == 1 ? 'page' : 'pages'}',
               ),
             ),
@@ -313,23 +341,13 @@ class BookletSearchViewState extends State<BookletSearchView> {
                         ? null
                         : Text(page.breadcrumb),
                     trailing: Text('${page.hits.length}'),
-                    onTap: () => widget.onResult(
-                      page.pageId,
-                      _query.text,
-                      page.hits.isEmpty ? -1 : 0,
-                      _caseSensitive,
-                    ),
+                    onTap: () => _openResult(page, page.hits.isEmpty ? -1 : 0),
                   ),
                   for (var i = 0; i < page.hits.length; i++)
                     ListTile(
                       dense: true,
                       title: _snippet(page.hits[i]),
-                      onTap: () => widget.onResult(
-                        page.pageId,
-                        _query.text,
-                        i,
-                        _caseSensitive,
-                      ),
+                      onTap: () => _openResult(page, i),
                     ),
                   const Divider(height: 1),
                 ],
