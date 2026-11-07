@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'online_video.dart';
+import 'instagram_preview.dart';
 
 /// Public titles for providers that expose oEmbed metadata.
 class OnlineVideoMetadata {
@@ -21,6 +22,9 @@ class OnlineVideoMetadata {
   }
 
   static Future<String?> loadTitle(OnlineVideo video) async {
+    if (video.provider == OnlineVideoProvider.instagram) {
+      return (await InstagramPreview.load(video))?.title;
+    }
     final uri = endpoint(video);
     if (uri == null) return null;
     final client = HttpClient()

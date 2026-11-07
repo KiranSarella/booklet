@@ -134,6 +134,7 @@ class BookletFile {
                     entry['url'] as String? ??
                     'assets/$folderId/$id${_assetExtension(name)}',
                 thumbnailPath: entry['thumbnailPath'] as String?,
+                embedCode: entry['embedCode'] as String?,
               ),
             );
           }
@@ -489,6 +490,7 @@ class BookletFile {
             id: asset.id,
             name: asset.name,
             path: useAbsoluteAssetPaths ? targetPath : relativePath,
+            embedCode: asset.embedCode,
           );
         }
       }
@@ -941,6 +943,7 @@ class BookletFile {
                   ? asset.path
                   : _toPackageMediaPath(packagePath, targetPath),
               thumbnailPath: thumbnailPath,
+              embedCode: asset.embedCode,
             );
           }
         }
@@ -951,6 +954,7 @@ class BookletFile {
                 'id': asset.id,
                 'name': asset.name,
                 if (asset.isRemote) 'url': asset.path,
+                if (asset.embedCode != null) 'embedCode': asset.embedCode,
                 if (asset.thumbnailPath != null)
                   'thumbnailPath': asset.thumbnailPath,
               },
@@ -975,6 +979,7 @@ class BookletFile {
         id: asset.id,
         name: asset.name,
         path: _resolvePackageMediaPath(packagePath, asset.path)!,
+        embedCode: asset.embedCode,
         thumbnailPath: _resolvePackageMediaPath(
           packagePath,
           asset.thumbnailPath,

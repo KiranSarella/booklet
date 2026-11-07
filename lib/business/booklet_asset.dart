@@ -1,4 +1,4 @@
-import 'package:booklet/ui/components/media/youtube_video.dart';
+import 'package:booklet/ui/components/media/online_video.dart';
 
 enum BookletAssetKind { image, video, pdf, document, file }
 
@@ -8,12 +8,14 @@ class BookletAsset {
     required this.name,
     required this.path,
     this.thumbnailPath,
+    this.embedCode,
   });
 
   final String id;
   final String name;
   final String path;
   final String? thumbnailPath;
+  final String? embedCode;
 
   bool get isRemote {
     final uri = Uri.tryParse(path);
@@ -28,7 +30,11 @@ class BookletAsset {
   }
 
   BookletAssetKind get kind {
-    if (YoutubeVideo.parse(path) != null) return BookletAssetKind.video;
+    final provider = OnlineVideo.parse(path)?.provider;
+    if (provider == OnlineVideoProvider.youtube ||
+        provider == OnlineVideoProvider.instagram) {
+      return BookletAssetKind.video;
+    }
     if (const {
       'png',
       'jpg',
@@ -70,6 +76,7 @@ class BookletAsset {
     'name': name,
     'path': path,
     if (thumbnailPath != null) 'thumbnailPath': thumbnailPath,
+    if (embedCode != null) 'embedCode': embedCode,
   };
 
   static BookletAsset fromJson(Map<String, dynamic> json) => BookletAsset(
@@ -77,5 +84,6 @@ class BookletAsset {
     name: json['name'] as String? ?? 'Untitled file',
     path: json['path'] as String? ?? '',
     thumbnailPath: json['thumbnailPath'] as String?,
+    embedCode: json['embedCode'] as String?,
   );
 }

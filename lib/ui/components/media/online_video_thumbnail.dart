@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:html/parser.dart' as html;
 
 import 'online_video.dart';
+import 'instagram_preview.dart';
 
 /// Best-effort public metadata only. Restricted files retain a provider card.
 class OnlineVideoThumbnail {
@@ -12,8 +13,12 @@ class OnlineVideoThumbnail {
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 10);
     try {
-      var image = video.thumbnailUri;
-      if (image == null && video.metadataUri != null) {
+      var image = video.provider == OnlineVideoProvider.instagram
+          ? (await InstagramPreview.load(video))?.thumbnail
+          : video.thumbnailUri;
+      if (image == null &&
+          video.metadataUri != null &&
+          video.provider != OnlineVideoProvider.instagram) {
         final data = await _get(client, video.metadataUri!, image: false);
         if (data != null) {
           final text = utf8.decode(data, allowMalformed: true);
@@ -29,6 +34,9 @@ class OnlineVideoThumbnail {
   }
 
   static Uri? metadataImage(OnlineVideo video, String body) {
+    if (video.provider == OnlineVideoProvider.instagram) {
+      return InstagramPreview.parse(body, video.source).thumbnail;
+    }
     String? url;
     if (video.provider == OnlineVideoProvider.vimeo) {
       final data = jsonDecode(body);

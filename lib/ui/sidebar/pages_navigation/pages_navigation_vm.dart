@@ -236,6 +236,7 @@ class PagesNavigationVM {
           id: const Uuid().v4(),
           name: asset.name,
           path: asset.path,
+          embedCode: asset.embedCode,
         ),
       ),
     );

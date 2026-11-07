@@ -1,4 +1,7 @@
 import 'dart:io';
+
+import 'package:booklet/ui/components/media/asset_embed.dart';
+
 import 'dart:ui' as ui;
 
 import 'package:uuid/uuid.dart';
@@ -84,6 +87,7 @@ class AssetManagerController extends ChangeNotifier {
       id: asset.id,
       name: newName,
       path: asset.path,
+      embedCode: asset.embedCode,
       thumbnailPath: asset.thumbnailPath,
     );
     notifyListeners();
@@ -115,12 +119,34 @@ class AssetManagerController extends ChangeNotifier {
     }
   }
 
-  Future<void> addUrl(String url, BookletAssetKind kind) async {
+  Future<void> addEmbed(String code) async {
+    final target = AssetEmbed.parse(code);
+    if (target == null) {
+      throw ArgumentError(
+        'Paste iframe embed code or an Instagram or X post embed.',
+      );
+    }
+    await addUrl(
+      target.source.toString(),
+      BookletAssetKind.file,
+      embedCode: code,
+      embedTitle: target.title,
+    );
+  }
+
+  Future<void> addUrl(
+    String url,
+    BookletAssetKind kind, {
+    String? embedCode,
+    String? embedTitle,
+  }) async {
     final folder = _folder;
     if (folder == null || _isAddingAssets) return;
     url = url.trim();
     if (!isMediaUrl(url) ||
-        (kind != BookletAssetKind.image && kind != BookletAssetKind.video)) {
+        (embedCode == null &&
+            kind != BookletAssetKind.image &&
+            kind != BookletAssetKind.video)) {
       throw ArgumentError('Enter an image or video HTTP or HTTPS URL.');
     }
     final uri = Uri.parse(url);
@@ -137,7 +163,7 @@ class AssetManagerController extends ChangeNotifier {
         candidate.kind == BookletAssetKind.video) {
       kind = candidate.kind;
     }
-    if (online == null && candidate.kind != kind) {
+    if (embedCode == null && online == null && candidate.kind != kind) {
       name = '$name.${kind == BookletAssetKind.image ? 'png' : 'mp4'}';
     }
     _isAddingAssets = true;
@@ -145,10 +171,18 @@ class AssetManagerController extends ChangeNotifier {
     try {
       if (online != null) {
         name = await OnlineVideoMetadata.loadTitle(online) ?? name;
-        // Non-YouTube providers still use the extension for classification.
-        if (online.provider != OnlineVideoProvider.youtube) name = '$name.mp4';
+        // Other providers still use the extension for classification.
+        if (online.provider != OnlineVideoProvider.youtube &&
+            online.provider != OnlineVideoProvider.instagram) {
+          name = '$name.mp4';
+        }
       }
-      final asset = BookletAsset(id: const Uuid().v4(), name: name, path: url);
+      final asset = BookletAsset(
+        id: const Uuid().v4(),
+        name: online == null ? embedTitle ?? name : name,
+        path: url,
+        embedCode: embedCode,
+      );
       folder.assets.add(asset);
       onDocumentChanged?.call();
       await _createThumbnails([asset]);
@@ -195,7 +229,10 @@ class AssetManagerController extends ChangeNotifier {
         final online = OnlineVideo.parse(asset.path);
         if (online == null) continue;
         final originalName =
-            online.source.pathSegments.lastOrNull ?? online.source.host;
+            online.source.pathSegments
+                .where((part) => part.isNotEmpty)
+                .lastOrNull ??
+            online.source.host;
         if (!{
           originalName,
           '$originalName.mp4',
@@ -212,10 +249,13 @@ class AssetManagerController extends ChangeNotifier {
         if (index < 0) continue;
         folder.assets[index] = BookletAsset(
           id: asset.id,
-          name: online.provider == OnlineVideoProvider.youtube
+          name:
+              (online.provider == OnlineVideoProvider.youtube ||
+                  online.provider == OnlineVideoProvider.instagram)
               ? title
               : '$title.mp4',
           path: asset.path,
+          embedCode: asset.embedCode,
           thumbnailPath: asset.thumbnailPath,
         );
         notifyListeners();
@@ -248,7 +288,14 @@ class AssetManagerController extends ChangeNotifier {
   Future<void> _createThumbnails(List<BookletAsset> imported) async {
     final packagePath = _packagePath;
     final folder = _folder;
-    if (folder?.folderId == null || imported.isEmpty) return;
+    if (folder?.folderId == null ||
+        !imported.any(
+          (asset) =>
+              asset.kind == BookletAssetKind.image ||
+              asset.kind == BookletAssetKind.video,
+        )) {
+      return;
+    }
     // Inline components and unsaved folders have no package path yet. Keep
     // their previews available until saving copies them into the package.
     final directory = packagePath == null
@@ -319,6 +366,7 @@ class AssetManagerController extends ChangeNotifier {
           if (assetIndex < 0 || _isDisposed) continue;
           final current = folder.assets[assetIndex];
           final updated = BookletAsset(
+            embedCode: current.embedCode,
             id: current.id,
             name: current.name,
             path: current.path,

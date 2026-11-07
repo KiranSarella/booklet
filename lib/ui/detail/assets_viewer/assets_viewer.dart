@@ -1,5 +1,11 @@
 import 'dart:io';
 
+import 'asset_embed_dialog.dart';
+
+import 'package:booklet/ui/components/media/asset_embed.dart';
+
+import 'package:booklet/ui/components/media/online_video.dart';
+
 import 'package:booklet/ui/components/media/media_url_dialog.dart';
 
 import 'package:booklet/application/asset_manager_controller.dart';
@@ -91,7 +97,41 @@ class _AssetsViewerState extends State<AssetsViewer> {
     }
   }
 
+  Future<void> _addEmbed() async {
+    final code = await showDialog<String>(
+      context: context,
+      builder: (_) => const _EmbedInputDialog(),
+    );
+    if (code == null || !mounted || widget.isReadOnly) return;
+    try {
+      await widget.controller.addEmbed(code);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not add embed: $error')));
+      }
+    }
+  }
+
   Future<void> _openAsset(BookletAsset asset) async {
+    if (asset.embedCode != null) {
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AssetEmbedDialog(asset: asset),
+      );
+      return;
+    }
+    if (OnlineVideo.parse(asset.path)?.provider ==
+        OnlineVideoProvider.instagram) {
+      final opened = await widget.controller.openWithSystemApp(asset);
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open Instagram.')),
+        );
+      }
+      return;
+    }
     if (asset.kind == BookletAssetKind.image ||
         asset.kind == BookletAssetKind.video) {
       final media =
@@ -323,6 +363,13 @@ class _AssetsViewerState extends State<AssetsViewer> {
                                 ),
                               ],
                             ),
+                            IconButton(
+                              tooltip: 'Add embed',
+                              onPressed: widget.controller.isAddingAssets
+                                  ? null
+                                  : _addEmbed,
+                              icon: const Icon(Icons.code),
+                            ),
                             PopupMenuButton<_AssetAction>(
                               enabled: selectedAsset != null,
                               tooltip: 'More asset options',
@@ -547,7 +594,9 @@ class _AssetListTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        asset.kind == BookletAssetKind.video
+                        asset.embedCode != null
+                            ? 'Embed'
+                            : asset.kind == BookletAssetKind.video
                             ? 'Video'
                             : asset.extension.isEmpty
                             ? 'File'
@@ -636,6 +685,15 @@ class _AssetIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (asset.embedCode != null &&
+        asset.kind != BookletAssetKind.video &&
+        asset.thumbnailPath == null) {
+      return Icon(
+        Icons.code,
+        size: size,
+        color: Theme.of(context).colorScheme.primary,
+      );
+    }
     final (icon, color) = switch (asset.kind) {
       BookletAssetKind.image => (Icons.image_outlined, Colors.teal),
       BookletAssetKind.video => (Icons.movie_outlined, Colors.deepOrange),
@@ -710,4 +768,69 @@ class _AssetsToolbar extends StatelessWidget {
       ],
     );
   }
+}
+
+class _EmbedInputDialog extends StatefulWidget {
+  const _EmbedInputDialog();
+  @override
+  State<_EmbedInputDialog> createState() => _EmbedInputDialogState();
+}
+
+class _EmbedInputDialogState extends State<_EmbedInputDialog> {
+  final _controller = TextEditingController();
+  final _form = GlobalKey<FormState>();
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_form.currentState!.validate()) {
+      Navigator.pop(context, _controller.text.trim());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Add embed'),
+    content: SizedBox(
+      width: 520,
+      child: Form(
+        key: _form,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Paste code from a provider’s Share → Embed option to display its player, post, map, or interactive widget inside Booklet.',
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _controller,
+              autofocus: true,
+              minLines: 5,
+              maxLines: 9,
+              decoration: const InputDecoration(
+                labelText: 'Embed code',
+                hintText: '<iframe src="https://…"></iframe>',
+                helperText:
+                    'Supports iframe embeds and Instagram or X post embeds.',
+              ),
+              validator: (value) => AssetEmbed.parse(value ?? '') == null
+                  ? 'Enter supported embed code with a valid web address.'
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(onPressed: _submit, child: const Text('Add')),
+    ],
+  );
 }

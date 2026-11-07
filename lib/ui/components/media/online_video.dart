@@ -1,6 +1,14 @@
 import 'youtube_video.dart';
 
-enum OnlineVideoProvider { youtube, vimeo, googleDrive, dropbox, oneDrive, box }
+enum OnlineVideoProvider {
+  youtube,
+  vimeo,
+  googleDrive,
+  dropbox,
+  oneDrive,
+  box,
+  instagram,
+}
 
 /// Converts provider share pages into playable targets without changing the
 /// original link saved in the document (including private sharing tokens).
@@ -28,6 +36,7 @@ class OnlineVideo {
     OnlineVideoProvider.dropbox => 'Dropbox',
     OnlineVideoProvider.oneDrive => 'OneDrive',
     OnlineVideoProvider.box => 'Box',
+    OnlineVideoProvider.instagram => 'Instagram',
   };
 
   static OnlineVideo? parse(String? value) {
@@ -47,7 +56,24 @@ class OnlineVideo {
       );
     }
     final host = uri.host.toLowerCase();
-    final parts = uri.pathSegments;
+    final parts = uri.pathSegments.where((part) => part.isNotEmpty).toList();
+    if (const {
+          'instagram.com',
+          'www.instagram.com',
+          'm.instagram.com',
+        }.contains(host) &&
+        parts.length == 2 &&
+        const {'reel', 'reels', 'p', 'tv'}.contains(parts.first) &&
+        RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(parts[1])) {
+      return OnlineVideo(
+        provider: OnlineVideoProvider.instagram,
+        source: uri,
+        metadataUri: Uri.https(
+          'www.instagram.com',
+          '/p/${parts[1]}/embed/captioned/',
+        ),
+      );
+    }
     if (const {
       'vimeo.com',
       'www.vimeo.com',

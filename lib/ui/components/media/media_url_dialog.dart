@@ -33,7 +33,7 @@ Future<String?> showMediaUrlDialog(BuildContext context, String kind) async {
                 decoration: InputDecoration(
                   labelText: 'URL',
                   helperText: kind == 'video'
-                      ? 'YouTube, Vimeo, shared storage, or direct video URL.'
+                      ? 'YouTube, Instagram, Vimeo, shared storage, or direct video URL.'
                       : 'Use a direct link to an image file.',
                 ),
                 validator: (value) => isMediaUrl(value?.trim() ?? '')
