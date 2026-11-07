@@ -39,10 +39,7 @@ mixin TextComponentStateOwner {
     if (delta == null) return;
 
     final textState = _state ??= createTextComponentState(delta: delta);
-    final controller = textState.controller;
-
-    controller.document = Document.fromJson(delta);
-    controller.formatText(0, controller.document.length, alignment);
+    textState.replaceDocument(Document.fromJson(delta));
   }
 
   Object get output => state.output;
@@ -74,16 +71,21 @@ mixin TextComponentStateOwner {
 // }
 
 class TextComponentState extends ComponentState {
-  TextComponentState(Attribute<dynamic> alignment, {List<dynamic>? delta})
+  TextComponentState(this.alignment, {List<dynamic>? delta})
     : _initialDelta = delta {
     controller.addListener(notifyListeners);
     // controller.formatSelection(alignment);
-    if (delta == null) {
-      controller.formatText(0, controller.document.length, alignment);
-    }
+    controller.formatText(0, controller.document.length, alignment);
   }
 
+  final Attribute<dynamic> alignment;
   final List<dynamic>? _initialDelta;
+
+  /// Restores component alignment when edits replace the document terminator.
+  void replaceDocument(Document document) {
+    controller.document = document;
+    controller.formatText(0, document.length, alignment);
+  }
 
   late final QuillController controller = QuillController(
     config: QuillControllerConfig(

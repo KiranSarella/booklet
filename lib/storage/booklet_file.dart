@@ -130,7 +130,9 @@ class BookletFile {
               BookletAsset(
                 id: id,
                 name: name,
-                path: 'assets/$folderId/$id${_assetExtension(name)}',
+                path:
+                    entry['url'] as String? ??
+                    'assets/$folderId/$id${_assetExtension(name)}',
                 thumbnailPath: entry['thumbnailPath'] as String?,
               ),
             );
@@ -910,7 +912,7 @@ class BookletFile {
               sourceFile.absolute.path != targetFile.absolute.path) {
             await sourceFile.copy(targetPath);
           }
-          if (await targetFile.exists()) {
+          if (asset.isRemote || await targetFile.exists()) {
             String? thumbnailPath = asset.thumbnailPath;
             if (thumbnailPath != null) {
               final thumbnailSource = File(
@@ -935,7 +937,9 @@ class BookletFile {
             node.assets[index] = BookletAsset(
               id: asset.id,
               name: asset.name,
-              path: _toPackageMediaPath(packagePath, targetPath),
+              path: asset.isRemote
+                  ? asset.path
+                  : _toPackageMediaPath(packagePath, targetPath),
               thumbnailPath: thumbnailPath,
             );
           }
@@ -946,6 +950,7 @@ class BookletFile {
               {
                 'id': asset.id,
                 'name': asset.name,
+                if (asset.isRemote) 'url': asset.path,
                 if (asset.thumbnailPath != null)
                   'thumbnailPath': asset.thumbnailPath,
               },

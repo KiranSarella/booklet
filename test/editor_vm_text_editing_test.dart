@@ -7,6 +7,7 @@ import 'package:booklet/ui/detail/editor/page_view/page_view.dart';
 import 'package:flutter/material.dart' hide PageView;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,7 @@ void main() {
   late EditorVM viewModel;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     documentSettings = DocumentSettingsController();
     theme = PageSettingsController(documentSettings);
     viewModel = EditorVM(theme);
@@ -47,6 +49,44 @@ void main() {
       (viewModel.components[2].component.state as TextComponentState).output,
       ' world\n',
     );
+  });
+
+  for (final offset in [0, 5, 11]) {
+    test('Enter keeps title centered when split at $offset', () {
+      final title =
+          viewModel.components.first.component.state as TextComponentState;
+      title.controller.replaceText(
+        0,
+        0,
+        'hello world',
+        TextSelection.collapsed(offset: offset),
+      );
+
+      viewModel.createComponentBelow(
+        0,
+        selection: TextSelection.collapsed(offset: offset),
+      );
+
+      expect(title.output, '${'hello world'.substring(0, offset)}\n');
+      expect(title.textDelta.last['attributes']['align'], 'center');
+    });
+  }
+
+  test('Merging text into a title keeps it centered', () {
+    final title =
+        viewModel.components.first.component.state as TextComponentState;
+    final text = viewModel.components[1].component.state as TextComponentState;
+    text.controller.replaceText(
+      0,
+      0,
+      'body',
+      const TextSelection.collapsed(offset: 0),
+    );
+
+    viewModel.mergeTextComponentWithPrevious(1);
+
+    expect(title.output, 'body\n');
+    expect(title.textDelta.last['attributes']['align'], 'center');
   });
 
   test('Enter continues a bullet list and inherits its item settings', () {
@@ -352,6 +392,7 @@ void main() {
               onSelectComponentRange: (_) {},
               onCreateEntryBelow: (_, _) {},
               onBackspaceAtStart: (_) {},
+              onMoveToAdjacentTextComponent: (_, _) {},
               onPasteText: (_, _) async => false,
               onTapEmptySpace: () {},
             ),

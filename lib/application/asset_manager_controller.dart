@@ -1,6 +1,13 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:uuid/uuid.dart';
+import 'package:booklet/ui/components/media/online_video.dart';
+import 'package:booklet/ui/components/media/online_video_metadata.dart';
+import 'package:booklet/ui/components/media/online_video_thumbnail.dart';
+import 'package:booklet/ui/components/media/media_url_dialog.dart';
+import 'package:booklet/ui/components/media/video_thumbnail_cache.dart';
+
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/storage/booklet_file.dart';
 import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
@@ -98,11 +105,57 @@ class AssetManagerController extends ChangeNotifier {
       if (await file.exists()) {
         await file.delete();
       }
+    }
+    if (asset.path.startsWith(managedAssetPrefix) || asset.isRemote) {
       final thumbnailPath = resolveThumbnailPath(asset);
       if (thumbnailPath != null) {
         final thumbnail = File(thumbnailPath);
         if (await thumbnail.exists()) await thumbnail.delete();
       }
+    }
+  }
+
+  Future<void> addUrl(String url, BookletAssetKind kind) async {
+    final folder = _folder;
+    if (folder == null || _isAddingAssets) return;
+    url = url.trim();
+    if (!isMediaUrl(url) ||
+        (kind != BookletAssetKind.image && kind != BookletAssetKind.video)) {
+      throw ArgumentError('Enter an image or video HTTP or HTTPS URL.');
+    }
+    final uri = Uri.parse(url);
+    var name =
+        uri.pathSegments.where((part) => part.isNotEmpty).lastOrNull ??
+        uri.host;
+    final online = OnlineVideo.parse(url);
+    if (online != null) {
+      kind = BookletAssetKind.video;
+      name = '${online.label} video';
+    }
+    final candidate = BookletAsset(id: '', name: name, path: url);
+    if (candidate.kind == BookletAssetKind.image ||
+        candidate.kind == BookletAssetKind.video) {
+      kind = candidate.kind;
+    }
+    if (online == null && candidate.kind != kind) {
+      name = '$name.${kind == BookletAssetKind.image ? 'png' : 'mp4'}';
+    }
+    _isAddingAssets = true;
+    notifyListeners();
+    try {
+      if (online != null) {
+        name = await OnlineVideoMetadata.loadTitle(online) ?? name;
+        // Non-YouTube providers still use the extension for classification.
+        if (online.provider != OnlineVideoProvider.youtube) name = '$name.mp4';
+      }
+      final asset = BookletAsset(id: const Uuid().v4(), name: name, path: url);
+      folder.assets.add(asset);
+      onDocumentChanged?.call();
+      await _createThumbnails([asset]);
+      onDocumentChanged?.call();
+    } finally {
+      _isAddingAssets = false;
+      if (!_isDisposed) notifyListeners();
     }
   }
 
@@ -138,6 +191,36 @@ class AssetManagerController extends ChangeNotifier {
     _isGeneratingThumbnails = true;
     final folder = _folder;
     try {
+      for (final asset in assets.toList()) {
+        final online = OnlineVideo.parse(asset.path);
+        if (online == null) continue;
+        final originalName =
+            online.source.pathSegments.lastOrNull ?? online.source.host;
+        if (!{
+          originalName,
+          '$originalName.mp4',
+          '$originalName.png',
+          '${online.label} video',
+        }.contains(asset.name)) {
+          continue;
+        }
+        final title = await OnlineVideoMetadata.loadTitle(online);
+        if (title == null || _isDisposed || folder != _folder) continue;
+        final index = folder!.assets.indexWhere(
+          (item) => identical(item, asset),
+        );
+        if (index < 0) continue;
+        folder.assets[index] = BookletAsset(
+          id: asset.id,
+          name: online.provider == OnlineVideoProvider.youtube
+              ? title
+              : '$title.mp4',
+          path: asset.path,
+          thumbnailPath: asset.thumbnailPath,
+        );
+        notifyListeners();
+        onDocumentChanged?.call();
+      }
       final missing = <BookletAsset>[];
       for (final asset in assets.toList()) {
         if (asset.kind != BookletAssetKind.image &&
@@ -175,7 +258,7 @@ class AssetManagerController extends ChangeNotifier {
     for (var index = 0; index < imported.length; index++) {
       final asset = imported[index];
       final source = File(resolvePath(asset));
-      if (!await source.exists() ||
+      if ((!asset.isRemote && !await source.exists()) ||
           (asset.kind != BookletAssetKind.image &&
               asset.kind != BookletAssetKind.video)) {
         continue;
@@ -191,7 +274,9 @@ class AssetManagerController extends ChangeNotifier {
       try {
         if (asset.kind == BookletAssetKind.image) {
           final codec = await ui.instantiateImageCodec(
-            await source.readAsBytes(),
+            asset.isRemote
+                ? await _downloadImage(asset.path)
+                : await source.readAsBytes(),
             targetWidth: 320,
           );
           final frame = await codec.getNextFrame();
@@ -203,6 +288,14 @@ class AssetManagerController extends ChangeNotifier {
           }
           frame.image.dispose();
           codec.dispose();
+        } else if (asset.isRemote) {
+          final online = OnlineVideo.parse(asset.path);
+          // Provider previews do not require a platform cache directory. The
+          // asset package itself is the persistent thumbnail cache.
+          final bytes = online == null
+              ? await VideoThumbnailCache.load(asset.path)
+              : await OnlineVideoThumbnail.load(online);
+          if (bytes != null) await thumbnail.writeAsBytes(bytes);
         } else {
           if (Platform.isMacOS) {
             await _macOsThumbnailChannel.invokeMethod<bool>(
@@ -242,6 +335,24 @@ class AssetManagerController extends ChangeNotifier {
     }
   }
 
+  Future<Uint8List> _downloadImage(String url) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 20);
+    try {
+      final request = await client.getUrl(Uri.parse(url));
+      final response = await request.close().timeout(
+        const Duration(seconds: 20),
+      );
+      if (response.statusCode != HttpStatus.ok) {
+        throw StateError('Image unavailable');
+      }
+      return await consolidateHttpClientResponseBytes(response)
+          .timeout(const Duration(seconds: 20));
+    } finally {
+      client.close(force: true);
+    }
+  }
+
   String? resolveThumbnailPath(BookletAsset asset) {
     final path = asset.thumbnailPath;
     if (path == null) return null;
@@ -250,7 +361,7 @@ class AssetManagerController extends ChangeNotifier {
   }
 
   String resolvePath(BookletAsset asset) {
-    if (File(asset.path).isAbsolute || _packagePath == null) {
+    if (asset.isRemote || File(asset.path).isAbsolute || _packagePath == null) {
       return asset.path;
     }
     return '$_packagePath/${asset.path}';
@@ -263,7 +374,7 @@ class AssetManagerController extends ChangeNotifier {
   }
 
   Future<bool> openWithSystemApp(BookletAsset asset) => launchUrl(
-    Uri.file(resolvePath(asset)),
+    asset.isRemote ? Uri.parse(asset.path) : Uri.file(resolvePath(asset)),
     mode: LaunchMode.externalApplication,
   );
 }

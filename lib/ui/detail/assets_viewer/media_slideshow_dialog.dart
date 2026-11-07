@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:url_launcher/url_launcher.dart';
+import 'package:booklet/ui/components/media/online_video.dart';
+import 'package:booklet/ui/components/media/online_video_player.dart';
+
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 class MediaSlideshowDialog extends StatefulWidget {
-  const MediaSlideshowDialog({super.key, 
+  const MediaSlideshowDialog({
+    super.key,
     required this.assets,
     required this.initialIndex,
     required this.resolvePath,
@@ -59,7 +64,11 @@ class _MediaSlideshowDialogState extends State<MediaSlideshowDialog> {
     _initialized = false;
     _failed = false;
     if (_asset.kind != BookletAssetKind.video) return;
-    final player = VideoPlayerController.file(File(widget.resolvePath(_asset)));
+    final path = widget.resolvePath(_asset);
+    if (_asset.isRemote && OnlineVideo.parse(path) != null) return;
+    final player = _asset.isRemote
+        ? VideoPlayerController.networkUrl(Uri.parse(path))
+        : VideoPlayerController.file(File(path));
     _player = player;
     try {
       await player.initialize();
@@ -128,6 +137,18 @@ class _MediaSlideshowDialogState extends State<MediaSlideshowDialog> {
                         color: Colors.white,
                       ),
                     ),
+                    if (_asset.isRemote)
+                      IconButton(
+                        tooltip: 'Open in browser',
+                        onPressed: () => launchUrl(
+                          Uri.parse(_asset.path),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        icon: const Icon(
+                          Icons.open_in_browser,
+                          color: Colors.white,
+                        ),
+                      ),
                     IconButton(
                       tooltip: 'Close preview',
                       onPressed: () => Navigator.of(context).pop(),
@@ -143,16 +164,32 @@ class _MediaSlideshowDialogState extends State<MediaSlideshowDialog> {
                         InteractiveViewer(
                           key: ValueKey(_asset.id),
                           child: Center(
-                            child: Image.file(
-                              File(widget.resolvePath(_asset)),
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, _, _) => const Icon(
-                                Icons.broken_image_outlined,
-                                color: Colors.white70,
-                                size: 72,
-                              ),
-                            ),
+                            child: _asset.isRemote
+                                ? Image.network(
+                                    _asset.path,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, _, _) => const Icon(
+                                      Icons.broken_image_outlined,
+                                      color: Colors.white70,
+                                      size: 72,
+                                    ),
+                                  )
+                                : Image.file(
+                                    File(widget.resolvePath(_asset)),
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, _, _) => const Icon(
+                                      Icons.broken_image_outlined,
+                                      color: Colors.white70,
+                                      size: 72,
+                                    ),
+                                  ),
                           ),
+                        )
+                      else if (_asset.isRemote &&
+                          OnlineVideo.parse(_asset.path) != null)
+                        OnlineVideoPlayer(
+                          key: ValueKey(_asset.id),
+                          source: _asset.path,
                         )
                       else if (_initialized && _player != null)
                         AspectRatio(

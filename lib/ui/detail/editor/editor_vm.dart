@@ -501,7 +501,7 @@ class EditorVM {
       );
       final state = component.state;
       if (state is TextComponentState && block.delta != null) {
-        state.controller.document = Document.fromJson(block.delta!);
+        state.replaceDocument(Document.fromJson(block.delta!));
       }
       if (state is ListItemComponentState) state.nestingLevel = block.depth;
       if (state is NumberedListComponentState) {
@@ -908,7 +908,7 @@ class EditorVM {
       }
       page.components.insert(index + 1, component);
       if (sourceState != null && prefixDelta != null) {
-        sourceState.controller.document = Document.fromJson(prefixDelta);
+        sourceState.replaceDocument(Document.fromJson(prefixDelta));
       }
       _watchComponent(component);
       selectComponent(component);
@@ -1027,9 +1027,7 @@ class EditorVM {
           currentDocument.toDelta(),
           trimNewLine: true,
         );
-        previousState.controller.document = Document.fromJson(
-          mergedDelta.toJson(),
-        );
+        previousState.replaceDocument(Document.fromJson(mergedDelta.toJson()));
       }
 
       page.components.removeAt(index);

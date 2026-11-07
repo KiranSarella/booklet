@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:booklet/ui/components/media/media_url_dialog.dart';
+
 import 'package:booklet/application/asset_manager_controller.dart';
 import 'package:booklet/business/booklet_asset.dart';
 import 'package:booklet/ui/detail/assets_viewer/media_slideshow_dialog.dart';
@@ -74,6 +76,18 @@ class _AssetsViewerState extends State<AssetsViewer> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Could not add assets: $error')));
+    }
+  }
+
+  Future<void> _addUrl(BookletAssetKind kind) async {
+    final url = await showMediaUrlDialog(context, kind.name);
+    if (url == null || !mounted || widget.isReadOnly) return;
+    try {
+      await widget.controller.addUrl(url, kind);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not add URL: $error')));
     }
   }
 
@@ -293,6 +307,22 @@ class _AssetsViewerState extends State<AssetsViewer> {
                                   : const Icon(Icons.add),
                               label: const Text('Add asset'),
                             ),
+                            PopupMenuButton<BookletAssetKind>(
+                              tooltip: 'Add URL',
+                              enabled: !widget.controller.isAddingAssets,
+                              icon: const Icon(Icons.add_link),
+                              onSelected: _addUrl,
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(
+                                  value: BookletAssetKind.image,
+                                  child: Text('Image URL'),
+                                ),
+                                PopupMenuItem(
+                                  value: BookletAssetKind.video,
+                                  child: Text('Video URL'),
+                                ),
+                              ],
+                            ),
                             PopupMenuButton<_AssetAction>(
                               enabled: selectedAsset != null,
                               tooltip: 'More asset options',
@@ -503,6 +533,7 @@ class _AssetListTile extends StatelessWidget {
                   asset: asset,
                   size: 40,
                   thumbnailPath: thumbnailPath,
+                  onPlay: onDoubleTap,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -516,7 +547,11 @@ class _AssetListTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        asset.extension.isEmpty ? 'File' : asset.extension,
+                        asset.kind == BookletAssetKind.video
+                            ? 'Video'
+                            : asset.extension.isEmpty
+                            ? 'File'
+                            : asset.extension,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -565,7 +600,12 @@ class _AssetIconTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _AssetIcon(asset: asset, size: 64, thumbnailPath: thumbnailPath),
+            _AssetIcon(
+              asset: asset,
+              size: 64,
+              thumbnailPath: thumbnailPath,
+              onPlay: onDoubleTap,
+            ),
             const SizedBox(height: 10),
             Text(
               asset.name,
@@ -586,8 +626,10 @@ class _AssetIcon extends StatelessWidget {
     required this.asset,
     required this.size,
     this.thumbnailPath,
+    this.onPlay,
   });
 
+  final VoidCallback? onPlay;
   final BookletAsset asset;
   final double size;
   final String? thumbnailPath;
@@ -601,21 +643,40 @@ class _AssetIcon extends StatelessWidget {
       BookletAssetKind.document => (Icons.description_outlined, Colors.blue),
       BookletAssetKind.file => (Icons.insert_drive_file_outlined, Colors.grey),
     };
-    if ((asset.kind == BookletAssetKind.image ||
-            asset.kind == BookletAssetKind.video) &&
-        thumbnailPath != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(5),
-        child: Image.file(
-          File(thumbnailPath!),
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => Icon(icon, size: size, color: color),
-        ),
-      );
-    }
-    return Icon(icon, size: size, color: color);
+    final preview = thumbnailPath == null
+        ? Icon(icon, size: size, color: color)
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: Image.file(
+              File(thumbnailPath!),
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Icon(icon, size: size, color: color),
+            ),
+          );
+    if (asset.kind != BookletAssetKind.video) return preview;
+    return SizedBox.square(
+      dimension: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          preview,
+          Tooltip(
+            message: 'Play video',
+            child: GestureDetector(
+              onTap: onPlay,
+              child: Icon(
+                Icons.play_circle_fill,
+                size: size * 0.5,
+                color: Colors.white,
+                shadows: const [Shadow(blurRadius: 4, color: Colors.black87)],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -1,3 +1,5 @@
+import 'package:booklet/ui/components/media/youtube_video.dart';
+
 enum BookletAssetKind { image, video, pdf, document, file }
 
 class BookletAsset {
@@ -13,12 +15,20 @@ class BookletAsset {
   final String path;
   final String? thumbnailPath;
 
+  bool get isRemote {
+    final uri = Uri.tryParse(path);
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
+
   String get extension {
     final dotIndex = name.lastIndexOf('.');
     return dotIndex < 0 ? '' : name.substring(dotIndex + 1).toLowerCase();
   }
 
   BookletAssetKind get kind {
+    if (YoutubeVideo.parse(path) != null) return BookletAssetKind.video;
     if (const {
       'png',
       'jpg',
