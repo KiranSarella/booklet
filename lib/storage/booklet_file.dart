@@ -637,6 +637,8 @@ class BookletFile {
           componentState.setContent(
             (componentJson['content'] as String?) ?? '',
           );
+        } else if (componentState is LocationComponentState) {
+          componentState.restore(componentJson);
         } else if (componentState is LinkComponentState) {
           componentState.setValues(
             url: (componentJson['url'] as String?) ?? '',
@@ -839,6 +841,14 @@ class BookletFile {
           'id': componentBox.component.id,
           'type': componentBox.component.def.key,
           'content': state.content,
+        });
+        continue;
+      }
+      if (state is LocationComponentState) {
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': componentBox.component.def.key,
+          ...state.output,
         });
         continue;
       }

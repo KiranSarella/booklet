@@ -128,6 +128,12 @@ class ComponentSnapshot {
         extra: {'content': state.content},
       );
     }
+    if (state is LocationComponentState) {
+      return ComponentSnapshot._(
+        typeKey: component.def.key,
+        extra: state.output,
+      );
+    }
     if (state is LinkComponentState) {
       return ComponentSnapshot._(
         typeKey: component.def.key,
@@ -200,6 +206,8 @@ class ComponentSnapshot {
       state.controller.text = extra['formula'] as String? ?? '';
     } else if (state is EmbedComponentState) {
       state.setContent(extra['content'] as String? ?? '');
+    } else if (state is LocationComponentState) {
+      state.restore(extra);
     } else if (state is LinkComponentState) {
       state.setValues(
         url: extra['url'] as String? ?? '',

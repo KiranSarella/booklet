@@ -255,7 +255,7 @@ class LocationComponentDef extends ComponentDef {
   String get placeholder => "Location";
 
   @override
-  ComponentType get type => ComponentType.text;
+  ComponentType get type => ComponentType.media;
 }
 
 class CaptionComponentDef extends ComponentDef {

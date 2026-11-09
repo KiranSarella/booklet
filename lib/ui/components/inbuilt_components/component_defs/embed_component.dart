@@ -1,5 +1,9 @@
 import 'dart:async';
 
+import 'package:html/parser.dart' as html_parser;
+import 'package:url_launcher/url_launcher.dart';
+import 'package:booklet/ui/components/media/online_video.dart';
+
 import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/business/components_business/inbuilt_components/inbuit_components_definations.dart';
 import 'package:booklet/ui/components/component.dart';
@@ -8,7 +12,7 @@ import 'package:booklet/application/page_settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_all/webview_all.dart';
 
-enum EmbedProvider { youtube, x }
+enum EmbedProvider { youtube, x, instagram, iframe }
 
 class EmbedTarget {
   const EmbedTarget({
@@ -16,12 +20,16 @@ class EmbedTarget {
     required this.html,
     this.thumbnailUrl,
     this.requestUri,
+    this.sourceUri,
+    this.title,
   });
 
   final EmbedProvider provider;
   final String html;
   final String? thumbnailUrl;
   final Uri? requestUri;
+  final Uri? sourceUri;
+  final String? title;
 }
 
 class EmbedContentParser {
@@ -33,6 +41,9 @@ class EmbedContentParser {
     if (youtubeVideoId != null) {
       return EmbedTarget(
         provider: EmbedProvider.youtube,
+        sourceUri: Uri.https('www.youtube.com', '/watch', {
+          'v': youtubeVideoId,
+        }),
         html: _youtubeHtml(youtubeVideoId),
         thumbnailUrl:
             'https://img.youtube.com/vi/$youtubeVideoId/hqdefault.jpg',
@@ -53,7 +64,54 @@ class EmbedContentParser {
         content.contains('platform.twitter.com/widgets.js');
     final xPostId = isXEmbedMarkup ? _xPostId(content) : null;
     if (xPostId != null) {
-      return EmbedTarget(provider: EmbedProvider.x, html: _xHtml(xPostId));
+      return EmbedTarget(
+        provider: EmbedProvider.x,
+        html: _xHtml(xPostId),
+        sourceUri: Uri.https('x.com', '/i/status/$xPostId'),
+      );
+    }
+    final document = html_parser.parse(content);
+    final instagram = document.querySelector('blockquote.instagram-media');
+    if (instagram != null) {
+      final links = [
+        instagram.attributes['data-instgrm-permalink'],
+        ...instagram
+            .querySelectorAll('a[href]')
+            .map((a) => a.attributes['href']),
+      ];
+      for (final link in links) {
+        final online = OnlineVideo.parse(link);
+        if (online?.provider == OnlineVideoProvider.instagram) {
+          return EmbedTarget(
+            provider: EmbedProvider.instagram,
+            html: '',
+            sourceUri: online!.source,
+            requestUri: online.metadataUri,
+          );
+        }
+      }
+    }
+    final frame = document.querySelector('iframe[src]');
+    if (frame != null) {
+      var source = frame.attributes['src']!.trim();
+      if (source.startsWith('//')) source = 'https:$source';
+      final uri = Uri.tryParse(source);
+      if (uri == null ||
+          !const {'http', 'https'}.contains(uri.scheme) ||
+          uri.host.isEmpty) {
+        return null;
+      }
+      // Do not misidentify lookalike provider hosts as their trusted players.
+      if (uri.host.contains('youtube.com') && !_isYoutubeHost(uri.host)) {
+        return null;
+      }
+      return EmbedTarget(
+        provider: EmbedProvider.iframe,
+        html: '',
+        requestUri: uri,
+        sourceUri: uri,
+        title: frame.attributes['title'],
+      );
     }
     return null;
   }
@@ -153,6 +211,7 @@ class EmbedComponent implements Component {
       state: state,
       isSelected: isSelected,
       onSelect: onSelect,
+      isReadOnly: theme.documentSettingsController.isReadOnly,
     );
   }
 }
@@ -163,11 +222,13 @@ class EmbedComponentView extends StatefulWidget {
     required this.state,
     required this.isSelected,
     required this.onSelect,
+    this.isReadOnly = false,
   });
 
   final EmbedComponentState state;
   final bool isSelected;
   final VoidCallback onSelect;
+  final bool isReadOnly;
 
   @override
   State<EmbedComponentView> createState() => _EmbedComponentViewState();
@@ -178,6 +239,28 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
   String? _loadError;
   int _loadGeneration = 0;
   bool _isPlaying = false;
+  late bool _editing = widget.state.content.trim().isEmpty;
+
+  void _edit() {
+    _stopPlayback();
+    setState(() => _editing = true);
+    widget.onSelect();
+  }
+
+  void _apply() {
+    if (EmbedContentParser.parse(widget.state.content) == null) {
+      setState(
+        () => _loadError = 'Paste an iframe or an Instagram/X post embed.',
+      );
+      return;
+    }
+    widget.state.focusNode.unfocus();
+    setState(() {
+      _editing = false;
+      _loadError = null;
+    });
+    _startPlayback();
+  }
 
   @override
   void initState() {
@@ -191,13 +274,23 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
     if (oldWidget.state.contentController != widget.state.contentController) {
       oldWidget.state.contentController.removeListener(_onContentChanged);
       widget.state.contentController.addListener(_onContentChanged);
+      _loadGeneration++;
+      _webViewController = null;
+      _isPlaying = false;
+      _loadError = null;
+      _editing = widget.state.content.trim().isEmpty;
     }
   }
 
   void _onContentChanged() {
     widget.state.content = widget.state.contentController.text;
     if (mounted) {
-      setState(() {});
+      _loadGeneration++;
+      setState(() {
+        _webViewController = null;
+        _isPlaying = false;
+        _loadError = null;
+      });
     }
   }
 
@@ -222,6 +315,19 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
       final controller = WebViewController();
       await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
       await controller.setBackgroundColor(Colors.transparent);
+      await controller.setNavigationDelegate(
+        NavigationDelegate(
+          onWebResourceError: (error) {
+            if (mounted &&
+                generation == _loadGeneration &&
+                error.isForMainFrame == true) {
+              setState(
+                () => _loadError = 'This embed could not be loaded. Try opening it in your browser.',
+              );
+            }
+          },
+        ),
+      );
       final requestUri = target.requestUri;
       if (requestUri != null) {
         await controller.loadRequest(requestUri);
@@ -249,7 +355,12 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
   }
 
   void _stopPlayback() {
-    setState(() => _isPlaying = false);
+    _loadGeneration++;
+    setState(() {
+      _isPlaying = false;
+      _webViewController = null;
+      _loadError = null;
+    });
   }
 
   Widget _buildProviderPreview(
@@ -308,7 +419,10 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
               Icon(
                 providerName == 'YouTube'
                     ? Icons.play_circle_outline
-                    : Icons.alternate_email,
+                    : providerName == 'X / Twitter' ||
+                          providerName == 'Instagram'
+                    ? Icons.alternate_email
+                    : Icons.widgets_outlined,
                 size: 42,
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -316,7 +430,9 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
               Text(
                 providerName == 'YouTube'
                     ? 'Video preview unavailable'
-                    : 'View post from X / Twitter',
+                    : providerName == 'X / Twitter'
+                    ? 'View post from X / Twitter'
+                    : 'Load $providerName content',
                 style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
               if (onTap != null) ...[
@@ -348,6 +464,11 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
     final providerName = switch (target?.provider) {
       EmbedProvider.youtube => 'YouTube',
       EmbedProvider.x => 'X / Twitter',
+      EmbedProvider.instagram => 'Instagram',
+      EmbedProvider.iframe =>
+        target?.title?.trim().isNotEmpty == true
+            ? target!.title!
+            : target!.requestUri!.host,
       null => 'Embed',
     };
 
@@ -373,7 +494,7 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (widget.isSelected)
+            if (_editing && !widget.isReadOnly)
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
                 child: TextField(
@@ -387,7 +508,7 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
                   decoration: const InputDecoration(
                     isCollapsed: false,
-                    hintText: 'Paste YouTube iframe or X/Twitter embed code',
+                    hintText: 'Paste iframe code for a map, form, video, or widget; or Instagram/X embed code',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -400,11 +521,21 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
                     Icon(Icons.code, color: colorScheme.onSurfaceVariant),
                     const SizedBox(width: 8),
                     Expanded(child: Text(providerName)),
-                    IconButton(
-                      tooltip: 'Edit embed code',
-                      onPressed: widget.onSelect,
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
+                    if (!widget.isReadOnly)
+                      IconButton(
+                        tooltip: 'Edit embed code',
+                        onPressed: _edit,
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                    if (target.sourceUri != null)
+                      IconButton(
+                        tooltip: 'Open in browser',
+                        onPressed: () => launchUrl(
+                          target.sourceUri!,
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        icon: const Icon(Icons.open_in_browser),
+                      ),
                     if (_isPlaying)
                       IconButton(
                         tooltip: 'Show preview',
@@ -414,14 +545,46 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
                   ],
                 ),
               ),
-            if (widget.isSelected)
-              const SizedBox.shrink()
+            if (_editing && !widget.isReadOnly)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Use Share → Embed on the provider’s site. Supports iframe widgets and Instagram/X posts.',
+                    ),
+                    if (_loadError != null)
+                      Text(
+                        _loadError!,
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                    const SizedBox(height: 8),
+                    FilledButton.icon(
+                      onPressed: _apply,
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: const Text('Show embed'),
+                    ),
+                  ],
+                ),
+              )
             else if (!hasValidEmbed)
               Padding(
                 padding: const EdgeInsets.all(18),
-                child: Text(
-                  'Paste supported embed code to display content.',
-                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Paste supported embed code to display content.',
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
+                    ),
+                    if (!widget.isReadOnly)
+                      TextButton.icon(
+                        onPressed: _edit,
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text('Edit embed code'),
+                      ),
+                  ],
                 ),
               )
             else if (_loadError != null)
@@ -432,6 +595,10 @@ class _EmbedComponentViewState extends State<EmbedComponentView> {
                     Text(
                       _loadError!,
                       style: TextStyle(color: colorScheme.error),
+                    ),
+                    TextButton(
+                      onPressed: _startPlayback,
+                      child: const Text('Retry'),
                     ),
                     TextButton(
                       onPressed: _stopPlayback,

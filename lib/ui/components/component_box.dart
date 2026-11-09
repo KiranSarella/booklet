@@ -152,6 +152,8 @@ class ComponentBox {
       state.focusNode.requestFocus();
     } else if (state is EmbedComponentState) {
       state.focusNode.requestFocus();
+    } else if (state is LocationComponentState) {
+      state.focusNode.requestFocus();
     } else if (state is LinkComponentState) {
       state.urlFocusNode.requestFocus();
     }
@@ -177,6 +179,8 @@ class ComponentBox {
     } else if (state is LinkComponentState) {
       state.urlFocusNode.unfocus();
       state.titleFocusNode.unfocus();
+    } else if (state is LocationComponentState) {
+      state.focusNode.unfocus();
     } else if (state is AssetsComponentState) {
       state.focusNode.unfocus();
     }

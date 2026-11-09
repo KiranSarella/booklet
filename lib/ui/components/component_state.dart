@@ -599,3 +599,51 @@ class AssetsComponentState extends ComponentState {
     super.dispose();
   }
 }
+
+/// A geographic point, independent of address text or map providers.
+class LocationComponentState extends ComponentState {
+  LocationComponentState() {
+    nameController.addListener(notifyListeners);
+    latitudeController.addListener(notifyListeners);
+    longitudeController.addListener(notifyListeners);
+  }
+
+  final nameController = TextEditingController();
+  final latitudeController = TextEditingController();
+  final longitudeController = TextEditingController();
+  final focusNode = FocusNode();
+
+  static double? parseCoordinate(String text, double limit) {
+    final value = double.tryParse(text.trim());
+    return value != null && value.isFinite && value.abs() <= limit
+        ? value
+        : null;
+  }
+
+  double? get latitude => parseCoordinate(latitudeController.text, 90);
+  double? get longitude => parseCoordinate(longitudeController.text, 180);
+  bool get hasCoordinates => latitude != null && longitude != null;
+  String get coordinates => '$latitude, $longitude';
+
+  void restore(Map<String, dynamic> data) {
+    nameController.text = data['name']?.toString() ?? '';
+    latitudeController.text = data['latitude']?.toString() ?? '';
+    longitudeController.text = data['longitude']?.toString() ?? '';
+  }
+
+  @override
+  Map<String, dynamic> get output => {
+    'name': nameController.text,
+    'latitude': latitude ?? latitudeController.text,
+    'longitude': longitude ?? longitudeController.text,
+  };
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    latitudeController.dispose();
+    longitudeController.dispose();
+    focusNode.dispose();
+    super.dispose();
+  }
+}

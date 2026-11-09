@@ -1,4 +1,5 @@
 import 'package:booklet/ui/components/component_box.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/location_component.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/text_component.dart';
 import 'package:booklet/ui/detail/editor/editor_search.dart';
@@ -28,6 +29,38 @@ void main() {
     first.dispose();
     second.dispose();
   });
+
+  test(
+    'finds, selects and replaces location names without changing coordinates',
+    () {
+      final location = LocationComponent(id: 'location');
+      final box = ComponentBox(component: location);
+      addTearDown(box.dispose);
+      location.state.restore({
+        'name': 'City Library library',
+        'latitude': 13,
+        'longitude': 80,
+      });
+      final matches = findEditorMatches([box], 'library');
+      expect(matches, hasLength(2));
+      expect(matches.first.component, same(box));
+      matches.first.select();
+      expect(
+        location.state.nameController.selection,
+        const TextSelection(baseOffset: 5, extentOffset: 12),
+      );
+      matches.first.clearSelection();
+      expect(location.state.nameController.selection.isCollapsed, isTrue);
+      expect(
+        findEditorMatches([box], 'library', caseSensitive: true),
+        hasLength(1),
+      );
+      matches.first.replace('Museum');
+      expect(location.state.nameController.text, 'City Museum library');
+      expect(location.state.latitude, 13);
+      expect(location.state.longitude, 80);
+    },
+  );
 
   test('finds every occurrence in page order and selects UTF-16 offsets', () {
     final matches = findEditorMatches([first, second], 'hello');

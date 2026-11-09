@@ -140,6 +140,8 @@ List<EditorSearchMatch> findEditorMatches(
         addPlainText(state.controller);
       case EmbedComponentState state:
         addPlainText(state.contentController);
+      case LocationComponentState state:
+        addPlainText(state.nameController);
       case LinkComponentState state:
         addPlainText(state.titleController);
         addPlainText(state.urlController);

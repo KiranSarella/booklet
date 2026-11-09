@@ -69,6 +69,94 @@ void main() {
     });
   });
 
+  test('accepts maps, forms, and Instagram embeds', () {
+    for (final source in [
+      'https://www.google.com/maps/embed?pb=test',
+      'https://docs.google.com/forms/d/e/form/viewform?embedded=true',
+    ]) {
+      final target = EmbedContentParser.parse(
+        '<iframe title="Widget" src="$source"></iframe>',
+      )!;
+      expect(target.provider, EmbedProvider.iframe);
+      expect(target.requestUri.toString(), source);
+      expect(target.title, 'Widget');
+    }
+    final instagram = EmbedContentParser.parse(
+      '<blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reels/DcJfWVNtLzJ/"></blockquote>',
+    )!;
+    expect(instagram.provider, EmbedProvider.instagram);
+    expect(instagram.requestUri!.path, '/p/DcJfWVNtLzJ/embed/captioned/');
+    expect(
+      EmbedContentParser.parse('<iframe src="javascript:alert(1)"></iframe>'),
+      isNull,
+    );
+    expect(
+      EmbedContentParser.parse(
+        '<script src="https://example.com/script.js"></script>',
+      ),
+      isNull,
+    );
+  });
+
+  testWidgets('selected embeds keep previews visible and edit explicitly', (
+    tester,
+  ) async {
+    final state = EmbedComponentState(
+      content: '<iframe title="Office map" src="https://maps.example.com/embed"></iframe>',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EmbedComponentView(
+            state: state,
+            isSelected: true,
+            onSelect: () {},
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Office map'), findsOneWidget);
+    expect(find.text('Load embed'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byTooltip('Open in browser'), findsOneWidget);
+    await tester.tap(find.byTooltip('Edit embed code'));
+    await tester.pump();
+    expect(find.byType(TextField), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'invalid');
+    await tester.tap(find.text('Show embed'));
+    await tester.pump();
+    expect(
+      find.text('Paste an iframe or an Instagram/X post embed.'),
+      findsOneWidget,
+    );
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
+
+  testWidgets('read-only embeds hide editing controls', (tester) async {
+    final state = EmbedComponentState(
+      content:
+          '<iframe title="Map" src="https://maps.example.com/embed"></iframe>',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EmbedComponentView(
+            state: state,
+            isSelected: true,
+            isReadOnly: true,
+            onSelect: () {},
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byTooltip('Edit embed code'), findsNothing);
+    expect(find.text('Load embed'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
+
   testWidgets('X embed shows a preview card before loading the WebView', (
     tester,
   ) async {

@@ -137,6 +137,7 @@ class ComponentMinimapPreview extends StatelessWidget {
       'audio',
       'embed',
       'model_3d',
+      'location',
     ].contains(kind)) {
       preview = DecoratedBox(
         decoration: BoxDecoration(
@@ -149,6 +150,7 @@ class ComponentMinimapPreview extends StatelessWidget {
             fit: BoxFit.scaleDown,
             child: Icon(
               switch (kind) {
+                'location' => Icons.location_on_outlined,
                 'math' => Icons.functions,
                 'code_block' => Icons.code,
                 'audio' => Icons.music_note,
