@@ -320,6 +320,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                       StartBooklet(
                         onCreateNew: _createBooklet,
                         onOpenExisting: _openBookletFromStartup,
+                        onOpenRecent: _openExternalBooklet,
                         onOpenLegacy: _openLegacyBooklet,
                       ),
                   ],

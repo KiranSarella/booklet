@@ -1,3 +1,4 @@
+import 'package:booklet/application/recent_booklets.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:booklet/importing/docx_importer.dart';
@@ -549,6 +550,7 @@ class EditorController extends ChangeNotifier {
     if (_autoSaveError != null) {
       throw StateError('Save failed. Reopen after saving your changes.');
     }
+    packagePath = await RecentBooklets.restoreAccess(packagePath);
     Directory? workspace;
     String? portablePath;
     var source = packagePath;
@@ -581,7 +583,16 @@ class EditorController extends ChangeNotifier {
       await retained.delete(recursive: true);
     }
     _retainedWorkspaces.clear();
+    await _rememberBooklet(portablePath ?? source);
     return true;
+  }
+
+  Future<void> _rememberBooklet(String path) async {
+    try {
+      await RecentBooklets.record(path);
+    } catch (error) {
+      debugPrint('Could not update recent booklets: $error');
+    }
   }
 
   Future<void> _openWithSnapshots(BookletManifest manifest) async {
@@ -1011,6 +1022,7 @@ class EditorController extends ChangeNotifier {
     }
     _lastSavedSignature = _documentSignature();
     _autoSaveError = null;
+    await _rememberBooklet(target);
     await refreshDeletedItems();
     notifyListeners();
     return true;

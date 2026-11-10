@@ -19,6 +19,9 @@ class OptionsDock extends StatefulWidget {
     required this.selectedListStyleOptions,
     required this.canPaste,
     required this.isReadOnly,
+    this.canFormatText = false,
+    this.activeInlineFormats = const {},
+    this.onInlineFormat,
     this.onHighlightAction,
     this.onHighlightSelected,
   });
@@ -38,6 +41,9 @@ class OptionsDock extends StatefulWidget {
   final List<String> selectedListStyleOptions;
   final bool canPaste;
   final bool isReadOnly;
+  final bool canFormatText;
+  final Set<String> activeInlineFormats;
+  final ValueChanged<String>? onInlineFormat;
   final VoidCallback? onHighlightAction;
   final ValueChanged<Color?>? onHighlightSelected;
 
@@ -48,6 +54,14 @@ class OptionsDock extends StatefulWidget {
 class OptionsDockState extends State<OptionsDock> {
   String? _openMenu;
   Color _highlightColor = const Color(0xFFFFF59D);
+
+  @override
+  void didUpdateWidget(covariant OptionsDock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_openMenu == 'format' && !widget.canFormatText) {
+      _openMenu = null;
+    }
+  }
 
   void dismissMenu() {
     if (_openMenu != null) {
@@ -95,7 +109,36 @@ class OptionsDockState extends State<OptionsDock> {
               },
             ),
           )
-        else if (_openMenu != null) ...[
+        else if (_openMenu == 'format' && widget.canFormatText)
+          Positioned(
+            top: 12,
+            right: 78,
+            child: TextFieldTapRegion(
+              child: Material(
+                elevation: 10,
+                borderRadius: BorderRadius.circular(8),
+                color: Theme.of(context).colorScheme.surface,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final (key, label, icon) in const [
+                      ('bold', 'Bold', Icons.format_bold),
+                      ('italic', 'Italic', Icons.format_italic),
+                      ('strike', 'Strikethrough', Icons.strikethrough_s),
+                      ('code', 'Inline code', Icons.code),
+                    ])
+                      IconButton(
+                        tooltip: label,
+                        isSelected: widget.activeInlineFormats.contains(key),
+                        icon: Icon(icon),
+                        onPressed: () => widget.onInlineFormat?.call(key),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else if (_openMenu == 'add' || _openMenu == 'transform') ...[
           Positioned(
             top: 12,
             right: 78,
@@ -273,10 +316,13 @@ class OptionsDockState extends State<OptionsDock> {
                   icon: Icons.more_horiz,
                   color: Colors.black87,
                   tooltip: 'More options',
-                  onPressed: widget.selectedListKind == null
-                      ? null
-                      : () => _toggleMenu('list'),
-                  enabled: widget.selectedListKind != null,
+                  onPressed: widget.canFormatText
+                      ? () => _toggleMenu('format')
+                      : widget.selectedListKind != null
+                      ? () => _toggleMenu('list')
+                      : null,
+                  enabled:
+                      widget.canFormatText || widget.selectedListKind != null,
                   height: 36,
                 ),
               ],

@@ -13,11 +13,15 @@ class DocumentStatusBar extends StatelessWidget {
     required this.documentSettingsController,
     this.onUndo,
     this.onRedo,
+    this.onScrollToTop,
+    this.onScrollToBottom,
   });
 
   final String? documentPath;
   final VoidCallback? onUndo;
   final VoidCallback? onRedo;
+  final VoidCallback? onScrollToTop;
+  final VoidCallback? onScrollToBottom;
   final PageSettingsController pageSettingsController;
   final DocumentSettingsController documentSettingsController;
 
@@ -52,15 +56,18 @@ class DocumentStatusBar extends StatelessWidget {
               ),
             ),
             _StatusAction(
-              tooltip: 'Undo',
-              icon: Icons.undo,
-              onPressed: onUndo,
+              tooltip: 'Scroll to top (Alt+↑)',
+              icon: Icons.vertical_align_top,
+              onPressed: onScrollToTop,
             ),
             _StatusAction(
-              tooltip: 'Redo',
-              icon: Icons.redo,
-              onPressed: onRedo,
+              tooltip: 'Scroll to bottom (Alt+↓)',
+              icon: Icons.vertical_align_bottom,
+              onPressed: onScrollToBottom,
             ),
+            const SizedBox(width: 18),
+            _StatusAction(tooltip: 'Undo', icon: Icons.undo, onPressed: onUndo),
+            _StatusAction(tooltip: 'Redo', icon: Icons.redo, onPressed: onRedo),
             const SizedBox(width: 18),
             _StatusAction(
               tooltip: 'Decrease page font size',

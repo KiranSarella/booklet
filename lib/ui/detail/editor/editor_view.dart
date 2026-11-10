@@ -1,3 +1,6 @@
+import 'package:booklet/ui/components/inbuilt_components/component_defs/text_component.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
+
 import 'dart:async';
 
 import 'package:flutter/material.dart' hide PageView;
@@ -52,6 +55,45 @@ class EditorViewState extends State<EditorView> {
     if (selectedFields.length == 1) {
       _highlightTarget = selectedFields.single;
     }
+  }
+
+  TextComponentState? get _formattingTarget {
+    if (widget.controller.documentSettingsController.isReadOnly ||
+        _viewModel.selectedComponents.length > 1) {
+      return null;
+    }
+    final component = _viewModel.selectedComponent?.component;
+    if (component is! TextComponent) return null;
+    final state = component.state;
+    final selection = state.controller.selection;
+    return selection.isValid && !selection.isCollapsed ? state : null;
+  }
+
+  static final _inlineAttributes = <String, quill.Attribute>{
+    'bold': quill.Attribute.bold,
+    'italic': quill.Attribute.italic,
+    'strike': quill.Attribute.strikeThrough,
+    'code': quill.Attribute.inlineCode,
+  };
+
+  Set<String> get _activeInlineFormats {
+    final style = _formattingTarget?.controller.getSelectionStyle();
+    return {
+      for (final entry in _inlineAttributes.entries)
+        if (style?.attributes[entry.value.key]?.value == entry.value.value)
+          entry.key,
+    };
+  }
+
+  void _toggleInlineFormat(String key) {
+    final target = _formattingTarget;
+    final attribute = _inlineAttributes[key];
+    if (target == null || attribute == null) return;
+    final active = _activeInlineFormats.contains(key);
+    target.controller.formatSelection(
+      active ? quill.Attribute.clone(attribute, null) : attribute,
+    );
+    target.focusNode.requestFocus();
   }
 
   bool _showMinimap = false;
@@ -463,24 +505,30 @@ May this day of your birth be auspicious!
         keyboard.isMetaPressed) {
       return KeyEventResult.ignored;
     }
-    final position = _scrollController.position;
-    final double target;
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      target = position.minScrollExtent;
+      scrollToTop();
     } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      target = position.maxScrollExtent;
+      scrollToBottom();
     } else {
       return KeyEventResult.ignored;
     }
-    // Handle these before child editors consume Alt+arrow for caret navigation.
+    return KeyEventResult.handled;
+  }
+
+  void scrollToTop() => _scrollToBoundary(bottom: false);
+
+  void scrollToBottom() => _scrollToBoundary(bottom: true);
+
+  void _scrollToBoundary({required bool bottom}) {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
     unawaited(
       _scrollController.animateTo(
-        target,
+        bottom ? position.maxScrollExtent : position.minScrollExtent,
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
       ),
     );
-    return KeyEventResult.handled;
   }
 
   void applyHistory({bool redo = false}) {
@@ -536,8 +584,7 @@ May this day of your birth be auspicious!
           widget.controller,
           widget.controller.editorTheme,
           widget.controller.documentSettingsController,
-          if (_showSearch)
-            ..._viewModel.components.map((box) => box.component.state),
+          ..._viewModel.components.map((box) => box.component.state),
         ]),
         builder: (context, _) {
           final matches = _searchMatches;
@@ -643,6 +690,9 @@ May this day of your birth be auspicious!
                 ),
               Positioned.fill(
                 child: OptionsDock(
+                  canFormatText: _formattingTarget != null,
+                  activeInlineFormats: _activeInlineFormats,
+                  onInlineFormat: _toggleInlineFormat,
                   onHighlightAction: _captureHighlightSelection,
                   onHighlightSelected: (color) {
                     if (widget

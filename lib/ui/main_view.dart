@@ -237,6 +237,9 @@ class MainViewState extends State<MainView> {
                     ),
                   ),
                   DocumentStatusBar(
+                    onScrollToTop: () => _editorKey.currentState?.scrollToTop(),
+                    onScrollToBottom: () =>
+                        _editorKey.currentState?.scrollToBottom(),
                     onUndo: _viewModel.canUndo
                         ? () => _editorKey.currentState?.applyHistory()
                         : null,

@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/inbuilt_components/component_defs/text_component.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/editor_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
@@ -11,6 +12,105 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('more options formats only selected ranges in text components', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final settings = DocumentSettingsController();
+    final theme = PageSettingsController(settings);
+    final controller = EditorController(theme, settings);
+    final box = controller.viewModel.components.firstWhere(
+      (box) => box.component is TextComponent,
+    );
+    final state = box.component.state as TextComponentState;
+    state.replaceDocument(
+      Document.fromJson([
+        {'insert': 'Hello world\n'},
+      ]),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [FlutterQuillLocalizations.delegate],
+        home: Scaffold(body: EditorView(controller: controller)),
+      ),
+    );
+    controller.viewModel.selectComponent(box);
+    state.focusNode.requestFocus();
+    await tester.pump();
+    await tester.tap(
+      find.byTooltip('More options'),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(find.byTooltip('Bold'), findsNothing);
+    state.controller.updateSelection(
+      const TextSelection(baseOffset: 0, extentOffset: 5),
+      ChangeSource.local,
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byTooltip('More options'),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    for (final (label, attribute) in [
+      ('Bold', Attribute.bold),
+      ('Italic', Attribute.italic),
+      ('Strikethrough', Attribute.strikeThrough),
+      ('Inline code', Attribute.inlineCode),
+    ]) {
+      expect(find.byTooltip(label), findsOneWidget);
+      expect(find.text(label), findsNothing);
+      await tester.tap(find.byTooltip(label), kind: PointerDeviceKind.mouse);
+      await tester.pump();
+      expect(
+        state.controller.selection,
+        const TextSelection(baseOffset: 0, extentOffset: 5),
+      );
+      expect(
+        state.controller.getSelectionStyle().attributes[attribute.key]?.value,
+        attribute.value,
+      );
+      await tester.tap(find.byTooltip(label), kind: PointerDeviceKind.mouse);
+      await tester.pump();
+      expect(
+        state.controller.getSelectionStyle().attributes[attribute.key]?.value,
+        isNull,
+      );
+    }
+    state.controller.updateSelection(
+      const TextSelection.collapsed(offset: 5),
+      ChangeSource.local,
+    );
+    await tester.pump();
+    expect(find.byTooltip('Bold'), findsNothing);
+    final heading = controller.viewModel.components.first;
+    controller.viewModel.selectComponent(heading);
+    final headingState = heading.component.state as TextComponentState;
+    headingState.replaceDocument(
+      Document.fromJson([
+        {'insert': 'Heading\n'},
+      ]),
+    );
+    headingState.focusNode.requestFocus();
+    headingState.controller.updateSelection(
+      const TextSelection(baseOffset: 0, extentOffset: 4),
+      ChangeSource.local,
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byTooltip('More options'),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(find.byTooltip('Bold'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
+    theme.dispose();
+    settings.dispose();
+  });
+
   testWidgets('mouse toolbar highlights selected read-only text', (
     tester,
   ) async {

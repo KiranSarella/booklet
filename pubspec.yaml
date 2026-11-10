@@ -16,6 +16,7 @@ dependencies:
   file_selector: ^1.0.3
   desktop_drop: ^0.8.4
   shared_preferences: ^2.5.3
+  path: ^1.9.1
   archive: ^4.5.2
   xml: ^7.0.1
   html: ^0.15.7

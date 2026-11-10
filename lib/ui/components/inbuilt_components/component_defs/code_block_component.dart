@@ -123,6 +123,7 @@ class CodeBlockComponent implements Component {
   }) {
     return CodeBlockComponentView(
       state: state,
+      fontSize: theme.baseFontSize,
       readOnly: theme.documentSettingsController.isReadOnly,
       isSelected: isSelected,
       onSelect: onSelect,
@@ -134,6 +135,7 @@ class CodeBlockComponentView extends StatefulWidget {
   const CodeBlockComponentView({
     super.key,
     this.readOnly = false,
+    this.fontSize = 14,
     required this.state,
     required this.isSelected,
     required this.onSelect,
@@ -141,6 +143,7 @@ class CodeBlockComponentView extends StatefulWidget {
 
   final CodeBlockComponentState state;
   final bool readOnly;
+  final double fontSize;
   final bool isSelected;
   final VoidCallback onSelect;
 
@@ -149,12 +152,6 @@ class CodeBlockComponentView extends StatefulWidget {
 }
 
 class _CodeBlockComponentViewState extends State<CodeBlockComponentView> {
-  static const _previewLineLimit = 10;
-  bool _isExpanded = false;
-
-  int get _lineCount =>
-      '\n'.allMatches(widget.state.controller.text).length + 1;
-
   @override
   void initState() {
     super.initState();
@@ -185,37 +182,32 @@ class _CodeBlockComponentViewState extends State<CodeBlockComponentView> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final maxLines = _isExpanded ? null : _previewLineLimit;
-    final visibleLines = _lineCount.clamp(1, _previewLineLimit);
     final codeStyle = TextStyle(
       fontFamily: 'monospace',
-      fontSize: 13,
+      fontSize: widget.fontSize,
       height: 1.45,
       color: colorScheme.onSurface,
     );
-    final codeField = CodeField(
-      readOnly: widget.readOnly,
-      controller: widget.state.controller,
-      focusNode: widget.state.focusNode,
-      minLines: 1,
-      maxLines: maxLines,
-      wrap: false,
-      gutterStyle: const GutterStyle(
-        showLineNumbers: true,
-        showErrors: false,
-        showFoldingHandles: false,
-      ),
-      textStyle: codeStyle,
+    final editor = Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      background: Colors.transparent,
-      cursorColor: colorScheme.primary,
+      child: TextField(
+        readOnly: widget.readOnly,
+        controller: widget.state.controller,
+        focusNode: widget.state.focusNode,
+        minLines: 1,
+        maxLines: null,
+        style: codeStyle,
+        decoration: const InputDecoration(
+          isCollapsed: true,
+          border: InputBorder.none,
+        ),
+        autocorrect: false,
+        enableSuggestions: false,
+        smartDashesType: SmartDashesType.disabled,
+        smartQuotesType: SmartQuotesType.disabled,
+        cursorColor: colorScheme.primary,
+      ),
     );
-    final editor = _isExpanded
-        ? codeField
-        : SizedBox(
-            height: visibleLines * codeStyle.fontSize! * codeStyle.height! + 40,
-            child: codeField,
-          );
 
     return Focus(
       onFocusChange: (hasFocus) {
@@ -264,7 +256,6 @@ class _CodeBlockComponentViewState extends State<CodeBlockComponentView> {
   }
 
   Widget _buildToolbar(ColorScheme colorScheme) {
-    final isLong = _lineCount > _previewLineLimit;
     return Container(
       height: 42,
       padding: const EdgeInsets.only(left: 12, right: 4),
@@ -299,22 +290,6 @@ class _CodeBlockComponentViewState extends State<CodeBlockComponentView> {
                     },
             ),
           ),
-          const Spacer(),
-          if (isLong)
-            PopupMenuButton<bool>(
-              tooltip: 'Code block options',
-              onSelected: (expanded) {
-                setState(() => _isExpanded = expanded);
-                widget.onSelect();
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem<bool>(
-                  value: !_isExpanded,
-                  child: Text(_isExpanded ? 'Collapse code' : 'Show full code'),
-                ),
-              ],
-              icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant),
-            ),
         ],
       ),
     );
