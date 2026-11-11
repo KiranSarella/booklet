@@ -1,3 +1,5 @@
+import 'package:booklet/ui/components/inbuilt_components/component_defs/icon_component.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:booklet/ui/components/gantt_chart/gantt_chart_document.dart';
 import 'package:booklet/ui/components/math_graph/math_graph_document.dart';
 import 'package:booklet/ui/components/statistical_chart/statistical_chart_document.dart';
@@ -126,6 +128,11 @@ class ComponentMinimapPreview extends StatelessWidget {
       preview = state.preview == null
           ? const Icon(Icons.draw_outlined)
           : Image.memory(state.preview!, fit: BoxFit.contain);
+    } else if (state is IconComponentState) {
+      preview = ListenableBuilder(
+        listenable: state,
+        builder: (context, _) => _IconMiniature(state: state),
+      );
     } else if (state is ImageComponentState) {
       preview = _image(state.mediaPath, Icons.image_outlined);
     } else if (state is VideoComponentState) {
@@ -198,6 +205,61 @@ class ComponentMinimapPreview extends StatelessWidget {
             bottom: 1,
           ),
           child: preview,
+        ),
+      ),
+    );
+  }
+}
+
+class _IconMiniature extends StatelessWidget {
+  const _IconMiniature({required this.state});
+
+  final IconComponentState state;
+
+  @override
+  Widget build(BuildContext context) {
+    const fallback = Center(child: Icon(Icons.image_outlined, size: 16));
+    final bytes = state.bytes;
+    final radius = BorderRadius.circular(switch (state.shape) {
+      IconShape.none => 0,
+      IconShape.corners => state.size.extent * 0.1875,
+      IconShape.circle => state.size.extent / 2,
+    });
+    final Widget image;
+    if (bytes == null) {
+      image = fallback;
+    } else if (state.extension == 'svg') {
+      image = SvgPicture.memory(
+        bytes,
+        fit: state.boxFit,
+        colorFilter: state.tint == null
+            ? null
+            : ColorFilter.mode(state.tint!, BlendMode.srcIn),
+        errorBuilder: (_, _, _) => fallback,
+      );
+    } else {
+      image = Image.memory(
+        bytes,
+        fit: state.boxFit,
+        color: state.tint,
+        colorBlendMode: state.tint == null ? null : BlendMode.srcIn,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    }
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: SizedBox.square(
+        dimension: state.size.extent,
+        child: DecoratedBox(
+          position: DecorationPosition.foreground,
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            border: state.borderEnabled
+                ? Border.all(color: state.borderColor)
+                : null,
+          ),
+          child: ClipRRect(borderRadius: radius, child: image),
         ),
       ),
     );

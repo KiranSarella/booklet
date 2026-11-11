@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/icon_component.dart';
 import 'package:booklet/ui/components/statistical_chart/statistical_chart_document.dart';
 import 'package:booklet/ui/components/statistical_chart/statistical_chart_editor.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/statistical_chart_component.dart';
@@ -16,6 +19,38 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('icon miniature renders SVG and updates styling without editor controls', (tester) async {
+    final component = IconComponent(id: 'icon');
+    final state = component.state;
+    state.setIcon(Uint8List.fromList(utf8.encode(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32"/></svg>',
+    )), 'svg');
+    final box = ComponentBox(component: component);
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SizedBox(
+      width: 150, height: 30, child: ComponentMinimapPreview(box: box),
+    ))));
+    await tester.pumpAndSettle();
+    expect(find.byType(SvgPicture), findsOneWidget);
+    expect(find.byType(IconButton), findsNothing);
+    state.setTint(Colors.red);
+    state.setImageFit(IconImageFit.fill);
+    state.setShape(IconShape.circle);
+    state.setBorderEnabled(true);
+    await tester.pumpAndSettle();
+    final svg = tester.widget<SvgPicture>(find.byType(SvgPicture));
+    expect(svg.fit, BoxFit.cover);
+    expect(svg.colorFilter, const ColorFilter.mode(Colors.red, BlendMode.srcIn));
+    expect(tester.widget<ClipRRect>(find.byType(ClipRRect)).borderRadius,
+      BorderRadius.circular(32));
+    expect(tester.takeException(), isNull);
+    state.removeIcon();
+    await tester.pumpAndSettle();
+    expect(find.byType(SvgPicture), findsNothing);
+    expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    component.dispose();
+  });
+
   testWidgets('miniatures show headings and symbols without hover labels', (
     tester,
   ) async {
