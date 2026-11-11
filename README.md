@@ -39,6 +39,8 @@ Contributions are welcome.
 
 ![](/readme-screenshots/highlight.png)
 
+![](/readme-screenshots/icons.png)
+
 
 # Flutter
 
