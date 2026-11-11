@@ -1,3 +1,5 @@
+import 'package:booklet/ui/components/composed/composition.dart';
+import 'package:booklet/ui/components/composed/composed_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/model_3d_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/gantt_chart_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/math_graph_component.dart';
@@ -34,6 +36,15 @@ import 'package:booklet/ui/components/inbuilt_components/component_defs/quote_co
 
 class InbuiltComponents {
   static Component prepareCompoent(String id, String key) {
+    if (key.startsWith('composed:')) {
+      final source = CompositionLibrary.find(key.substring('composed:'.length));
+      if (source == null) throw StateError('Composition not found');
+      final template = CompositionLibrary.registerDocument(source);
+      return ComposedComponent(
+        id,
+        CompositionTemplate.fromJson(template.toJson()),
+      );
+    }
     final normalizedKey =
         ComponentTypes.getIdForTitle(key) ?? key.toLowerCase();
     switch (normalizedKey) {

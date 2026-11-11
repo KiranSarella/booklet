@@ -71,6 +71,9 @@ mixin TextComponentStateOwner {
 // }
 
 class TextComponentState extends ComponentState {
+  /// Runtime presentation for text fields hosted inside a composition.
+  bool showPlaceholderWhenIdle = false;
+
   TextComponentState(this.alignment, {List<dynamic>? delta})
     : _initialDelta = delta {
     controller.addListener(notifyListeners);

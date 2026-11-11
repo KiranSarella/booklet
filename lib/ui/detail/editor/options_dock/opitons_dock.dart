@@ -1,9 +1,14 @@
+import 'package:booklet/ui/components/composed/composition.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/detail/editor/options_dock/add_component_menu.dart';
 import 'package:flutter/material.dart';
 
 class OptionsDock extends StatefulWidget {
   const OptionsDock({
     super.key,
+    this.theme,
+    this.documentPath,
+    this.documentComponents = const [],
     required this.onComponentSelected,
     required this.onComponentTransformed,
     required this.onFocusBarToggled,
@@ -26,6 +31,9 @@ class OptionsDock extends StatefulWidget {
     this.onHighlightSelected,
   });
 
+  final PageSettingsController? theme;
+  final String? documentPath;
+  final List<CompositionTemplate> documentComponents;
   final ValueChanged<String> onComponentSelected;
   final ValueChanged<String> onComponentTransformed;
   final VoidCallback onFocusBarToggled;
@@ -58,6 +66,9 @@ class OptionsDockState extends State<OptionsDock> {
   @override
   void didUpdateWidget(covariant OptionsDock oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.isReadOnly && !oldWidget.isReadOnly) {
+      _openMenu = null;
+    }
     if (_openMenu == 'format' && !widget.canFormatText) {
       _openMenu = null;
     }
@@ -143,6 +154,10 @@ class OptionsDockState extends State<OptionsDock> {
             top: 12,
             right: 78,
             child: AddComponentMenu(
+              theme: widget.theme,
+              isReadOnly: widget.isReadOnly,
+              documentPath: widget.documentPath,
+              documentComponents: widget.documentComponents,
               title: _openMenu == 'add' ? 'Components' : 'Transform to',
               textOnly: _openMenu == 'transform',
               onSelected: (component) {

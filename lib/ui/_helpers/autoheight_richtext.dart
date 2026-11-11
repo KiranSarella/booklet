@@ -62,9 +62,12 @@ class AutoHeightRichText2 extends StatelessWidget {
         ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 54),
           child: Shortcuts(
-            shortcuts: const {
-              SingleActivator(LogicalKeyboardKey.enter): _CreateBelowIntent(),
-            },
+            shortcuts: isSelected
+                ? const {
+                    SingleActivator(LogicalKeyboardKey.enter):
+                        _CreateBelowIntent(),
+                  }
+                : const {},
             child: Actions(
               actions: {
                 _CreateBelowIntent: CallbackAction<_CreateBelowIntent>(
@@ -146,6 +149,7 @@ class AutoHeightRichText2 extends StatelessWidget {
                       expands: false,
                       placeholder:
                           (!hidePlaceholderWhenIdle ||
+                              textState.showPlaceholderWhenIdle ||
                               isSelected ||
                               textState.isFocused)
                           ? placeholder

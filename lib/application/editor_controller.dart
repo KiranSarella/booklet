@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/composed/composed_component.dart';
 import 'package:booklet/application/recent_booklets.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -372,6 +373,13 @@ class EditorController extends ChangeNotifier {
     'navigation': viewModel.navigation.groups
         .map((node) => node.toJson())
         .toList(),
+    'compositions': {
+      for (final page in viewModel.loadedPages)
+        for (final box in page.components)
+          if (box.component.state is ComposedState)
+            (box.component.state as ComposedState).template.id:
+                (box.component.state as ComposedState).template.toJson(),
+    },
     'pages': [
       for (final page in viewModel.loadedPages)
         {

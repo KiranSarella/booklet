@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/focus_bar.dart';
 import 'package:booklet/business/page_content.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_state.dart';
@@ -104,22 +105,11 @@ class PageView extends StatelessWidget {
         run.add(_buildComponent(index++));
       }
       widgets.add(
-        // 14 matches the text components' horizontal editor padding, so the bar
-        // lines up with the page's text margin.
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(color: editorTheme.styleColor, width: 4),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: run,
-            ),
+        FocusBar(
+          color: editorTheme.styleColor,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: run,
           ),
         ),
       );

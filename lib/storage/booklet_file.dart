@@ -1,3 +1,7 @@
+import 'package:booklet/business/components_business/component_def.dart';
+import 'package:booklet/ui/components/composed/composed_component.dart';
+import 'package:booklet/ui/components/composed/composition.dart';
+import 'package:booklet/ui/components/component_snapshot.dart';
 import 'package:booklet/ui/components/gantt_chart/gantt_chart_document.dart';
 import 'package:booklet/ui/components/math_graph/math_graph_document.dart';
 import 'package:booklet/ui/components/statistical_chart/statistical_chart_document.dart';
@@ -299,6 +303,22 @@ class BookletFile {
     final assetFiles = Map<String, dynamic>.from(
       bundle['assetFiles'] as Map? ?? const {},
     );
+    final importedTemplates = <String, CompositionTemplate>{};
+    await CompositionLibrary.load();
+    for (final entry in resources.entries) {
+      if (!entry.key.startsWith('custom_components/') ||
+          entry.value is! String) {
+        continue;
+      }
+      final bundled = CompositionTemplate.fromJson(
+        Map<String, dynamic>.from(
+          jsonDecode(utf8.decode(base64Decode(entry.value as String))) as Map,
+        ),
+      );
+      final imported = await _registerBundledComposition(bundled);
+      importedTemplates[bundled.id] = imported;
+      await _writeComposition(packagePath, imported);
+    }
     final pageIds = <String, String>{};
     _pairNavigationNodes(
       sourceNode,
@@ -325,6 +345,15 @@ class BookletFile {
         for (final rawComponent in components.whereType<Map>()) {
           final component = Map<String, dynamic>.from(rawComponent);
           component['id'] = const Uuid().v4();
+          final type = component['type'];
+          if (type is String && type.startsWith('composed:')) {
+            final imported =
+                importedTemplates[type.substring('composed:'.length)];
+            if (imported != null) {
+              component['type'] = imported.key;
+              component['templateId'] = imported.id;
+            }
+          }
           final inlineAssets = component['assets'];
           if (inlineAssets is List) {
             for (final asset in inlineAssets.whereType<Map>()) {
@@ -356,6 +385,13 @@ class BookletFile {
             await targetFile.writeAsBytes(base64Decode(encodedMedia));
             component['mediaPath'] = targetRelativePath;
           }
+          if ((component['type'] as String? ?? '').startsWith('composed:')) {
+            await _importComposedResources(
+              packagePath,
+              component['children'],
+              resources,
+            );
+          }
           components[components.indexOf(rawComponent)] = component;
         }
       }
@@ -363,6 +399,34 @@ class BookletFile {
           .writeAsString(const JsonEncoder.withIndent('  ').convert(page));
     }
     return packagePath;
+  }
+
+  static Future<void> _importComposedResources(
+    String packagePath,
+    dynamic value,
+    Map<String, dynamic> resources,
+  ) async {
+    if (value is Map) {
+      for (final key in value.keys.toList()) {
+        final item = value[key];
+        final encoded = item is String ? resources[item] : null;
+        if (['mediaPath', 'path', 'thumbnailPath'].contains(key) &&
+            item is String &&
+            encoded is String) {
+          final extension = _mediaExtension(item) ?? 'bin';
+          final relative = '$_mediaDirectory/${const Uuid().v4()}.$extension';
+          await File('$packagePath/$relative')
+              .writeAsBytes(base64Decode(encoded));
+          value[key] = relative;
+        } else {
+          await _importComposedResources(packagePath, item, resources);
+        }
+      }
+    } else if (value is List) {
+      for (final item in value) {
+        await _importComposedResources(packagePath, item, resources);
+      }
+    }
   }
 
   static Future<void> copyStagedNavigationPages(
@@ -380,6 +444,20 @@ class BookletFile {
         );
       }
     }
+    final sourceCompositions = Directory(
+      '$stagedPackagePath/custom_components',
+    );
+    if (await sourceCompositions.exists()) {
+      await for (final file in sourceCompositions.list()) {
+        if (file is! File) continue;
+        final template = CompositionTemplate.fromJson(
+          Map<String, dynamic>.from(
+            jsonDecode(await file.readAsString()) as Map,
+          ),
+        );
+        await _writeComposition(targetPackagePath, template);
+      }
+    }
     final sourceMedia = Directory('$stagedPackagePath/$_mediaDirectory');
     if (await sourceMedia.exists()) {
       await for (final entity in sourceMedia.list(recursive: true)) {
@@ -395,14 +473,25 @@ class BookletFile {
     }
   }
 
+  static Iterable<ComponentState> _pageComponentStates(PageContent page) sync* {
+    for (final box in page.components) {
+      final state = box.component.state;
+      yield state;
+      if (state is ComposedState) {
+        for (final child in state.leaves.values) {
+          yield child.component.state;
+        }
+      }
+    }
+  }
+
   static Future<void> _savePagePreservingMediaPaths(
     String packagePath,
     PageContent page,
   ) async {
     final originalPaths = <Object, String?>{};
     final originalAssets = <AssetsComponentState, List<dynamic>>{};
-    for (final box in page.components) {
-      final state = box.component.state;
+    for (final state in _pageComponentStates(page)) {
       if (state is AssetsComponentState) originalAssets[state] = state.output;
       if (state is ImageComponentState ||
           state is FileMediaComponentState ||
@@ -416,8 +505,7 @@ class BookletFile {
       for (final entry in originalAssets.entries) {
         entry.key.restoreAssets(entry.value);
       }
-      for (final box in page.components) {
-        final state = box.component.state;
+      for (final state in _pageComponentStates(page)) {
         if (state is ImageComponentState ||
             state is FileMediaComponentState ||
             state is AudioComponentState) {
@@ -520,6 +608,65 @@ class BookletFile {
     return null;
   }
 
+  static String _compositionPath(String packagePath, String id) {
+    final filename = base64Url.encode(utf8.encode(id)).replaceAll('=', '');
+    return '$packagePath/custom_components/$filename.json';
+  }
+
+  static Future<void> _writeComposition(
+    String packagePath,
+    CompositionTemplate template,
+  ) async {
+    if (template.name == 'Unavailable composition') return;
+    final file = File(_compositionPath(packagePath, template.id));
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(template.toJson()));
+  }
+
+  static Future<CompositionTemplate> _registerBundledComposition(
+    CompositionTemplate bundled,
+  ) async => CompositionLibrary.registerDocument(bundled, fromDocument: true);
+
+  /// Definitions in this package, including those on unloaded pages.
+  static Future<List<CompositionTemplate>> loadDocumentComponents(
+    String packagePath,
+  ) async {
+    final directory = Directory('$packagePath/custom_components');
+    if (!await directory.exists()) return [];
+    final templates = <String, CompositionTemplate>{};
+    await for (final file in directory.list()) {
+      if (file is! File || !file.path.endsWith('.json')) continue;
+      final template = CompositionTemplate.fromJson(
+        Map<String, dynamic>.from(jsonDecode(await file.readAsString()) as Map),
+      );
+      final registered = CompositionLibrary.registerDocument(
+        template,
+        fromDocument: true,
+      );
+      templates[registered.id] = registered;
+    }
+    return templates.values.toList();
+  }
+
+  static Future<Map<String, CompositionTemplate>> _loadBundledCompositions(
+    String packagePath,
+    Iterable<String> ids,
+  ) async {
+    final resolved = <String, CompositionTemplate>{};
+    for (final id in ids.toSet()) {
+      final file = File(_compositionPath(packagePath, id));
+      if (!await file.exists()) continue;
+      final bundled = CompositionTemplate.fromJson(
+        Map<String, dynamic>.from(jsonDecode(await file.readAsString()) as Map),
+      );
+      if (bundled.id != id) {
+        throw const FormatException('Invalid composition reference');
+      }
+      resolved[id] = await _registerBundledComposition(bundled);
+    }
+    return resolved;
+  }
+
   static Future<PageContent> loadPage(
     String packagePath,
     String pageId,
@@ -534,7 +681,22 @@ class BookletFile {
     final pageJson = Map<String, dynamic>.from(json);
     final components = <ComponentBox>[];
     final rawComponents = pageJson['components'];
+    var bundledTemplates = <String, CompositionTemplate>{};
     if (rawComponents is List) {
+      if (rawComponents.whereType<Map>().any(
+        (c) => (c['type'] as String? ?? '').startsWith('composed:'),
+      )) {
+        await CompositionLibrary.load();
+        bundledTemplates = await _loadBundledCompositions(
+          packagePath,
+          rawComponents
+              .whereType<Map>()
+              .map((c) => c['type'])
+              .whereType<String>()
+              .where((type) => type.startsWith('composed:'))
+              .map((type) => type.substring('composed:'.length)),
+        );
+      }
       for (final rawComponent in rawComponents.whereType<Map>()) {
         final componentJson = Map<String, dynamic>.from(rawComponent);
         final type = componentJson['type'] as String?;
@@ -557,6 +719,26 @@ class BookletFile {
         final id = storedId is String && storedId.isNotEmpty
             ? storedId
             : const Uuid().v4();
+        if (componentJson['kind'] == ComponentKind.composed.name ||
+            type.startsWith('composed:')) {
+          final extra = componentJson['extra'] is Map
+              ? Map<String, dynamic>.from(componentJson['extra'] as Map)
+              : Map<String, dynamic>.from(componentJson);
+          final resolved = bundledTemplates[type.substring('composed:'.length)];
+          final resolvedType = resolved?.key ?? type;
+          if (resolved != null) extra['templateId'] = resolved.id;
+          final box = ComponentSnapshot.fromJson({
+            'type': resolvedType,
+            'extra': extra,
+          }).instantiate(id: id);
+          _resolveComposedMedia(
+            packagePath,
+            box.component.state as ComposedState,
+          );
+          box.hasFocusBar = componentJson['focusBar'] == true;
+          components.add(box);
+          continue;
+        }
         final component = InbuiltComponents.prepareCompoent(id, type);
         final componentState = component.state;
         if (componentState is ListItemComponentState) {
@@ -701,12 +883,84 @@ class BookletFile {
     await File('$packagePath/$_manifestName').writeAsString(json);
   }
 
+  static Map<String, dynamic> _composedContentForPackage(
+    String packagePath,
+    ComposedState state,
+  ) {
+    final json = jsonDecode(jsonEncode(state.toJson())) as Map<String, dynamic>;
+    void visit(dynamic value) {
+      if (value is Map) {
+        for (final key in value.keys.toList()) {
+          final item = value[key];
+          if (['mediaPath', 'path', 'thumbnailPath'].contains(key) &&
+              item is String) {
+            value[key] = _toPackageMediaPath(packagePath, item);
+          } else {
+            visit(item);
+          }
+        }
+      } else if (value is List) {
+        for (final item in value) {
+          visit(item);
+        }
+      }
+    }
+
+    visit(json);
+    return json;
+  }
+
+  static Future<void> _persistComposedChildMedia(
+    String packagePath,
+    ComponentState state,
+  ) async {
+    if (state is ImageComponentState) {
+      await _persistImageAsset(packagePath, state);
+    } else if (state is FileMediaComponentState) {
+      await _persistFileMediaAsset(packagePath, state);
+    } else if (state is AudioComponentState) {
+      await _persistAudioAsset(packagePath, state);
+    } else if (state is AssetsComponentState) {
+      await _persistNavigationAssets(packagePath, [state.folder]);
+    }
+  }
+
+  static void _resolveComposedMedia(String packagePath, ComposedState state) {
+    for (final child in state.leaves.values) {
+      final item = child.component.state;
+      if (item is ImageComponentState) {
+        item.mediaPath = _resolvePackageMediaPath(packagePath, item.mediaPath);
+      } else if (item is FileMediaComponentState) {
+        item.mediaPath = _resolvePackageMediaPath(packagePath, item.mediaPath);
+      } else if (item is AudioComponentState) {
+        item.mediaPath = _resolvePackageMediaPath(packagePath, item.mediaPath);
+      } else if (item is AssetsComponentState) {
+        _resolveComponentAssets(packagePath, item);
+      }
+    }
+  }
+
   static Future<void> savePage(String packagePath, PageContent page) async {
     await _ensurePackageDirectories(packagePath);
 
     final componentJson = <Map<String, dynamic>>[];
     for (final componentBox in page.components) {
       final state = componentBox.component.state;
+      if (state is ComposedState) {
+        state.refreshStructure(notify: false);
+        await _writeComposition(packagePath, state.template);
+        for (final child in state.leaves.values) {
+          await _persistComposedChildMedia(packagePath, child.component.state);
+        }
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': componentBox.component.def.key,
+          'kind': componentBox.component.def.kind.name,
+          ..._composedContentForPackage(packagePath, state),
+        });
+        _resolveComposedMedia(packagePath, state);
+        continue;
+      }
       if (state is TextComponentState) {
         final delta = state.controller.document.toDelta().toJson();
         final richText = RichTextCodec.deltaToRichText(delta);
@@ -866,6 +1120,7 @@ class BookletFile {
 
     // Every branch above adds exactly one entry, so indexes line up.
     for (var i = 0; i < page.components.length; i++) {
+      componentJson[i]['kind'] = page.components[i].component.def.kind.name;
       if (page.components[i].hasFocusBar) componentJson[i]['focusBar'] = true;
     }
 

@@ -24,3 +24,9 @@ abstract class Component {
 
   void dispose() => state.dispose();
 }
+
+/// A component that owns editable descendants while selection belongs to it.
+abstract interface class ComponentFocusScope {
+  bool get hasFocusedChild;
+  void clearChildFocus();
+}

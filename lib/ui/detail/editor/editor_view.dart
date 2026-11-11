@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/composed/composed_component.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/text_component.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 
@@ -690,6 +691,14 @@ May this day of your birth be auspicious!
                 ),
               Positioned.fill(
                 child: OptionsDock(
+                  theme: _viewModel.theme,
+                  documentPath: widget.controller.documentPath,
+                  documentComponents: [
+                    for (final page in _viewModel.loadedPages)
+                      for (final box in page.components)
+                        if (box.component.state is ComposedState)
+                          (box.component.state as ComposedState).template,
+                  ],
                   canFormatText: _formattingTarget != null,
                   activeInlineFormats: _activeInlineFormats,
                   onInlineFormat: _toggleInlineFormat,

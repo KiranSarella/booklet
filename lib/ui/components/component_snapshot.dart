@@ -1,3 +1,6 @@
+import 'package:booklet/business/components_business/component_def.dart';
+import 'package:booklet/ui/components/composed/composed_component.dart';
+import 'package:booklet/ui/components/composed/composition.dart';
 import 'package:booklet/ui/components/gantt_chart/gantt_chart_document.dart';
 import 'package:booklet/ui/components/math_graph/math_graph_document.dart';
 import 'package:booklet/ui/components/statistical_chart/statistical_chart_document.dart';
@@ -14,18 +17,19 @@ import 'package:booklet/ui/components/inbuilt_components/inbuilt_components.dart
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:uuid/uuid.dart';
 
-/// An immutable, self-contained copy of a component's content, independent of
-/// any page/document. Used to implement copy/paste across pages and
-/// documents: capture a snapshot while the source component is still alive,
-/// then call [instantiate] any number of times to produce fresh components.
+/// An immutable copy of component content for history and copy/paste.
+/// Composed components retain a library reference rather than duplicating the
+/// layout, so restored content always uses the current composition structure.
 class ComponentSnapshot {
   ComponentSnapshot._({
     required this.typeKey,
+    this.kind = ComponentKind.inbuilt,
     this.delta,
     this.extra = const {},
   });
 
   final String typeKey;
+  final ComponentKind kind;
   final List<dynamic>? delta;
   final Map<String, dynamic> extra;
 
@@ -34,6 +38,7 @@ class ComponentSnapshot {
     if (!box.hasFocusBar) return snapshot;
     return ComponentSnapshot._(
       typeKey: snapshot.typeKey,
+      kind: snapshot.kind,
       delta: snapshot.delta,
       extra: {...snapshot.extra, 'focusBar': true},
     );
@@ -43,6 +48,13 @@ class ComponentSnapshot {
     final component = box.component;
     final state = component.state;
 
+    if (state is ComposedState) {
+      return ComponentSnapshot._(
+        typeKey: component.def.key,
+        kind: component.def.kind,
+        extra: state.toJson(),
+      );
+    }
     if (state is QuoteComponentState) {
       return ComponentSnapshot._(
         typeKey: component.def.key,
@@ -165,13 +177,22 @@ class ComponentSnapshot {
 
   /// Builds a brand-new [ComponentBox] (with a fresh id) from this snapshot.
   ComponentBox instantiate({String? id}) {
-    final component = InbuiltComponents.prepareCompoent(
-      id ?? const Uuid().v4(),
-      typeKey,
-    );
+    final component = kind == ComponentKind.composed
+        ? ComposedComponent(
+            id ?? const Uuid().v4(),
+            CompositionLibrary.resolve(
+              typeKey.substring('composed:'.length),
+              legacy: extra['template'] is Map
+                  ? Map<String, dynamic>.from(extra['template'] as Map)
+                  : null,
+            ),
+          )
+        : InbuiltComponents.prepareCompoent(id ?? const Uuid().v4(), typeKey);
     final state = component.state;
 
-    if (state is AssetsComponentState) {
+    if (state is ComposedState) {
+      state.restore(extra);
+    } else if (state is AssetsComponentState) {
       state.restoreAssets(extra['assets'] as List? ?? const []);
     } else if (state is QuoteComponentState) {
       final authorDelta = extra['authorDelta'] as List<dynamic>?;
@@ -239,6 +260,7 @@ class ComponentSnapshot {
 
   Map<String, dynamic> toJson() => {
     'type': typeKey,
+    'kind': kind.name,
     if (delta != null) 'delta': delta,
     if (extra.isNotEmpty) 'extra': extra,
   };
@@ -248,6 +270,11 @@ class ComponentSnapshot {
     final rawExtra = json['extra'];
     return ComponentSnapshot._(
       typeKey: json['type'] as String,
+      kind:
+          json['kind'] == 'composed' ||
+              (json['type'] as String).startsWith('composed:')
+          ? ComponentKind.composed
+          : ComponentKind.inbuilt,
       delta: (json['delta'] as List?)?.cast<dynamic>(),
       extra: rawExtra is Map ? Map<String, dynamic>.from(rawExtra) : const {},
     );

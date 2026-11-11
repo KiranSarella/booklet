@@ -21,7 +21,10 @@ class ComponentBox {
 
   set isSelected(bool value) => component.state.isSelected = value;
 
-  bool get isFocused => component.state.isFocused;
+  bool get isFocused =>
+      component.state.isFocused ||
+      (component is ComponentFocusScope &&
+          (component as ComponentFocusScope).hasFocusedChild);
 
   // Any component with an editable focus target gets the select-then-edit
   // two-tap flow; pure media pickers (image/video/audio) stay single-tap.
@@ -34,6 +37,7 @@ class ComponentBox {
 
   Widget buildUI({
     required PageSettingsController theme,
+    bool isNested = false,
     required VoidCallback onSelect,
     required VoidCallback onSelectRange,
     required ValueChanged<TextSelection?> onCreateBelow,
@@ -43,11 +47,16 @@ class ComponentBox {
   }) {
     final isReadOnly = theme.documentSettingsController.isReadOnly;
     _applyReadOnly(isReadOnly);
-    final focused = isFocused && !isReadOnly;
-    final selected = isSelected;
+    // Descendant focus protects editing from page shortcuts, but the outer
+    // composition keeps its selection border while an inner field is active.
+    final focused = component.state.isFocused && !isReadOnly;
+    final selected = !isNested && isSelected;
 
     final state = component.state;
-    if (isTextComponent && state is TextComponentState) {
+    if (state is TextComponentState) {
+      state.showPlaceholderWhenIdle = isNested;
+    }
+    if (!isNested && isTextComponent && state is TextComponentState) {
       state.onBackspaceAtStart = isReadOnly ? null : onBackspaceAtStart;
       state.onPasteText = isReadOnly ? null : onPasteText;
       state.onMoveToAdjacentTextComponent = isReadOnly
@@ -140,28 +149,31 @@ class ComponentBox {
 
   bool get isTextComponent => component.def.type == ComponentType.text;
 
-  void requestFocus() {
+  void requestFocus({bool markFocused = false}) {
     final state = component.state;
-    if (state is TextComponentState) {
-      state.focusNode.requestFocus();
-    } else if (state is QuoteComponentState) {
-      state.quote.focusNode.requestFocus();
-    } else if (state is CodeBlockComponentState) {
-      state.focusNode.requestFocus();
-    } else if (state is MathComponentState) {
-      state.focusNode.requestFocus();
-    } else if (state is EmbedComponentState) {
-      state.focusNode.requestFocus();
-    } else if (state is LocationComponentState) {
-      state.focusNode.requestFocus();
-    } else if (state is LinkComponentState) {
-      state.urlFocusNode.requestFocus();
-    }
+    final target = switch (state) {
+      TextComponentState s => s.focusNode,
+      QuoteComponentState s => s.quote.focusNode,
+      CodeBlockComponentState s => s.focusNode,
+      MathComponentState s => s.focusNode,
+      EmbedComponentState s => s.focusNode,
+      LocationComponentState s => s.focusNode,
+      LinkComponentState s => s.urlFocusNode,
+      _ => null,
+    };
+    if (target == null) return;
+    // Nested selection must tell the page that focus is moving into this
+    // field before Flutter delivers the asynchronous focus notification.
+    if (markFocused) state.isFocused = true;
+    target.requestFocus();
   }
 
   void clearFocus() {
     final state = component.state;
     state.isFocused = false;
+    if (component is ComponentFocusScope) {
+      (component as ComponentFocusScope).clearChildFocus();
+    }
     if (state is TextComponentState) {
       state.focusNode.unfocus();
       _collapseSelection(state);
