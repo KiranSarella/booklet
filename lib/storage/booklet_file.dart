@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/inbuilt_components/component_defs/icon_component.dart';
 import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/ui/components/composed/composed_component.dart';
 import 'package:booklet/ui/components/composed/composition.dart';
@@ -781,6 +782,9 @@ class BookletFile {
         if (componentState is DrawingComponentState) {
           componentState.restore(componentJson);
         }
+        if (componentState is IconComponentState) {
+          componentState.restore(componentJson);
+        }
         if (componentState is CaptionedMediaComponentState) {
           componentState.caption = componentJson['caption'] as String? ?? '';
         }
@@ -1039,6 +1043,14 @@ class BookletFile {
         componentJson.add({
           'id': componentBox.component.id,
           'type': 'drawing',
+          ...state.toJson(),
+        });
+        continue;
+      }
+      if (state is IconComponentState) {
+        componentJson.add({
+          'id': componentBox.component.id,
+          'type': 'icon',
           ...state.toJson(),
         });
         continue;

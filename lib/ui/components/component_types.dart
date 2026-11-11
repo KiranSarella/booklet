@@ -44,6 +44,8 @@ class ComponentTypes {
         return 'Drawing';
       case 'model_3d':
         return '3D Model';
+      case 'icon':
+        return 'Icon';
       case 'image':
         return 'Image';
       case 'caption':
@@ -96,6 +98,8 @@ class ComponentTypes {
         return 'drawing';
       case '3D Model':
         return 'model_3d';
+      case 'Icon':
+        return 'icon';
       case 'Image':
         return 'image';
       case 'Caption':

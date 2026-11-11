@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/inbuilt_components/component_defs/icon_component.dart';
 import 'package:booklet/business/components_business/component_def.dart';
 import 'package:booklet/ui/components/composed/composed_component.dart';
 import 'package:booklet/ui/components/composed/composition.dart';
@@ -93,6 +94,12 @@ class ComponentSnapshot {
       );
     }
     if (state is DrawingComponentState) {
+      return ComponentSnapshot._(
+        typeKey: component.def.key,
+        extra: state.toJson(),
+      );
+    }
+    if (state is IconComponentState) {
       return ComponentSnapshot._(
         typeKey: component.def.key,
         extra: state.toJson(),
@@ -208,6 +215,8 @@ class ComponentSnapshot {
     } else if (state is TableComponentState) {
       state.restore(extra);
     } else if (state is DrawingComponentState) {
+      state.restore(extra);
+    } else if (state is IconComponentState) {
       state.restore(extra);
     } else if (state is ImageComponentState) {
       state.caption = extra['caption'] as String? ?? '';

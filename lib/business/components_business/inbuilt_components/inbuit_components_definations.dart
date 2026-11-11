@@ -344,3 +344,14 @@ class Model3dComponentDef extends ComponentDef {
   @override
   ComponentType get type => ComponentType.media;
 }
+
+class IconComponentDef extends ComponentDef {
+  @override
+  String get key => 'icon';
+
+  @override
+  String get name => 'Icon';
+
+  @override
+  ComponentType get type => ComponentType.media;
+}
