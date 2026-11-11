@@ -3,6 +3,8 @@ import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/detail/editor/editor_vm.dart';
 import 'package:booklet/ui/components/component_snapshot.dart';
 import 'package:booklet/ui/components/component_state.dart';
+import 'package:booklet/ui/components/inbuilt_components/component_defs/code_block_component.dart';
+import 'package:booklet/ui/detail/editor/options_dock/add_component_menu.dart';
 import 'package:booklet/ui/detail/editor/page_view/page_view.dart';
 import 'package:flutter/material.dart' hide PageView;
 import 'package:flutter/services.dart';
@@ -27,6 +29,110 @@ void main() {
     viewModel.dispose();
     theme.dispose();
     documentSettings.dispose();
+  });
+
+  test('Link is available in transform options', () {
+    final menu = AddComponentMenu(
+      title: 'Transform to',
+      textOnly: true,
+      onSelected: (_) {},
+    );
+    expect(menu.componentTypes, contains('link'));
+  });
+
+  test('Transform text to links fills the Link field and supports undo', () {
+    final first = viewModel.components[1];
+    final second = viewModel.createComponentBelowType(1, 'text');
+    for (final entry in {
+      first: 'https://example.com/first',
+      second: 'example.com/second',
+    }.entries) {
+      (entry.key.component.state as TextComponentState).controller.replaceText(
+        0,
+        0,
+        entry.value,
+        const TextSelection.collapsed(offset: 0),
+      );
+    }
+    final id = first.component.id;
+    viewModel.selectComponent(first);
+    viewModel.selectComponentRange(second);
+    viewModel.transformSelectedComponent('link');
+
+    expect(viewModel.components.length, 3);
+    expect(first.component.id, id);
+    final link = first.component.state as LinkComponentState;
+    expect(link.url, 'https://example.com/first');
+    expect(link.urlController.text, link.url);
+    expect(link.title, isEmpty);
+    expect(
+      (second.component.state as LinkComponentState).url,
+      'example.com/second',
+    );
+
+    viewModel.undo();
+    expect(viewModel.components[1].component.state, isA<TextComponentState>());
+    expect(
+      viewModel.components[1].component.state.output,
+      'https://example.com/first\n',
+    );
+    viewModel.redo();
+    expect(
+      (viewModel.components[1].component.state as LinkComponentState).url,
+      'https://example.com/first',
+    );
+  });
+
+  test('Transform selected text into one code block with undo and redo', () {
+    final first = viewModel.components[1];
+    final second = viewModel.createComponentBelowType(1, 'text');
+    final third = viewModel.createComponentBelowType(2, 'text');
+    for (final entry in {
+      first: 'first\n  indented',
+      second: '',
+      third: 'last',
+    }.entries) {
+      final state = entry.key.component.state as TextComponentState;
+      state.controller.replaceText(
+        0,
+        0,
+        entry.value,
+        const TextSelection.collapsed(offset: 0),
+      );
+    }
+    final ids = viewModel.components.map((box) => box.component.id).toList();
+    viewModel.selectComponent(third);
+    viewModel.selectComponentRange(first);
+
+    viewModel.transformSelectedComponent('code_block');
+
+    expect(viewModel.components.length, 2);
+    expect(viewModel.components[1].component.id, ids[1]);
+    expect(first.component.state, isA<CodeBlockComponentState>());
+    expect(first.component.state.output, 'first\n  indented\n\n\n\nlast');
+    expect(viewModel.selectedComponents, {first});
+    expect(viewModel.selectedComponent, first);
+
+    viewModel.undo();
+    expect(viewModel.components.map((box) => box.component.id), ids);
+    expect(viewModel.components[1].component.state, isA<TextComponentState>());
+    expect(
+      viewModel.components[1].component.state.output,
+      'first\n  indented\n',
+    );
+    expect(viewModel.components[2].component.state.output, '\n');
+    expect(viewModel.components[3].component.state.output, 'last\n');
+
+    viewModel.redo();
+    expect(viewModel.components.length, 2);
+    expect(
+      viewModel.components[1].component.state,
+      isA<CodeBlockComponentState>(),
+    );
+    expect(
+      viewModel.components[1].component.state.output,
+      'first\n  indented\n\n\n\nlast',
+    );
   });
 
   test('Enter splits text at the cursor and creates a text component', () {

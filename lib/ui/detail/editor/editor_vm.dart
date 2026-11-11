@@ -1174,18 +1174,60 @@ class EditorVM {
         return;
       }
 
+      if (type == 'code_block' && selection.length > 1) {
+        final orderedSelection = components
+            .where(selection.contains)
+            .toList(growable: false);
+        final first = orderedSelection.first;
+        final oldComponent = first.component;
+        final newComponent = InbuiltComponents.prepareCompoent(
+          oldComponent.id,
+          type,
+        );
+        newComponent.initialize(
+          delta: [
+            for (var index = 0; index < orderedSelection.length; index++) ...[
+              if (index > 0) {'insert': '\n'},
+              ...?orderedSelection[index].component.textDelta,
+            ],
+          ],
+        );
+        _unwatchComponent(oldComponent.state);
+        first.component = newComponent;
+        _watchComponent(first);
+        oldComponent.dispose();
+        for (final box in orderedSelection.skip(1)) {
+          components.remove(box);
+          _unwatchComponent(box.component.state);
+          box.dispose();
+        }
+        selectComponent(first);
+        _documentChanged();
+        return;
+      }
+
       for (final selected in selection) {
         final oldComponent = selected.component;
         final newComponent = InbuiltComponents.prepareCompoent(
           oldComponent.id,
           type,
         );
-        if (newComponent.def.type != ComponentType.text) {
+        if (newComponent.def.type != ComponentType.text && type != 'link') {
           newComponent.dispose();
           return;
         }
 
-        newComponent.initialize(delta: oldComponent.textDelta);
+        if (newComponent.state is LinkComponentState) {
+          final text = (oldComponent.textDelta ?? const [])
+              .whereType<Map>()
+              .map((operation) => operation['insert'])
+              .whereType<String>()
+              .join()
+              .trim();
+          (newComponent.state as LinkComponentState).setValues(url: text);
+        } else {
+          newComponent.initialize(delta: oldComponent.textDelta);
+        }
         newComponent.state.isSelected = oldComponent.state.isSelected;
         selected.component = newComponent;
         _unwatchComponent(oldComponent.state);

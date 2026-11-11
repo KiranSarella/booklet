@@ -44,6 +44,7 @@ class LinkComponent implements Component {
       isSelected: isSelected,
       onSelect: onSelect,
       readOnly: theme.documentSettingsController.isReadOnly,
+      styleColor: theme.styleColor,
     );
   }
 }
@@ -55,12 +56,14 @@ class LinkComponentView extends StatefulWidget {
     required this.isSelected,
     required this.onSelect,
     this.readOnly = false,
+    this.styleColor,
   });
 
   final LinkComponentState state;
   final bool isSelected;
   final VoidCallback onSelect;
   final bool readOnly;
+  final Color? styleColor;
 
   @override
   State<LinkComponentView> createState() => _LinkComponentViewState();
@@ -201,12 +204,14 @@ class _LinkComponentViewState extends State<LinkComponentView> {
               ),
               IconButton(
                 tooltip: 'Open in browser',
+                color: widget.styleColor,
                 icon: const Icon(Icons.open_in_browser),
                 onPressed: _openUrl,
               ),
               if (widget.isSelected && !widget.readOnly)
                 IconButton(
                   tooltip: 'Edit link',
+                  color: widget.styleColor,
                   icon: const Icon(Icons.edit),
                   onPressed: _startEditing,
                 ),

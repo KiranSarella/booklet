@@ -20,11 +20,12 @@ class AddComponentMenu extends StatelessWidget {
       ? _componentTypes
             .where(
               (key) =>
+                  key == 'link' ||
                   InbuiltComponents.getComponentMenuItems()
-                      .firstWhere((definition) => definition.key == key)
-                      .type
-                      .name ==
-                  'text',
+                          .firstWhere((definition) => definition.key == key)
+                          .type
+                          .name ==
+                      'text',
             )
             .toList(growable: false)
       : _componentTypes;
