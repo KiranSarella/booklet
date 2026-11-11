@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/icon_component.dart';
 import 'package:booklet/ui/components/statistical_chart/statistical_chart_document.dart';
