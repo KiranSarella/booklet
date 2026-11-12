@@ -1,3 +1,4 @@
+import 'package:booklet/ui/components/component.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,6 +14,61 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('narrow composition columns expose upload in an options dialog', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final document = DocumentSettingsController();
+    final theme = PageSettingsController(document);
+    final state = IconComponentState();
+    var parentSelected = false;
+    late StateSetter updateSelection;
+    await tester.pumpWidget(
+      StatefulBuilder(builder: (context, setState) {
+        updateSelection = setState;
+        return ComposedSelectionScope(isSelected: parentSelected, child: MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 80,
+            child: IconComponentView(
+              state: state,
+              theme: theme,
+              isSelected: false,
+              onSelect: () {},
+            ),
+          ),
+        ),
+      ));
+      }),
+    );
+    expect(find.byTooltip('Icon options'), findsNothing);
+    updateSelection(() => parentSelected = true);
+    await tester.pump();
+    expect(find.byTooltip('Icon options'), findsOneWidget);
+    expect(find.text('Upload'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byTooltip('Icon options'));
+    await tester.pumpAndSettle();
+    expect(find.text('Upload'), findsOneWidget);
+    expect(find.text('Tint color'), findsOneWidget);
+    expect(find.byType(DropdownButton<IconSize>), findsOneWidget);
+    await tester.tap(find.byTooltip('Enable border'));
+    await tester.pumpAndSettle();
+    expect(state.borderEnabled, isTrue);
+    expect(find.byTooltip('Disable border'), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    updateSelection(() => parentSelected = false);
+    await tester.pump();
+    expect(find.byTooltip('Icon options'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+    theme.dispose();
+    document.dispose();
+  });
+
   testWidgets(
     'edit controls stay beside the left aligned icon without a caption',
     (tester) async {
@@ -20,6 +76,7 @@ void main() {
       final document = DocumentSettingsController();
       final theme = PageSettingsController(document);
       final state = IconComponentState();
+      var selections = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -29,13 +86,33 @@ void main() {
                 state: state,
                 theme: theme,
                 isSelected: true,
-                onSelect: () {},
+                onSelect: () => selections++,
               ),
             ),
           ),
         ),
       );
-      final upload = find.byTooltip('Upload icon');
+      final upload = find.byTooltip('Icon');
+      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'Upload'), findsOneWidget);
+      await tester.tap(upload);
+      await tester.pump();
+      expect(selections, 1);
+      expect(tester.takeException(), isNull);
+      state.setIcon(
+        Uint8List.fromList(
+          utf8.encode(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32"/></svg>',
+          ),
+        ),
+        'svg',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(upload);
+      await tester.pump();
+      expect(selections, 2);
+      expect(find.widgetWithText(TextButton, 'Upload'), findsOneWidget);
+      expect(tester.takeException(), isNull);
       expect(tester.getTopLeft(upload).dx, 14);
       expect(tester.getSize(upload), const Size(64, 64));
       expect(

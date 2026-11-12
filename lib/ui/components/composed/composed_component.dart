@@ -125,7 +125,9 @@ class ComposedComponent extends Component implements ComponentFocusScope {
           : content;
     }
 
-    return ListenableBuilder(
+    return ComposedSelectionScope(
+      isSelected: isSelected,
+      child: ListenableBuilder(
       listenable: state,
       builder: (context, _) {
         state.refreshStructure(notify: false);
@@ -142,6 +144,7 @@ class ComposedComponent extends Component implements ComponentFocusScope {
                 minHeight: state.template.root.height,
               );
       },
+      ),
     );
   }
 }

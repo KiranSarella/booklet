@@ -99,32 +99,18 @@ class DocumentStatusBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            _StatusAction(
-              tooltip: 'Switch page appearance',
-              icon:
-                  pageSettingsController.effectiveBrightness == Brightness.light
-                  ? Icons.dark_mode_outlined
-                  : Icons.light_mode_outlined,
-              onPressed: () => pageSettingsController.updateAppearanceMode(
-                pageSettingsController.effectiveBrightness == Brightness.light
-                    ? EditorAppearanceMode.dark
-                    : EditorAppearanceMode.light,
-              ),
+            _AppearancePicker<EditorAppearanceMode>(
+              tooltip: 'Page appearance',
+              modes: EditorAppearanceMode.values,
+              selected: pageSettingsController.appearanceMode,
+              onSelected: pageSettingsController.updateAppearanceMode,
             ),
             const SizedBox(width: 4),
-            _StatusAction(
-              tooltip: 'Switch document appearance',
-              icon:
-                  documentSettingsController.effectiveBrightness ==
-                      Brightness.light
-                  ? Icons.dark_mode_outlined
-                  : Icons.light_mode_outlined,
-              onPressed: () => documentSettingsController.updateAppearanceMode(
-                documentSettingsController.effectiveBrightness ==
-                        Brightness.light
-                    ? DocumentAppearanceMode.dark
-                    : DocumentAppearanceMode.light,
-              ),
+            _AppearancePicker<DocumentAppearanceMode>(
+              tooltip: 'Document appearance',
+              modes: DocumentAppearanceMode.values,
+              selected: documentSettingsController.appearanceMode,
+              onSelected: documentSettingsController.updateAppearanceMode,
             ),
           ],
         ),
@@ -152,6 +138,54 @@ class _StatusAction extends StatelessWidget {
       visualDensity: VisualDensity.compact,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+    ),
+  );
+}
+
+class _AppearancePicker<T extends Enum> extends StatelessWidget {
+  const _AppearancePicker({
+    required this.tooltip,
+    required this.modes,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final String tooltip;
+  final List<T> modes;
+  final T selected;
+  final ValueChanged<T> onSelected;
+
+  static const _icons = [
+    Icons.light_mode_outlined,
+    Icons.dark_mode_outlined,
+    Icons.brightness_auto_outlined,
+  ];
+  static const _labels = ['Light', 'Dark', 'Auto'];
+
+  @override
+  Widget build(BuildContext context) => MenuAnchor(
+    style: const MenuStyle(alignment: Alignment.topCenter),
+    menuChildren: [
+      for (final mode in modes)
+        MenuItemButton(
+          leadingIcon: Icon(_icons[mode.index], size: 18),
+          trailingIcon: mode == selected
+              ? const Icon(Icons.check, size: 16)
+              : null,
+          onPressed: () => onSelected(mode),
+          child: Text(_labels[mode.index]),
+        ),
+    ],
+    builder: (context, controller, child) => _StatusAction(
+      tooltip: '$tooltip: ${_labels[selected.index]}',
+      icon: _icons[selected.index],
+      onPressed: () {
+        if (controller.isOpen) {
+          controller.close();
+        } else {
+          controller.open();
+        }
+      },
     ),
   );
 }

@@ -30,3 +30,22 @@ abstract interface class ComponentFocusScope {
   bool get hasFocusedChild;
   void clearChildFocus();
 }
+
+/// Makes the outer composition selection available to its nested controls.
+class ComposedSelectionScope extends InheritedWidget {
+  const ComposedSelectionScope({
+    super.key,
+    required this.isSelected,
+    required super.child,
+  });
+
+  final bool isSelected;
+
+  static bool? selectionOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<ComposedSelectionScope>()
+      ?.isSelected;
+
+  @override
+  bool updateShouldNotify(ComposedSelectionScope oldWidget) =>
+      isSelected != oldWidget.isSelected;
+}

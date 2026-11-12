@@ -341,13 +341,13 @@ class _AddComponentMenuState extends State<AddComponentMenu> {
         );
       case 'Caption':
         return const TextStyle(
-          fontSize: baseFontSize * 0.9,
-          fontWeight: FontWeight.w300,
+          fontSize: baseFontSize * 0.79,
+          fontWeight: FontWeight.w400,
         );
       case 'Footnote':
         return const TextStyle(
-          fontSize: baseFontSize * 0.8,
-          fontWeight: FontWeight.w200,
+          fontSize: baseFontSize * 0.7,
+          fontWeight: FontWeight.w300,
         );
       case 'Block Text':
         return const TextStyle(

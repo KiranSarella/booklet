@@ -293,10 +293,7 @@ class _IconComponentViewState extends State<IconComponentView> {
     if (_loading) {
       content = const Center(child: CircularProgressIndicator());
     } else if (state.bytes == null) {
-      content = Icon(
-        _readOnly ? Icons.image_outlined : Icons.upload_outlined,
-        color: widget.theme.styleColor,
-      );
+      content = Icon(Icons.image_outlined, color: widget.theme.styleColor);
     } else if (state.extension == 'svg') {
       content = SvgPicture.memory(
         state.bytes!,
@@ -314,12 +311,9 @@ class _IconComponentViewState extends State<IconComponentView> {
       );
     }
     return Tooltip(
-      message: _readOnly ? 'Icon' : 'Upload icon',
+      message: 'Icon',
       child: GestureDetector(
-        onTap: () {
-          widget.onSelect();
-          if (!_readOnly) _upload();
-        },
+        onTap: widget.onSelect,
         child: SizedBox.square(
           dimension: extent,
           child: DecoratedBox(
@@ -349,6 +343,105 @@ class _IconComponentViewState extends State<IconComponentView> {
     );
   }
 
+  Widget _editControls() => Wrap(
+    spacing: 12,
+    runSpacing: 8,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: [
+      TextButton.icon(
+        onPressed: _loading ? null : () => _upload(),
+        icon: const Icon(Icons.upload_outlined),
+        label: const Text('Upload'),
+      ),
+      DropdownButton<IconShape>(
+        value: widget.state.shape,
+        items: [
+          for (final shape in IconShape.values)
+            DropdownMenuItem(
+              value: shape,
+              child: Text(switch (shape) {
+                IconShape.none => 'None',
+                IconShape.corners => 'Corners',
+                IconShape.circle => 'Circle',
+              }),
+            ),
+        ],
+        onChanged: (shape) {
+          if (shape != null) widget.state.setShape(shape);
+        },
+      ),
+      DropdownButton<IconSize>(
+        value: widget.state.size,
+        items: [
+          for (final size in IconSize.values)
+            DropdownMenuItem(
+              value: size,
+              child: Text('${size.extent.toInt()}×${size.extent.toInt()}'),
+            ),
+        ],
+        onChanged: (size) {
+          if (size != null) widget.state.setSize(size);
+        },
+      ),
+      DropdownButton<IconImageFit>(
+        value: widget.state.imageFit,
+        items: const [
+          DropdownMenuItem(value: IconImageFit.fit, child: Text('Fit')),
+          DropdownMenuItem(value: IconImageFit.fill, child: Text('Fill')),
+        ],
+        onChanged: (fit) {
+          if (fit != null) widget.state.setImageFit(fit);
+        },
+      ),
+      TextButton.icon(
+        onPressed: _pickTint,
+        icon: Icon(Icons.palette_outlined, color: widget.state.tint),
+        label: const Text('Tint color'),
+      ),
+      if (widget.state.tint != null)
+        IconButton(
+          tooltip: 'Clear tint',
+          onPressed: () => widget.state.setTint(null),
+          icon: const Icon(Icons.format_color_reset),
+        ),
+      IconButton(
+        tooltip: widget.state.borderEnabled
+            ? 'Disable border'
+            : 'Enable border',
+        isSelected: widget.state.borderEnabled,
+        onPressed: () =>
+            widget.state.setBorderEnabled(!widget.state.borderEnabled),
+        icon: const Icon(Icons.border_clear),
+        selectedIcon: Icon(Icons.border_outer, color: widget.state.borderColor),
+      ),
+    ],
+  );
+
+  Future<void> _showOptions() async {
+    widget.onSelect();
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Icon options'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: ListenableBuilder(
+              listenable: widget.state,
+              builder: (context, _) => _editControls(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([widget.state, widget.theme]),
@@ -362,99 +455,57 @@ class _IconComponentViewState extends State<IconComponentView> {
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _icon(),
-            if (widget.isSelected && !_readOnly) ...[
-              const SizedBox(width: 16),
-              Expanded(
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    DropdownButton<IconShape>(
-                      value: widget.state.shape,
-                      items: [
-                        for (final shape in IconShape.values)
-                          DropdownMenuItem(
-                            value: shape,
-                            child: Text(switch (shape) {
-                              IconShape.none => 'None',
-                              IconShape.corners => 'Corners',
-                              IconShape.circle => 'Circle',
-                            }),
-                          ),
-                      ],
-                      onChanged: (shape) {
-                        if (shape != null) widget.state.setShape(shape);
-                      },
-                    ),
-                    DropdownButton<IconSize>(
-                      value: widget.state.size,
-                      items: [
-                        for (final size in IconSize.values)
-                          DropdownMenuItem(
-                            value: size,
-                            child: Text(
-                              '${size.extent.toInt()}×${size.extent.toInt()}',
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final extent =
+                widget.state.size.extent *
+                widget.theme.baseFontSize /
+                widget.theme.originalBaseFontSize;
+            if (constraints.maxWidth < extent + 300) {
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: extent.clamp(0, constraints.maxWidth),
+                  child: Stack(
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: _icon(),
+                      ),
+                      if (!_readOnly &&
+                          (ComposedSelectionScope.selectionOf(context) ?? widget.isSelected))
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: IconButton.filledTonal(
+                            tooltip: 'Icon options',
+                            constraints: const BoxConstraints.tightFor(
+                              width: 28,
+                              height: 28,
                             ),
+                            padding: EdgeInsets.zero,
+                            iconSize: 16,
+                            onPressed: _showOptions,
+                            icon: const Icon(Icons.tune),
                           ),
-                      ],
-                      onChanged: (size) {
-                        if (size != null) widget.state.setSize(size);
-                      },
-                    ),
-                    DropdownButton<IconImageFit>(
-                      value: widget.state.imageFit,
-                      items: const [
-                        DropdownMenuItem(
-                          value: IconImageFit.fit,
-                          child: Text('Fit'),
                         ),
-                        DropdownMenuItem(
-                          value: IconImageFit.fill,
-                          child: Text('Fill'),
-                        ),
-                      ],
-                      onChanged: (fit) {
-                        if (fit != null) widget.state.setImageFit(fit);
-                      },
-                    ),
-                    TextButton.icon(
-                      onPressed: _pickTint,
-                      icon: Icon(
-                        Icons.palette_outlined,
-                        color: widget.state.tint,
-                      ),
-                      label: const Text('Tint color'),
-                    ),
-                    if (widget.state.tint != null)
-                      IconButton(
-                        tooltip: 'Clear tint',
-                        onPressed: () => widget.state.setTint(null),
-                        icon: const Icon(Icons.format_color_reset),
-                      ),
-                    IconButton(
-                      tooltip: widget.state.borderEnabled
-                          ? 'Disable border'
-                          : 'Enable border',
-                      isSelected: widget.state.borderEnabled,
-                      onPressed: () => widget.state.setBorderEnabled(
-                        !widget.state.borderEnabled,
-                      ),
-                      icon: const Icon(Icons.border_clear),
-                      selectedIcon: Icon(
-                        Icons.border_outer,
-                        color: widget.state.borderColor,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _icon(),
+                if (widget.isSelected && !_readOnly) ...[
+                  const SizedBox(width: 16),
+                  Expanded(child: _editControls()),
+                ],
+              ],
+            );
+          },
         ),
       ),
     ),

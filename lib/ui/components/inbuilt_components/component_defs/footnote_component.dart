@@ -29,8 +29,8 @@ class FootnoteComponent with TextComponentStateOwner implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.bodyFontFamily,
-      fontSize: fontSizePercent(79),
-      fontWeight: FontWeight.w200,
+      fontSize: fontSizePercent(70),
+      fontWeight: FontWeight.w300,
       color: theme.textColor,
     );
 

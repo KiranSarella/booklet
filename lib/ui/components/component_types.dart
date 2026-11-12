@@ -143,13 +143,13 @@ class ComponentTypes {
         );
       case 'caption':
         return const TextStyle(
-          fontSize: _baseFontSize * 0.9,
-          fontWeight: FontWeight.w300,
+          fontSize: _baseFontSize * 0.79,
+          fontWeight: FontWeight.w400,
         );
       case 'footnote':
         return const TextStyle(
-          fontSize: _baseFontSize * 0.8,
-          fontWeight: FontWeight.w200,
+          fontSize: _baseFontSize * 0.7,
+          fontWeight: FontWeight.w300,
         );
       case 'block_text':
         return const TextStyle(
