@@ -1,3 +1,6 @@
+import 'package:booklet/ui/components/composed/composed_component.dart';
+import 'package:booklet/ui/components/composed/composition.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:booklet/ui/components/inbuilt_components/component_defs/text_component.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/editor_controller.dart';
@@ -12,6 +15,137 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets(
+    'nested text selection enables inline formatting for the focused child only',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.binding.setSurfaceSize(const Size(1400, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final settings = DocumentSettingsController();
+      final theme = PageSettingsController(settings);
+      final controller = EditorController(theme, settings);
+      final template = CompositionTemplate(
+        'format',
+        'Nested text',
+        CompositionNode(
+          'column',
+          children: [
+            CompositionNode(
+              'row',
+              children: [
+                CompositionNode('text'),
+                CompositionNode('inline_heading'),
+              ],
+            ),
+          ],
+        ),
+      );
+      await CompositionLibrary.save(template);
+      final outer = controller.viewModel.createComponentBelowType(
+        -1,
+        template.key,
+      );
+      final state = outer.component.state as ComposedState;
+      final fields = state.leaves.values
+          .map((box) => box.component.state as TextComponentState)
+          .toList();
+      for (final field in fields) {
+        field.replaceDocument(
+          Document.fromJson([
+            {'insert': 'Hello world\n'},
+          ]),
+        );
+      }
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [FlutterQuillLocalizations.delegate],
+          home: Scaffold(body: EditorView(controller: controller)),
+        ),
+      );
+      for (final field in fields) {
+        final editor = find.byWidgetPredicate(
+          (w) => w is QuillEditor && w.focusNode == field.focusNode,
+        );
+        await tester.tapAt(tester.getCenter(editor));
+        await tester.pump();
+        field.controller.updateSelection(
+          const TextSelection(baseOffset: 0, extentOffset: 5),
+          ChangeSource.local,
+        );
+        await tester.pump();
+        await tester.tap(
+          find.byTooltip('More options'),
+          kind: PointerDeviceKind.mouse,
+        );
+        await tester.pump();
+        for (final (label, attribute) in [
+          ('Bold', Attribute.bold),
+          ('Italic', Attribute.italic),
+          ('Strikethrough', Attribute.strikeThrough),
+          ('Inline code', Attribute.inlineCode),
+        ]) {
+          expect(find.byTooltip(label), findsOneWidget);
+          await tester.tap(
+            find.byTooltip(label),
+            kind: PointerDeviceKind.mouse,
+          );
+          await tester.pump();
+          expect(
+            field.controller
+                .getSelectionStyle()
+                .attributes[attribute.key]
+                ?.value,
+            attribute.value,
+          );
+          expect(
+            field.controller.selection,
+            const TextSelection(baseOffset: 0, extentOffset: 5),
+          );
+          final sibling = fields.firstWhere((candidate) => candidate != field);
+          expect(
+            sibling.controller.document.toDelta().toJson().any(
+              (op) =>
+                  (op['attributes'] as Map?)?.containsKey(attribute.key) ??
+                  false,
+            ),
+            isFalse,
+          );
+          await tester.tap(
+            find.byTooltip(label),
+            kind: PointerDeviceKind.mouse,
+          );
+          await tester.pump();
+          expect(
+            field.controller
+                .getSelectionStyle()
+                .attributes[attribute.key]
+                ?.value,
+            isNull,
+          );
+        }
+        expect(outer.isSelected, isTrue);
+        expect(state.leaves.values.every((box) => !box.isSelected), isTrue);
+        field.controller.updateSelection(
+          const TextSelection.collapsed(offset: 5),
+          ChangeSource.local,
+        );
+        await tester.pump();
+        expect(find.byTooltip('Bold'), findsNothing);
+      }
+      settings.updateEditMode(DocumentEditMode.readOnly);
+      fields.first.controller.updateSelection(
+        const TextSelection(baseOffset: 0, extentOffset: 5),
+        ChangeSource.local,
+      );
+      await tester.pump();
+      expect(find.byTooltip('Bold'), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+      theme.dispose();
+      settings.dispose();
+    },
+  );
   testWidgets('more options formats only selected ranges in text components', (
     tester,
   ) async {

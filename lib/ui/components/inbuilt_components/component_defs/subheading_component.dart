@@ -29,6 +29,9 @@ class SubheadingComponent with TextComponentStateOwner implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.headingsFontFamily,
+      height: theme.lineHeight,
+      letterSpacing: theme.letterSpacing,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(157),
       fontWeight: FontWeight.w700,
       color: theme.headingColor,

@@ -64,10 +64,34 @@ class EditorViewState extends State<EditorView> {
       return null;
     }
     final component = _viewModel.selectedComponent?.component;
-    if (component is! TextComponent) return null;
-    final state = component.state;
-    final selection = state.controller.selection;
-    return selection.isValid && !selection.isCollapsed ? state : null;
+    if (component is TextComponent) {
+      final state = component.state;
+      final selection = state.controller.selection;
+      return selection.isValid && !selection.isCollapsed ? state : null;
+    }
+    if (component is! ComposedComponent) return null;
+    Iterable<TextComponentState> textFields(ComponentState state) sync* {
+      if (state is TextComponentState) {
+        yield state;
+      } else if (state is QuoteComponentState) {
+        yield state.quote;
+        yield state.author;
+      } else if (state is ComposedState) {
+        for (final child in state.leaves.values) {
+          yield* textFields(child.component.state);
+        }
+      }
+    }
+
+    final ranges = <TextComponentState>[];
+    for (final field in textFields(component.state)) {
+      final selection = field.controller.selection;
+      if (!selection.isValid || selection.isCollapsed) continue;
+      if (field.focusNode.hasFocus) return field;
+      ranges.add(field);
+    }
+    // Clicking the toolbar may temporarily move focus away from the editor.
+    return ranges.length == 1 ? ranges.single : null;
   }
 
   static final _inlineAttributes = <String, quill.Attribute>{

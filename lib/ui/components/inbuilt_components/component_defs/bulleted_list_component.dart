@@ -34,10 +34,12 @@ class BulletedListComponent with TextComponentStateOwner implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.bodyFontFamily,
+      letterSpacing: theme.letterSpacing,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(100),
       fontWeight: FontWeight.w300,
       color: theme.textColor,
-      height: 1.5,
+      height: theme.lineHeight ?? 1.5,
     );
 
     return Padding(
@@ -55,6 +57,8 @@ class BulletedListComponent with TextComponentStateOwner implements Component {
                   listState.symbol,
                   style: TextStyle(
                     fontFamily: theme.bodyFontFamily,
+                    letterSpacing: theme.letterSpacing,
+                    wordSpacing: theme.wordSpacing,
                     color: theme.styleColor,
                     fontSize: theme.baseFontSize,
                     height: textStyle.height,

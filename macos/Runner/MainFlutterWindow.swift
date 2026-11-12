@@ -15,14 +15,29 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     MainFlutterWindow.registerDocumentFileChannel(flutterViewController)
+    MainFlutterWindow.registerSystemFontsChannel(flutterViewController)
 
     FlutterMultiWindowPlugin.setOnWindowCreatedCallback { controller in
       // Register plugins for each window spawned via desktop_multi_window.
       RegisterGeneratedPlugins(registry: controller)
       MainFlutterWindow.registerDocumentFileChannel(controller)
+      MainFlutterWindow.registerSystemFontsChannel(controller)
     }
 
     super.awakeFromNib()
+  }
+
+  static func registerSystemFontsChannel(_ controller: FlutterViewController) {
+    let channel = FlutterMethodChannel(
+      name: "booklet/system_fonts", binaryMessenger: controller.engine.binaryMessenger)
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "listFamilies":
+        result(NSFontManager.shared.availableFontFamilies.sorted())
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 
   // Foundation's replacement directory supports safe saves to user-selected

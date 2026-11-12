@@ -29,12 +29,13 @@ class SubtitleComponent with TextComponentStateOwner implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.bodyFontFamily,
+      letterSpacing: theme.letterSpacing + 0.2,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(157),
-      height: 1.2,
+      height: theme.lineHeight ?? 1.2,
       color: theme.textColor,
       fontStyle: .italic,
       fontWeight: .w200,
-      letterSpacing: 0.2,
     );
 
     return AutoHeightRichText2(

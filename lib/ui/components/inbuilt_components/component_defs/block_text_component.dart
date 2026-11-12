@@ -29,10 +29,12 @@ class BlockTextComponent with TextComponentStateOwner implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.bodyFontFamily,
+      letterSpacing: theme.letterSpacing + 1.2,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(100),
-      letterSpacing: 1.2,
+
       color: theme.textColor,
-      height: 1.5,
+      height: theme.lineHeight ?? 1.5,
     );
 
     return AutoHeightRichText2(

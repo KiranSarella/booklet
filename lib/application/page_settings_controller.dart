@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:booklet/application/system_fonts.dart';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +9,8 @@ import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 
 enum PageWidth { normal, wide, twoColumns }
+
+enum PageFontRole { body, headings }
 
 class PageSettingsController extends ChangeNotifier {
   PageSettingsController(
@@ -32,7 +36,52 @@ class PageSettingsController extends ChangeNotifier {
   final _Palette _dark;
   final List<PageColorTheme> _lightCustomThemes = [];
   final List<PageColorTheme> _darkCustomThemes = [];
+  static const _favoriteFontsKey = 'editor.favoriteSystemFonts';
+  final Map<PageFontRole, List<String>> _favoriteFonts = {
+    for (final role in PageFontRole.values) role: [],
+  };
+
+  List<String> favoriteFonts(PageFontRole role) =>
+      List.unmodifiable(_favoriteFonts[role]!);
+
+  Future<void> toggleFavoriteFont(String font, PageFontRole role) async {
+    if (!font.startsWith(SystemFonts.prefix)) return;
+    final favorites = _favoriteFonts[role]!;
+    if (!favorites.remove(font)) favorites.add(font);
+    notifyListeners();
+    final preferences = await _preferences;
+    await preferences.setStringList(
+      '$_favoriteFontsKey.${role.name}',
+      favorites,
+    );
+  }
+
   double baseFontSize;
+  double _letterSpacing = 0;
+  double _wordSpacing = 0;
+  double? _lineHeight;
+
+  double get letterSpacing => _letterSpacing;
+  double get wordSpacing => _wordSpacing;
+  double? get lineHeight => _lineHeight;
+
+  void updateLetterSpacing(double value) {
+    if (value.isFinite) _update(() => _letterSpacing = value.clamp(-1, 5));
+  }
+
+  void updateWordSpacing(double value) {
+    if (value.isFinite) _update(() => _wordSpacing = value.clamp(0, 12));
+  }
+
+  void updateLineHeight(double value) {
+    if (value.isFinite) _update(() => _lineHeight = value.clamp(1, 2.5));
+  }
+
+  void resetAdvancedTypography() => _update(() {
+    _letterSpacing = 0;
+    _wordSpacing = 0;
+    _lineHeight = null;
+  });
   EditorAppearanceMode _appearanceMode = EditorAppearanceMode.auto;
   PageWidth _pageWidth = PageWidth.normal;
 
@@ -142,6 +191,20 @@ class PageSettingsController extends ChangeNotifier {
 
   Future<void> load() async {
     final preferences = await _preferences;
+    for (final role in PageFontRole.values) {
+      final key = '$_favoriteFontsKey.${role.name}';
+      final saved =
+          preferences.getStringList(key) ??
+          preferences.getStringList(_favoriteFontsKey) ??
+          [];
+      final favorites = _favoriteFonts[role]!
+        ..clear()
+        ..addAll(
+          saved.where((font) => font.startsWith(SystemFonts.prefix)).toSet(),
+        );
+      // Persist migrated lists even when empty so legacy favorites cannot return.
+      await preferences.setStringList(key, favorites);
+    }
     final savedMode = preferences.getString(_appearanceModeKey);
     _appearanceMode = EditorAppearanceMode.values.firstWhere(
       (mode) => mode.name == savedMode,
@@ -153,6 +216,18 @@ class PageSettingsController extends ChangeNotifier {
       orElse: () => PageWidth.normal,
     );
     baseFontSize = preferences.getDouble(_baseFontSizeKey) ?? baseFontSize;
+    final savedLetterSpacing = preferences.getDouble('editor.letterSpacing');
+    final savedWordSpacing = preferences.getDouble('editor.wordSpacing');
+    final savedLineHeight = preferences.getDouble('editor.lineHeight');
+    _letterSpacing = savedLetterSpacing != null && savedLetterSpacing.isFinite
+        ? savedLetterSpacing.clamp(-1, 5)
+        : 0;
+    _wordSpacing = savedWordSpacing != null && savedWordSpacing.isFinite
+        ? savedWordSpacing.clamp(0, 12)
+        : 0;
+    _lineHeight = savedLineHeight != null && savedLineHeight.isFinite
+        ? savedLineHeight.clamp(1, 2.5)
+        : null;
     _light.load(preferences, '$_paletteKeyPrefix.light');
     _dark.load(preferences, '$_paletteKeyPrefix.dark');
     _loadThemes(preferences.getString(_lightThemesKey), _lightCustomThemes);
@@ -171,6 +246,13 @@ class PageSettingsController extends ChangeNotifier {
     await preferences.setString(_appearanceModeKey, _appearanceMode.name);
     await preferences.setString(_pageWidthKey, _pageWidth.name);
     await preferences.setDouble(_baseFontSizeKey, baseFontSize);
+    await preferences.setDouble('editor.letterSpacing', _letterSpacing);
+    await preferences.setDouble('editor.wordSpacing', _wordSpacing);
+    if (_lineHeight == null) {
+      await preferences.remove('editor.lineHeight');
+    } else {
+      await preferences.setDouble('editor.lineHeight', _lineHeight!);
+    }
     _light.save(preferences, '$_paletteKeyPrefix.light');
     _dark.save(preferences, '$_paletteKeyPrefix.dark');
   }
@@ -207,6 +289,8 @@ class PageSettingsController extends ChangeNotifier {
 
   String? _resolveFontFamily(String font) => font == PageColorTheme.systemFont
       ? null
+      : font.startsWith(SystemFonts.prefix)
+      ? SystemFonts.label(font)
       : GoogleFonts.getFont(font).fontFamily;
 }
 

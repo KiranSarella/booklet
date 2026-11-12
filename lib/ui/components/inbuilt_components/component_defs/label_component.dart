@@ -29,6 +29,9 @@ class LabelComponent with TextComponentStateOwner implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.bodyFontFamily,
+      height: theme.lineHeight,
+      letterSpacing: theme.letterSpacing,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(107),
       fontWeight: FontWeight.w600,
       color: theme.textColor,

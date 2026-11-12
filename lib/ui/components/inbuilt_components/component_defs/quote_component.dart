@@ -48,18 +48,23 @@ class QuoteComponent implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.bodyFontFamily,
+      letterSpacing: theme.letterSpacing + 2,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(160),
       // fontFamily: 'Menlo',
-      letterSpacing: 2,
+
       color: theme.styleColor,
-      height: 1.2,
+      height: theme.lineHeight ?? 1.2,
     );
 
     TextStyle authorTextStyle = TextStyle(
       fontFamily: theme.bodyFontFamily,
+      height: theme.lineHeight,
+      letterSpacing: theme.letterSpacing + 2.4,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(120),
       // fontFamily: 'Menlo',
-      letterSpacing: 2.4,
+
       color: theme.textColor,
       // height: 1.5,
     );
@@ -75,6 +80,9 @@ class QuoteComponent implements Component {
                 "❝",
                 style: TextStyle(
                   fontFamily: theme.bodyFontFamily,
+                  height: theme.lineHeight,
+                  letterSpacing: theme.letterSpacing,
+                  wordSpacing: theme.wordSpacing,
                   fontSize: fontSizePercent(200),
                   color: theme.styleColor,
                 ),
@@ -111,6 +119,9 @@ class QuoteComponent implements Component {
                 "❞",
                 style: TextStyle(
                   fontFamily: theme.bodyFontFamily,
+                  height: theme.lineHeight,
+                  letterSpacing: theme.letterSpacing,
+                  wordSpacing: theme.wordSpacing,
                   fontSize: fontSizePercent(200),
                   color: theme.styleColor,
                 ),

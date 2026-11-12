@@ -29,10 +29,12 @@ class TitleComponent with TextComponentStateOwner implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.headingsFontFamily,
+      letterSpacing: theme.letterSpacing,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(310),
       fontWeight: FontWeight.w800,
       color: theme.headingColor,
-      height: 1.4,
+      height: theme.lineHeight ?? 1.4,
     );
 
     return AutoHeightRichText2(

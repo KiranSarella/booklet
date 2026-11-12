@@ -34,10 +34,12 @@ class NumberedListComponent with TextComponentStateOwner implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.bodyFontFamily,
+      letterSpacing: theme.letterSpacing,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(100),
       fontWeight: FontWeight.w300,
       color: theme.textColor,
-      height: 1.5,
+      height: theme.lineHeight ?? 1.5,
     );
 
     return Padding(

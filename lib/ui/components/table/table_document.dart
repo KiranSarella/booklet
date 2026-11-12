@@ -206,6 +206,9 @@ class TablePreview extends StatelessWidget {
                                 : textColor,
                             fontFamily: page?.bodyFontFamily,
                             fontSize: page?.baseFontSize,
+                            letterSpacing: page?.letterSpacing,
+                            wordSpacing: page?.wordSpacing,
+                            height: page?.lineHeight,
                             fontWeight: cell.bold || state.header && r == 0
                                 ? FontWeight.bold
                                 : FontWeight.normal,

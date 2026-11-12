@@ -29,6 +29,9 @@ class CaptionComponent with TextComponentStateOwner implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.bodyFontFamily,
+      height: theme.lineHeight,
+      letterSpacing: theme.letterSpacing,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(79),
       fontWeight: FontWeight.w400,
       color: theme.textColor,

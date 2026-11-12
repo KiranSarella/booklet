@@ -23,6 +23,18 @@ class PageSettingsVM {
   Color get textColor => pageSettingsController.textColor;
   Color get styleColor => pageSettingsController.styleColor;
   Color get pageBackgroundColor => pageSettingsController.pageBackgroundColor;
+  double get letterSpacing => pageSettingsController.letterSpacing;
+  double get wordSpacing => pageSettingsController.wordSpacing;
+  double? get lineHeight => pageSettingsController.lineHeight;
+  void updateLetterSpacing(double value) =>
+      pageSettingsController.updateLetterSpacing(value);
+  void updateWordSpacing(double value) =>
+      pageSettingsController.updateWordSpacing(value);
+  void updateLineHeight(double value) =>
+      pageSettingsController.updateLineHeight(value);
+  void resetAdvancedTypography() =>
+      pageSettingsController.resetAdvancedTypography();
+
   double get baseFontSize => pageSettingsController.baseFontSize;
   String get bodyFont => pageSettingsController.bodyFont;
   String get headingsFont => pageSettingsController.headingsFont;

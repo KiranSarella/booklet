@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:booklet/application/system_fonts.dart';
 import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/detail/editor/page_settings/page_settings_vm.dart';
@@ -156,12 +157,16 @@ class PageSettingsDialog extends StatelessWidget {
                 ),
                 _FontPicker(
                   label: 'Body font',
+                  role: PageFontRole.body,
+                  controller: viewModel.pageSettingsController,
                   value: viewModel.bodyFont,
                   options: PageColorTheme.bodyFontOptions,
                   onChanged: viewModel.updateBodyFont,
                 ),
                 _FontPicker(
                   label: 'Headings font',
+                  role: PageFontRole.headings,
+                  controller: viewModel.pageSettingsController,
                   value: viewModel.headingsFont,
                   options: PageColorTheme.headingsFontOptions,
                   onChanged: viewModel.updateHeadingsFont,
@@ -203,6 +208,51 @@ class PageSettingsDialog extends StatelessWidget {
                             ),
                     ),
                   ),
+                const SizedBox(height: 16),
+                const Divider(),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Typography',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _SpacingSlider(
+                  label: 'Letter spacing',
+                  value: viewModel.letterSpacing,
+                  min: -1,
+                  max: 5,
+                  divisions: 60,
+                  unit: 'px',
+                  onChanged: viewModel.updateLetterSpacing,
+                ),
+                _SpacingSlider(
+                  label: 'Word spacing',
+                  value: viewModel.wordSpacing,
+                  min: 0,
+                  max: 12,
+                  divisions: 48,
+                  unit: 'px',
+                  onChanged: viewModel.updateWordSpacing,
+                ),
+                _SpacingSlider(
+                  label: 'Line height',
+                  value: viewModel.lineHeight ?? 1.5,
+                  min: 1,
+                  max: 2.5,
+                  divisions: 30,
+                  unit: '×',
+                  automatic: viewModel.lineHeight == null,
+                  onChanged: viewModel.updateLineHeight,
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: viewModel.resetAdvancedTypography,
+                    child: const Text('Reset typography'),
+                  ),
+                ),
               ],
             ),
           ),
@@ -289,30 +339,243 @@ class _FontPicker extends StatelessWidget {
     required this.value,
     required this.options,
     required this.onChanged,
+    required this.controller,
+    required this.role,
   });
 
-  final String label;
-  final String value;
+  final PageFontRole role;
+  final String label, value;
   final List<String> options;
   final ValueChanged<String> onChanged;
+  final PageSettingsController controller;
+  static const _chooseFonts = '__choose_system_fonts__';
+
+  Future<void> _choose(BuildContext context) async {
+    final font = await showDialog<String>(
+      context: context,
+      builder: (_) => _SystemFontDialog(
+        controller: controller,
+        selected: value,
+        role: role,
+      ),
+    );
+    if (font != null) onChanged(font);
+  }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: InputDecorator(
-      decoration: InputDecoration(labelText: label),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: options.contains(value) ? value : PageColorTheme.systemFont,
-          isExpanded: true,
-          items: [
-            for (final option in options)
-              DropdownMenuItem(value: option, child: Text(option)),
-          ],
-          onChanged: (font) {
-            if (font != null) onChanged(font);
-          },
+  Widget build(BuildContext context) {
+    final favorites = controller
+        .favoriteFonts(role)
+        .where((font) => !options.contains(font))
+        .toList();
+    final otherSelected =
+        !options.contains(value) && !favorites.contains(value);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: InputDecorator(
+        decoration: InputDecoration(labelText: label),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: value,
+            isExpanded: true,
+            items: [
+              for (final font in options)
+                DropdownMenuItem(
+                  value: font,
+                  child: Text(SystemFonts.label(font)),
+                ),
+              if (favorites.isNotEmpty) ...[
+                DropdownMenuItem<String>(
+                  enabled: false,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'Favorites',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+                for (final font in favorites)
+                  DropdownMenuItem(
+                    value: font,
+                    child: Text(SystemFonts.label(font)),
+                  ),
+              ],
+              if (otherSelected)
+                DropdownMenuItem(
+                  value: value,
+                  child: Text(SystemFonts.label(value)),
+                ),
+              DropdownMenuItem(
+                value: _chooseFonts,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.font_download_outlined,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Choose system fonts…',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            onChanged: (font) {
+              if (font == _chooseFonts) {
+                _choose(context);
+              } else if (font != null) {
+                onChanged(font);
+              }
+            },
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _SystemFontDialog extends StatefulWidget {
+  const _SystemFontDialog({
+    required this.controller,
+    required this.selected,
+    required this.role,
+  });
+  final PageFontRole role;
+  final PageSettingsController controller;
+  final String selected;
+
+  @override
+  State<_SystemFontDialog> createState() => _SystemFontDialogState();
+}
+
+class _SystemFontDialogState extends State<_SystemFontDialog> {
+  late Future<List<String>> _fonts = SystemFonts.availableFamilies();
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Row(
+      children: [
+        const Expanded(child: Text('Choose system fonts')),
+        IconButton(
+          tooltip: 'Close',
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close),
+        ),
+      ],
+    ),
+    content: SizedBox(
+      width: 440,
+      height: 440,
+      child: Column(
+        children: [
+          TextField(
+            decoration: const InputDecoration(
+              labelText: 'Search fonts',
+              prefixIcon: Icon(Icons.search),
+            ),
+            onChanged: (value) => setState(() => _query = value.toLowerCase()),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: FutureBuilder<List<String>>(
+              future: _fonts,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('Unable to load system fonts.'),
+                        TextButton(
+                          onPressed: () => setState(() {
+                            _fonts = SystemFonts.availableFamilies();
+                          }),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final fonts = snapshot.data!
+                    .where((font) => font.toLowerCase().contains(_query))
+                    .toList();
+                if (fonts.isEmpty) {
+                  return const Center(child: Text('No fonts found.'));
+                }
+                return AnimatedBuilder(
+                  animation: widget.controller,
+                  builder: (context, _) => ListView.builder(
+                    itemCount: fonts.length,
+                    itemBuilder: (context, index) {
+                      final family = fonts[index];
+                      final font = SystemFonts.encode(family);
+                      final favorite = widget.controller
+                          .favoriteFonts(widget.role)
+                          .contains(font);
+                      return ListTile(
+                        selected: widget.selected == font,
+                        title: Text(
+                          family,
+                          style: TextStyle(fontFamily: family),
+                        ),
+                        onTap: () => Navigator.of(context).pop(font),
+                        trailing: IconButton(
+                          tooltip: favorite
+                              ? 'Unfavorite $family'
+                              : 'Favorite $family',
+                          icon: Icon(favorite ? Icons.star : Icons.star_border),
+                          onPressed: () => widget.controller.toggleFavoriteFont(
+                            font,
+                            widget.role,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     ),
   );
@@ -369,5 +632,46 @@ class _ThemeColorRow extends StatelessWidget {
     if (selectedColor != null) {
       onChanged(selectedColor);
     }
+  }
+}
+
+class _SpacingSlider extends StatelessWidget {
+  const _SpacingSlider({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.divisions,
+    required this.unit,
+    required this.onChanged,
+    this.automatic = false,
+  });
+
+  final String label;
+  final double value, min, max;
+  final int divisions;
+  final String unit;
+  final bool automatic;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final display = automatic ? 'Default' : '${value.toStringAsFixed(2)} $unit';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('$label: $display'),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: divisions,
+          label: display,
+          semanticFormatterCallback: (value) =>
+              '${value.toStringAsFixed(2)} $unit',
+          onChanged: onChanged,
+        ),
+      ],
+    );
   }
 }

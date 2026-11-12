@@ -29,6 +29,9 @@ class InlineHeadingComponent with TextComponentStateOwner implements Component {
 
     TextStyle textStyle = TextStyle(
       fontFamily: theme.headingsFontFamily,
+      height: theme.lineHeight,
+      letterSpacing: theme.letterSpacing,
+      wordSpacing: theme.wordSpacing,
       fontSize: fontSizePercent(100),
       fontWeight: FontWeight.w600,
       color: theme.headingColor,
