@@ -137,6 +137,33 @@ class TextComponentState extends ComponentState {
     return handler(text);
   }
 
+  /// Pastes plain text into this component, removing one break per newline run.
+  Future<void> pasteWithFewerLineBreaks() async {
+    if (controller.readOnly) return;
+    // Menu clicks and asynchronous clipboard reads can move editor focus.
+    // Keep the insertion range from when the command was invoked.
+    final selection = controller.selection;
+    final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
+    if (text == null || text.isEmpty || controller.readOnly) return;
+    final normalized = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    final cleaned = normalized.replaceAllMapped(
+      RegExp(r'\n+'),
+      (match) => match[0]!.length == 1 ? ' ' : match[0]!.substring(1),
+    );
+    final end = controller.document.length - 1;
+    final start = selection.isValid ? selection.start.clamp(0, end) : end;
+    final length = selection.isValid
+        ? selection.end.clamp(start, end) - start
+        : 0;
+    controller.replaceText(
+      start,
+      length,
+      cleaned,
+      TextSelection.collapsed(offset: start + cleaned.length),
+    );
+    focusNode.requestFocus();
+  }
+
   late final FocusNode focusNode = FocusNode();
   VoidCallback? onBackspaceAtStart;
   ValueChanged<bool>? onMoveToAdjacentTextComponent;

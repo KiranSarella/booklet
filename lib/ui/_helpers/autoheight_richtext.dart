@@ -95,6 +95,33 @@ class AutoHeightRichText2 extends StatelessWidget {
                     controller: textState.controller,
                     focusNode: textState.focusNode,
                     config: QuillEditorConfig(
+                      contextMenuBuilder: (context, editorState) {
+                        final items = editorState.contextMenuButtonItems;
+                        final pasteIndex = items.indexWhere(
+                          (item) => item.type == ContextMenuButtonType.paste,
+                        );
+                        if (!textState.controller.readOnly && pasteIndex >= 0) {
+                          items.insert(
+                            pasteIndex + 1,
+                            ContextMenuButtonItem(
+                              label: 'Paste with fewer line breaks',
+                              onPressed: () async {
+                                editorState.hideToolbar();
+                                await textState.pasteWithFewerLineBreaks();
+                              },
+                            ),
+                          );
+                        }
+                        // Keep menu presses inside the editor's tap region;
+                        // otherwise mouse-down unfocuses it and removes the
+                        // toolbar before mouse-up can invoke the command.
+                        return TextFieldTapRegion(
+                          child: AdaptiveTextSelectionToolbar.buttonItems(
+                            anchors: editorState.contextMenuAnchors,
+                            buttonItems: items,
+                          ),
+                        );
+                      },
                       scrollable: false,
                       // Quill remains interactive for text selection in
                       // read-only mode, but should not paint an insertion caret.
