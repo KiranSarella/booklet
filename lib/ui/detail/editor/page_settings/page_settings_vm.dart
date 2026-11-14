@@ -12,10 +12,17 @@ class PageSettingsVM {
   final PageSettingsController pageSettingsController;
   final DocumentSettingsController documentSettingsController;
 
+  void resetFontSize() => pageSettingsController.resetFontSize();
+
+  DocumentAppearanceMode get appAppearanceMode =>
+      documentSettingsController.appearanceMode;
+
+  void updateAppAppearanceMode(DocumentAppearanceMode mode) =>
+      documentSettingsController.updateAppearanceMode(mode);
+
   EditorAppearanceMode get appearanceMode =>
       pageSettingsController.appearanceMode;
   PageWidth get pageWidth => pageSettingsController.pageWidth;
-  bool get isTwoColumnsAvailable => documentSettingsController.isReadOnly;
 
   Color get titleColor => pageSettingsController.titleColor;
   Color get headingColor => pageSettingsController.headingColor;

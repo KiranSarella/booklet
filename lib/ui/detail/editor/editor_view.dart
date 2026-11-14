@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:booklet/ui/detail/editor/editor_search.dart';
 
 import 'package:booklet/application/editor_controller.dart';
+import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/components/component_box.dart';
 import 'package:booklet/ui/components/component_state.dart';
 import 'package:booklet/ui/detail/editor/editor_vm.dart';
@@ -613,6 +614,8 @@ May this day of your birth be auspicious!
         ]),
         builder: (context, _) {
           final matches = _searchMatches;
+          final widePage =
+              widget.controller.editorTheme.pageWidth == PageWidth.wide;
           return Stack(
             children: [
               GestureDetector(
@@ -622,28 +625,35 @@ May this day of your birth be auspicious!
                   focusNode: _pageFocusNode,
                   onKeyEvent: _handlePageKeyEvent,
                   child: ColoredBox(
-                    color: Theme.of(context).scaffoldBackgroundColor,
+                    color: widePage
+                        ? widget.controller.editorTheme.pageBackgroundColor
+                        : Theme.of(context).scaffoldBackgroundColor,
                     child: SizedBox.expand(
                       child: SingleChildScrollView(
                         key: _viewportKey,
                         controller: _scrollController,
-                        padding: EdgeInsets.fromLTRB(
-                          _showMinimap ? 210 : 90,
-                          90,
-                          90,
-                          90,
-                        ),
+                        padding: widePage
+                            ? EdgeInsets.zero
+                            : EdgeInsets.fromLTRB(
+                                _showMinimap ? 210 : 90,
+                                90,
+                                90,
+                                90,
+                              ),
                         child: Container(
                           decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withValues(alpha: 0.1),
-                                blurRadius: 30,
-                                offset: const Offset(0, -2),
-                              ),
-                            ],
+                            boxShadow: widePage
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color: Colors.grey.withValues(alpha: 0.1),
+                                      blurRadius: 30,
+                                      offset: const Offset(0, -2),
+                                    ),
+                                  ],
                           ),
                           child: PageView(
+                            fillAvailableWidth: widePage,
                             searchComponents: matches
                                 .map((m) => m.component)
                                 .toSet(),

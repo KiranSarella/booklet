@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:booklet/application/system_fonts.dart';
 import 'package:booklet/application/appearance_mode.dart';
+import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 import 'package:booklet/ui/detail/editor/page_settings/page_settings_vm.dart';
 import 'package:booklet/ui/_helpers/color_picker_dialog.dart';
@@ -13,7 +14,7 @@ class PageSettingsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Page settings'),
+      title: const Text('Appearance'),
       content: SizedBox(
         width: 360,
         child: AnimatedBuilder(
@@ -25,26 +26,65 @@ class PageSettingsDialog extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // ListTile(
-                //   contentPadding: EdgeInsets.zero,
-                //   title: const Text('Font size'),
-                //   // subtitle: Text('${viewModel.baseFontSize.toInt()} px'),
-                //   trailing: Row(
-                //     mainAxisSize: MainAxisSize.min,
-                //     children: [
-                //       IconButton(
-                //         tooltip: 'Decrease font size',
-                //         onPressed: viewModel.decreaseFontSize,
-                //         icon: const Icon(Icons.remove),
-                //       ),
-                //       IconButton(
-                //         tooltip: 'Increase font size',
-                //         onPressed: viewModel.increaseFontSize,
-                //         icon: const Icon(Icons.add),
-                //       ),
-                //     ],
-                //   ),
-                // ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'App appearance',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<DocumentAppearanceMode>(
+                    segments: const [
+                      ButtonSegment(
+                        value: DocumentAppearanceMode.light,
+                        label: Text('Light'),
+                        icon: Icon(Icons.light_mode_outlined),
+                      ),
+                      ButtonSegment(
+                        value: DocumentAppearanceMode.dark,
+                        label: Text('Dark'),
+                        icon: Icon(Icons.dark_mode_outlined),
+                      ),
+                      ButtonSegment(
+                        value: DocumentAppearanceMode.auto,
+                        label: Text('Auto'),
+                        icon: Icon(Icons.brightness_auto_outlined),
+                      ),
+                    ],
+                    selected: {viewModel.appAppearanceMode},
+                    onSelectionChanged: (selection) =>
+                        viewModel.updateAppAppearanceMode(selection.first),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Font size'),
+                  // subtitle: Text('${viewModel.baseFontSize.toInt()} px'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Decrease font size',
+                        onPressed: viewModel.decreaseFontSize,
+                        icon: const Icon(Icons.remove),
+                      ),
+                      IconButton(
+                        tooltip: 'Reset font size',
+                        onPressed: viewModel.resetFontSize,
+                        icon: const Icon(Icons.format_size),
+                      ),
+                      IconButton(
+                        tooltip: 'Increase font size',
+                        onPressed: viewModel.increaseFontSize,
+                        icon: const Icon(Icons.add),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -68,12 +108,6 @@ class PageSettingsDialog extends StatelessWidget {
                         label: Text('Wide'),
                         icon: Icon(Icons.crop_landscape_outlined),
                       ),
-                      ButtonSegment(
-                        value: PageWidth.twoColumns,
-                        label: const Text('Columns'),
-                        icon: const Icon(Icons.view_column_outlined),
-                        enabled: viewModel.isTwoColumnsAvailable,
-                      ),
                     ],
                     selected: {viewModel.pageWidth},
                     onSelectionChanged: (selection) {
@@ -81,24 +115,12 @@ class PageSettingsDialog extends StatelessWidget {
                     },
                   ),
                 ),
-                if (!viewModel.isTwoColumnsAvailable)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Two columns is available only in read-only mode.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  ),
-
                 const SizedBox(height: 16),
 
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Page Theme',
+                    'Page appearance',
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ),

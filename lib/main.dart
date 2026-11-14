@@ -33,8 +33,11 @@ Future<void> main(List<String> args) async {
   final documentSettingsController = DocumentSettingsController(
     forceReadOnly: Platform.isAndroid,
   );
+  final view = WidgetsBinding.instance.platformDispatcher.views.first;
+  final logicalSize = view.physicalSize / view.devicePixelRatio;
   final pageSettingsController = PageSettingsController(
     documentSettingsController,
+    isAndroidTablet: Platform.isAndroid && logicalSize.shortestSide >= 600,
   );
   final application = App(pageSettingsController, documentSettingsController);
 

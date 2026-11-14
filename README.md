@@ -6,10 +6,10 @@ A free and open-source, component-based document application for education.
 
 Version: 0.1
 
+Contributions are welcome.
+
 # Supported Platforms
 Used flutter to make it platform independent.
-
-Contributions are welcome.
 
 **write mode**
 - [X] linux desktop (working)
@@ -17,7 +17,7 @@ Contributions are welcome.
 - [ ] windows desktop
 
 **read-only mode**
-- [x] android tablet (testing)
+- [x] android tablet (working)
 - [ ] android mobile
 - [ ] iOS tablet
 - [ ] iOS mobiles
@@ -40,6 +40,8 @@ Contributions are welcome.
 ![](/readme-screenshots/highlight.png)
 
 ![](/readme-screenshots/icons.png)
+
+![](/readme-screenshots/compose.png)
 
 
 # Flutter

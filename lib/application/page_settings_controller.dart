@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 
-enum PageWidth { normal, wide, twoColumns }
+enum PageWidth { normal, wide }
 
 enum PageFontRole { body, headings }
 
@@ -16,7 +16,9 @@ class PageSettingsController extends ChangeNotifier {
   PageSettingsController(
     this.documentSettingsController, {
     this.baseFontSize = 14,
-  }) : originalBaseFontSize = baseFontSize,
+    this.isAndroidTablet = false,
+  }) : _pageWidth = isAndroidTablet ? PageWidth.wide : PageWidth.normal,
+       originalBaseFontSize = baseFontSize,
        _light = _Palette.light(),
        _dark = _Palette.dark();
 
@@ -31,6 +33,7 @@ class PageSettingsController extends ChangeNotifier {
   // primary document appearance instead of the system brightness directly.
   final DocumentSettingsController documentSettingsController;
   final double originalBaseFontSize;
+  final bool isAndroidTablet;
   final _preferences = SharedPreferences.getInstance();
   final _Palette _light;
   final _Palette _dark;
@@ -83,7 +86,7 @@ class PageSettingsController extends ChangeNotifier {
     _lineHeight = null;
   });
   EditorAppearanceMode _appearanceMode = EditorAppearanceMode.auto;
-  PageWidth _pageWidth = PageWidth.normal;
+  PageWidth _pageWidth;
 
   EditorAppearanceMode get appearanceMode => _appearanceMode;
   PageWidth get pageWidth => _pageWidth;
@@ -94,11 +97,11 @@ class PageSettingsController extends ChangeNotifier {
       ? Brightness.dark
       : Brightness.light;
 
-  // Two-column layout is not implemented yet; treat it like unconstrained width.
+  bool get fillsViewport => _pageWidth == PageWidth.wide;
+
   double? get maxContentWidth => switch (_pageWidth) {
     PageWidth.normal => normalContentWidth,
     PageWidth.wide => wideContentWidth,
-    PageWidth.twoColumns => null,
   };
 
   // Typical desktop document widths (roughly US-Letter proportions at 96dpi).
@@ -213,7 +216,9 @@ class PageSettingsController extends ChangeNotifier {
     final savedWidth = preferences.getString(_pageWidthKey);
     _pageWidth = PageWidth.values.firstWhere(
       (width) => width.name == savedWidth,
-      orElse: () => PageWidth.normal,
+      orElse: () => savedWidth == 'twoColumns' || isAndroidTablet
+          ? PageWidth.wide
+          : PageWidth.normal,
     );
     baseFontSize = preferences.getDouble(_baseFontSizeKey) ?? baseFontSize;
     final savedLetterSpacing = preferences.getDouble('editor.letterSpacing');

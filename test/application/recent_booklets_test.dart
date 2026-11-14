@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:booklet/application/recent_booklets.dart';
@@ -52,5 +53,32 @@ void main() {
     expect(paths, hasLength(10));
     expect(paths.first, p.normalize('/books/11.booklet'));
     expect(paths.last, p.normalize('/books/2.booklet'));
+  });
+  test('Android history persists the original URI and display name across cache deletion', () async {
+    final cache = await Directory.systemTemp.createTemp('reader_recents_test_');
+    const uri = 'content://provider/document/primary%3ABooks%2FStudy.booklet';
+    await File('${cache.path}/.booklet-source.json')
+        .writeAsString(jsonEncode({'uri': uri, 'name': 'Study.booklet'}));
+    await RecentBooklets.recordAndroidDocument(cache.path);
+    await cache.delete(recursive: true);
+    expect(await RecentBooklets.load(), [uri]);
+    expect((await RecentBooklets.loadEntries()).single.name, 'Study.booklet');
+    const channel = MethodChannel('booklet/open_file');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return call.method == 'reopenBooklet' ? '/fresh/cache' : null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null),
+    );
+    expect(await RecentBooklets.restoreAccess(uri), '/fresh/cache');
+    expect(calls.single.method, 'reopenBooklet');
+    expect(calls.single.arguments, {'uri': uri});
+    await RecentBooklets.remove(uri);
+    expect(await RecentBooklets.load(), isEmpty);
+    expect(calls.last.method, 'forgetBooklet');
   });
 }

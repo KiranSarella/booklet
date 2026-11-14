@@ -3,6 +3,8 @@ package com.example.booklet
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
+import org.json.JSONObject
 import android.provider.DocumentsContract
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -53,11 +55,39 @@ class MainActivity : FlutterActivity() {
                             addCategory(Intent.CATEGORY_OPENABLE)
                             // Providers do not consistently recognise custom extensions.
                             type = "*/*"
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
                             putExtra(Intent.EXTRA_TITLE, "Open .booklet document")
                         }
                         try { startActivityForResult(picker, 302) }
                         catch (error: Exception) { finishPicker(null, error) }
+                    }
+                }
+                "forgetBooklet" -> {
+                    val source = call.argument<String>("uri")
+                    try {
+                        if (source != null) {
+                            val uri = Uri.parse(source)
+                            if (contentResolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission }) {
+                                contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                        }
+                        result.success(null)
+                    } catch (error: SecurityException) {
+                        result.error("ACCESS_REVOKED", error.message, null)
+                    }
+                }
+                "reopenBooklet" -> {
+                    val source = call.argument<String>("uri")
+                    if (source == null) {
+                        result.error("OPEN_FAILED", "Missing document reference", null)
+                    } else worker.execute {
+                        try {
+                            val uri = Uri.parse(source)
+                            val path = importBooklet(uri, DocumentsContract.isTreeUri(uri))
+                            runOnUiThread { result.success(path) }
+                        } catch (error: Exception) {
+                            runOnUiThread { result.error("OPEN_FAILED", error.message, null) }
+                        }
                     }
                 }
                 else -> result.notImplemented()
@@ -74,6 +104,7 @@ class MainActivity : FlutterActivity() {
     private fun receiveIntent(intent: Intent?) {
         if (intent?.action != Intent.ACTION_VIEW) return
         val uri = intent.data ?: return
+        retainReadAccess(uri, intent.flags)
         worker.execute {
             try {
                 val path = importBooklet(uri, DocumentsContract.isTreeUri(uri))
@@ -95,6 +126,7 @@ class MainActivity : FlutterActivity() {
         if (requestCode != 301 && requestCode != 302) return
         val uri = data?.data
         if (resultCode != RESULT_OK || uri == null) { finishPicker(null, null); return }
+        retainReadAccess(uri, data?.flags ?: 0)
         worker.execute {
             try {
                 val path = importBooklet(uri, requestCode == 301)
@@ -103,6 +135,25 @@ class MainActivity : FlutterActivity() {
                 runOnUiThread { finishPicker(null, error) }
             }
         }
+    }
+
+    private fun retainReadAccess(uri: Uri, flags: Int) {
+        if ((flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) == 0) return
+        try {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: SecurityException) {
+            // Some external viewers only grant access for this launch. Reopening
+            // then reports that the original must be selected again.
+        }
+    }
+
+    private fun documentName(uri: Uri): String {
+        try {
+            contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                if (it.moveToFirst()) return it.getString(0) ?: "Booklet"
+            }
+        } catch (_: Exception) { }
+        return uri.lastPathSegment?.substringAfterLast('/') ?: "Booklet"
     }
 
     private fun finishPicker(path: String?, error: Exception?) {
@@ -150,6 +201,8 @@ class MainActivity : FlutterActivity() {
                     ?.singleOrNull() ?: error("Choose a valid .booklet document")
             }
             require(File(packageRoot, "content.json").isFile) { "Missing content.json" }
+            File(packageRoot, ".booklet-source.json").writeText(JSONObject()
+                .put("uri", uri.toString()).put("name", documentName(uri)).toString())
             return packageRoot.absolutePath
         } catch (error: Exception) {
             root.deleteRecursively()

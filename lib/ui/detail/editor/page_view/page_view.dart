@@ -9,6 +9,7 @@ class PageView extends StatelessWidget {
   const PageView({
     super.key,
     this.readerLayout = false,
+    this.fillAvailableWidth = false,
     this.searchComponents = const {},
     this.activeSearchComponent,
     required this.editorTheme,
@@ -23,6 +24,7 @@ class PageView extends StatelessWidget {
   });
 
   final bool readerLayout;
+  final bool fillAvailableWidth;
   final Set<ComponentBox> searchComponents;
   final ComponentBox? activeSearchComponent;
   final PageSettingsController editorTheme;
@@ -136,7 +138,9 @@ class PageView extends StatelessWidget {
           child: ConstrainedBox(
             constraints: BoxConstraints(
               minHeight: readerLayout ? 0 : 900,
-              maxWidth: editorTheme.maxContentWidth ?? double.infinity,
+              maxWidth: fillAvailableWidth || editorTheme.fillsViewport
+                  ? double.infinity
+                  : editorTheme.maxContentWidth ?? double.infinity,
             ),
             child: Container(
               width: double.infinity,

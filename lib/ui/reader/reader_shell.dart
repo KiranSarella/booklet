@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:booklet/application/app.dart';
-import 'package:booklet/application/appearance_mode.dart';
-import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/ui/reader/reader_page_view.dart';
+import 'package:booklet/ui/detail/editor/page_settings/page_settings_view.dart';
+import 'package:booklet/ui/detail/editor/page_settings/page_settings_vm.dart';
+import 'package:booklet/ui/reader/reader_start_view.dart';
 import 'package:booklet/ui/sidebar/booklet_search_view.dart';
 import 'package:booklet/ui/sidebar/document_settings/document_information_section.dart';
 import 'package:booklet/ui/sidebar/pages_navigation/navigation_node.dart';
@@ -30,17 +31,28 @@ class _ReaderShellState extends State<ReaderShell> {
   String? _pageError;
   bool _pinNavigation = false;
 
-  Future<void> _open() async {
+  Future<void> _open() => _openDocument(widget.onOpen);
+
+  Future<void> _openRecent(String path) => _openDocument(() async {
+    await widget.application.openBookletAtPath(path);
+  }, recent: true);
+
+  Future<void> _openDocument(
+    Future<void> Function() action, {
+    bool recent = false,
+  }) async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      await widget.onOpen();
+      await action();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Could not open booklet. Choose a valid .booklet file.',
+              recent
+                  ? 'Could not reopen booklet. It may have moved or access expired. Use Open booklet to select it again.'
+                  : 'Could not open booklet. Choose a valid .booklet file.',
             ),
           ),
         );
@@ -114,86 +126,13 @@ class _ReaderShellState extends State<ReaderShell> {
   }
 
   void _appearance() {
-    final settings = widget.application.documentSettingsController;
-    final page = widget.application.editorTheme;
-    _sheet(
-      ListenableBuilder(
-        listenable: Listenable.merge([settings, page]),
-        builder: (context, _) => ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            Text(
-              'Reading appearance',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 24),
-            const Text('Document appearance'),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final mode in DocumentAppearanceMode.values)
-                  ChoiceChip(
-                    label: Text(mode.name),
-                    selected: settings.appearanceMode == mode,
-                    onSelected: (_) => settings.updateAppearanceMode(mode),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Text('Page appearance'),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final mode in EditorAppearanceMode.values)
-                  ChoiceChip(
-                    label: Text(mode.name),
-                    selected: page.appearanceMode == mode,
-                    onSelected: (_) => page.updateAppearanceMode(mode),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Text('Page theme'),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final theme in page.themes)
-                  ActionChip(
-                    label: Text(theme.name),
-                    avatar: CircleAvatar(
-                      backgroundColor: theme.pageBackgroundColor,
-                      child: Icon(
-                        Icons.palette_outlined,
-                        size: 16,
-                        color: theme.textColor,
-                      ),
-                    ),
-                    onPressed: () => page.applyTheme(theme),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Text('Font size: ${page.baseFontSize.round()}'),
-            Wrap(
-              spacing: 12,
-              children: [
-                IconButton(
-                  tooltip: 'Decrease font size',
-                  onPressed: page.decreaseFontSize,
-                  icon: const Icon(Icons.text_decrease),
-                ),
-                TextButton(
-                  onPressed: page.resetFontSize,
-                  child: const Text('Reset'),
-                ),
-                IconButton(
-                  tooltip: 'Increase font size',
-                  onPressed: page.increaseFontSize,
-                  icon: const Icon(Icons.text_increase),
-                ),
-              ],
-            ),
-          ],
+    showDialog<void>(
+      context: context,
+      builder: (_) => PageSettingsDialog(
+        viewModel: PageSettingsVM(
+          pageSettingsController: widget.application.editorTheme,
+          documentSettingsController:
+              widget.application.documentSettingsController,
         ),
       ),
     );
@@ -336,9 +275,9 @@ class _ReaderShellState extends State<ReaderShell> {
                   icon: const Icon(Icons.manage_search),
                 ),
                 IconButton(
-                  tooltip: 'Reading appearance',
+                  tooltip: 'Appearance',
                   onPressed: _appearance,
-                  icon: const Icon(Icons.text_format),
+                  icon: const Icon(Icons.palette_outlined),
                 ),
               ],
               PopupMenuButton<String>(
@@ -373,36 +312,15 @@ class _ReaderShellState extends State<ReaderShell> {
               ? Drawer(child: _navigation(drawer: true))
               : null,
           body: SafeArea(
+            left: !widget.application.editorTheme.fillsViewport,
+            right: !widget.application.editorTheme.fillsViewport,
             child: Stack(
               children: [
                 if (!opened)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.auto_stories_outlined, size: 64),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Your booklets, ready to read',
-                            style: Theme.of(context).textTheme.headlineSmall,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Open a .booklet file.\nDocuments open in read-only mode.',
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          FilledButton.icon(
-                            onPressed: _busy ? null : _open,
-                            icon: const Icon(Icons.folder_open),
-                            label: const Text('Open booklet'),
-                          ),
-                        ],
-                      ),
-                    ),
+                  ReaderStartView(
+                    onOpen: _open,
+                    onOpenRecent: _openRecent,
+                    busy: _busy,
                   )
                 else
                   Row(

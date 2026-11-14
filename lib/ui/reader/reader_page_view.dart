@@ -164,26 +164,46 @@ class ReaderPageViewState extends State<ReaderPageView> {
               ? const Center(child: CircularProgressIndicator())
               : widget.controller.selectedPage == null
               ? const Center(child: Text('Choose a page from navigation.'))
-              : SingleChildScrollView(
-                  controller: _scroll,
-                  padding: EdgeInsets.all(
-                    MediaQuery.sizeOf(context).width < 600 ? 8 : 24,
-                  ),
-                  child: PageView(
-                    readerLayout: true,
-                    editorTheme: widget.controller.editorTheme,
-                    page: widget.controller.selectedPage,
-                    searchComponents: matches.map((m) => m.component).toSet(),
-                    activeSearchComponent: matches.isEmpty
-                        ? null
-                        : matches[_index % matches.length].component,
-                    onSelectComponent: (_) {},
-                    onSelectComponentRange: (_) {},
-                    onCreateEntryBelow: (_, _) {},
-                    onBackspaceAtStart: (_) {},
-                    onPasteText: (_, _) async => false,
-                    onTapEmptySpace: () {},
-                    onMoveToAdjacentTextComponent: (_, _) {},
+              : LayoutBuilder(
+                  builder: (context, constraints) => ColoredBox(
+                    color: widget.controller.editorTheme.fillsViewport
+                        ? widget.controller.editorTheme.pageBackgroundColor
+                        : Theme.of(context).scaffoldBackgroundColor,
+                    child: SingleChildScrollView(
+                      controller: _scroll,
+                      padding: EdgeInsets.all(
+                        widget.controller.editorTheme.fillsViewport
+                            ? 0
+                            : MediaQuery.sizeOf(context).width < 600
+                            ? 8
+                            : 24,
+                      ),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: widget.controller.editorTheme.fillsViewport
+                              ? constraints.maxHeight
+                              : 0,
+                        ),
+                        child: PageView(
+                          readerLayout: true,
+                          editorTheme: widget.controller.editorTheme,
+                          page: widget.controller.selectedPage,
+                          searchComponents: matches
+                              .map((m) => m.component)
+                              .toSet(),
+                          activeSearchComponent: matches.isEmpty
+                              ? null
+                              : matches[_index % matches.length].component,
+                          onSelectComponent: (_) {},
+                          onSelectComponentRange: (_) {},
+                          onCreateEntryBelow: (_, _) {},
+                          onBackspaceAtStart: (_) {},
+                          onPasteText: (_, _) async => false,
+                          onTapEmptySpace: () {},
+                          onMoveToAdjacentTextComponent: (_, _) {},
+                        ),
+                      ),
+                    ),
                   ),
                 ),
         ),

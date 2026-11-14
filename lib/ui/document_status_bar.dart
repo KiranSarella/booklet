@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/ui/detail/editor/page_settings/page_settings_view.dart';
 import 'package:booklet/ui/detail/editor/page_settings/page_settings_vm.dart';
-import 'package:booklet/application/appearance_mode.dart';
 import 'package:booklet/application/document_settings_controller.dart';
 import 'package:booklet/application/page_settings_controller.dart';
 
@@ -86,7 +86,7 @@ class DocumentStatusBar extends StatelessWidget {
             ),
             const SizedBox(width: 18),
             _StatusAction(
-              tooltip: 'Page settings',
+              tooltip: 'Appearance',
               icon: Icons.palette_outlined,
               onPressed: () => showDialog<void>(
                 context: context,
@@ -107,7 +107,7 @@ class DocumentStatusBar extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             _AppearancePicker<DocumentAppearanceMode>(
-              tooltip: 'Document appearance',
+              tooltip: 'App appearance',
               modes: DocumentAppearanceMode.values,
               selected: documentSettingsController.appearanceMode,
               onSelected: documentSettingsController.updateAppearanceMode,

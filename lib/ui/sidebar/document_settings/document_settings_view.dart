@@ -157,38 +157,6 @@ class DocumentSettingsView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            Text('Appearance', style: Theme.of(context).textTheme.titleSmall),
-            // Text(
-            //   'Applies to the whole app (navigation, menus). Not the page view.',
-            //   style: Theme.of(context).textTheme.bodySmall,
-            // ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<DocumentAppearanceMode>(
-                showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(
-                    value: DocumentAppearanceMode.light,
-                    tooltip: 'Light',
-                    icon: Icon(Icons.light_mode_outlined),
-                  ),
-                  ButtonSegment(
-                    value: DocumentAppearanceMode.dark,
-                    tooltip: 'Dark',
-                    icon: Icon(Icons.dark_mode_outlined),
-                  ),
-                  ButtonSegment(
-                    value: DocumentAppearanceMode.auto,
-                    tooltip: 'Auto',
-                    icon: Icon(Icons.brightness_auto_outlined),
-                  ),
-                ],
-                selected: {viewModel.appearanceMode},
-                onSelectionChanged: (selection) =>
-                    viewModel.updateAppearanceMode(selection.first),
-              ),
-            ),
             DocumentInformationSection(controller: viewModel.editorController),
             DailySnapshotsSection(controller: viewModel.editorController),
             DeletedItemsSection(controller: viewModel.editorController),
